@@ -58,6 +58,26 @@ CREATE POLICY "Admins can update applicants"
   ON applicants FOR UPDATE
   USING (auth.role() = 'authenticated');
 
+-- =============================================
+-- Storage: applications 버킷
+-- =============================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES ('applications', 'applications', true, 10485760)
+ON CONFLICT (id) DO NOTHING;
+
+-- 파일 업로드 허용
+CREATE POLICY "Allow public uploads"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'applications');
+
+-- 파일 읽기 허용 (public bucket)
+CREATE POLICY "Allow public reads"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'applications');
+
+-- =============================================
+-- settings 테이블 RLS
+-- =============================================
 -- settings는 누구나 읽기 가능
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
