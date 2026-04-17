@@ -9,12 +9,15 @@ interface CardProps {
 export function Card({ children, className = "", hover = true }: CardProps) {
   return (
     <div
-      className={`bg-white border border-gray-200 rounded-xl p-6 transition-all duration-300 ${
+      className={`group relative bg-white border border-gold-line p-6 transition-all duration-500 ${
         hover
-          ? "hover:border-gold/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/5"
+          ? "hover:border-gold/50 hover:bg-marble-light"
           : ""
       } ${className}`}
     >
+      {hover && (
+        <span className="absolute top-0 left-0 h-px bg-gold w-0 group-hover:w-full transition-[width] duration-500 ease-out" />
+      )}
       {children}
     </div>
   );

@@ -1,31 +1,50 @@
 @import "tailwindcss";
 
 @theme inline {
+  --color-navy-950: #050E1C;
   --color-navy-900: #0A1628;
   --color-navy-800: #0F1D32;
   --color-navy-700: #162240;
   --color-navy-600: #1A2744;
   --color-navy-500: #1E2D4A;
 
+  --color-ink: #0E1420;
+
   --color-gold: #C9A84C;
   --color-gold-light: #E8D48B;
   --color-gold-dark: #A08735;
   --color-gold-muted: rgba(201, 168, 76, 0.15);
+  --color-gold-line: rgba(201, 168, 76, 0.25);
 
   --color-marble: #F8F6F3;
   --color-marble-light: #FDFCFB;
   --color-marble-dark: #EDE9E3;
+  --color-ivory: #F5F1E8;
 
   --font-sans: "Pretendard Variable", "Pretendard", "Inter", system-ui, sans-serif;
   --font-display: "Inter", "Pretendard", sans-serif;
+  --font-serif: "Fraunces", "Times New Roman", serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 
 body {
   background-color: var(--color-marble);
-  color: #1A1A1A;
+  color: var(--color-ink);
   font-family: var(--font-sans);
   word-break: keep-all;
+  font-feature-settings: "ss01", "ss02", "cv11";
+}
+
+/* Tabular numbers for all numeric data */
+.tabular-nums,
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Serif for PB kickers / english display */
+.font-serif {
+  font-family: var(--font-serif);
+  font-feature-settings: "ss01";
 }
 
 /* Marble texture overlay */
@@ -35,10 +54,26 @@ body {
   background-repeat: repeat;
 }
 
+/* Thin gold grid pattern (PB hero accent) */
+.gold-grid {
+  background-image:
+    linear-gradient(to right, rgba(201, 168, 76, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(201, 168, 76, 0.05) 1px, transparent 1px);
+  background-size: 80px 80px;
+}
+
 /* Gold divider */
 .divider-gold {
   height: 1px;
-  background-color: rgba(201, 168, 76, 0.25);
+  background-color: var(--color-gold-line);
+}
+
+/* Gold gradient text (for emphasized KPI) */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #E8D48B 0%, #C9A84C 45%, #A08735 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Scrollbar styling */
@@ -59,5 +94,5 @@ body {
 /* Selection color */
 ::selection {
   background-color: rgba(201, 168, 76, 0.25);
-  color: #1A1A1A;
+  color: var(--color-ink);
 }

@@ -4,88 +4,152 @@ import { motion } from "framer-motion";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import { placements, awards } from "@/data/achievements";
 
-const typeColors: Record<string, string> = {
-  은행: "bg-blue-500/10 text-blue-600",
-  증권: "bg-purple-500/10 text-purple-600",
-  보험: "bg-green-500/10 text-green-600",
-  공기업: "bg-amber-500/10 text-amber-600",
-  정부: "bg-gold/10 text-gold-dark",
+const typeAccent: Record<string, string> = {
+  은행: "text-blue-700",
+  증권: "text-purple-700",
+  보험: "text-emerald-700",
+  공기업: "text-amber-700",
+  정부: "text-gold-dark",
 };
+
+const kpis = [
+  { value: "11", label: "취업·인턴 배출", sub: "2025 FY" },
+  { value: "05", label: "외부 수상 실적", sub: "Competitions" },
+  { value: "05", label: "활동 연차", sub: "Since 2021" },
+];
 
 export function Achievements() {
   return (
-    <section className="py-24 md:py-32 bg-white marble-texture">
-      <div className="max-w-6xl mx-auto px-6">
+    <section className="py-28 md:py-40 bg-white relative">
+      <div className="absolute inset-0 marble-texture opacity-60 pointer-events-none" />
+
+      <div className="relative max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-16">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-3xl mb-14 md:mb-20"
         >
-          <SectionLabel label="Achievements" className="mb-6" />
-          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-4">
-            2025년 주요 성과
+          <SectionLabel label="Track Record" className="mb-6" />
+          <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-ink leading-[1.1] tracking-[-0.02em] mb-5">
+            2025년 <span className="italic text-gold-dark">주요 성과.</span>
           </h2>
-          <p className="text-gray-500 text-center mb-16">
-            금은동 출신의 취업·인턴 실적과 수상 내역
+          <p className="text-base md:text-lg text-gray-500 font-light leading-relaxed">
+            금은동 출신 멤버들의 취업·인턴 배출 내역과 외부 경진대회 수상 실적입니다.
           </p>
         </motion.div>
 
-        {/* Placements */}
-        <div className="mb-16">
-          <h3 className="text-lg font-semibold text-gray-700 mb-6">
-            취업·인턴 실적
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {/* KPI row */}
+        <motion.dl
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          className="grid grid-cols-3 border-y border-gold-line mb-20 md:mb-28"
+        >
+          {kpis.map((kpi, i) => (
+            <div
+              key={kpi.label}
+              className={`py-10 md:py-14 px-4 md:px-8 ${
+                i < 2 ? "border-r border-gold-line" : ""
+              }`}
+            >
+              <dd className="font-mono tabular-nums text-5xl md:text-7xl font-light text-ink mb-3 leading-none">
+                {kpi.value}
+              </dd>
+              <dt className="text-xs md:text-sm text-ink font-medium mb-1">
+                {kpi.label}
+              </dt>
+              <p className="font-serif italic text-[11px] md:text-xs text-gold-dark tracking-wider uppercase">
+                {kpi.sub}
+              </p>
+            </div>
+          ))}
+        </motion.dl>
+
+        {/* Placements as table */}
+        <div className="mb-20 md:mb-28">
+          <div className="flex items-end justify-between mb-8 pb-4 border-b border-gold-line">
+            <div>
+              <p className="font-serif italic text-gold-dark text-xs md:text-sm tracking-[0.18em] uppercase mb-2">
+                01 — Placements
+              </p>
+              <h3 className="text-xl md:text-2xl font-medium text-ink">
+                취업·인턴 실적
+              </h3>
+            </div>
+            <span className="text-xs text-gray-400 font-mono tabular-nums">
+              {placements.length.toString().padStart(2, "0")} records
+            </span>
+          </div>
+
+          <ul>
             {placements.map((p, i) => (
-              <motion.div
+              <motion.li
                 key={`${p.company}-${p.position}`}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="bg-marble-light border border-gray-200 rounded-lg p-4 hover:border-gold/30 transition-colors"
+                transition={{ duration: 0.5, delay: i * 0.04 }}
+                className="group grid grid-cols-12 gap-4 items-center py-5 border-b border-gold-line/60 hover:bg-marble-light/50 transition-colors duration-300"
               >
-                <p className="font-semibold text-gray-800 text-sm">
-                  {p.company}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">{p.position}</p>
-                <span
-                  className={`inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-medium ${typeColors[p.type]}`}
-                >
+                <span className="col-span-1 text-xs text-gray-400 font-mono tabular-nums">
+                  {(i + 1).toString().padStart(2, "0")}
+                </span>
+                <span className={`col-span-3 md:col-span-2 text-xs md:text-sm font-medium uppercase tracking-wider ${typeAccent[p.type] ?? "text-gold-dark"}`}>
                   {p.type}
                 </span>
-              </motion.div>
+                <span className="col-span-5 md:col-span-5 text-sm md:text-base font-medium text-ink">
+                  {p.company}
+                </span>
+                <span className="col-span-3 md:col-span-4 text-xs md:text-sm text-gray-500 text-right md:text-left font-light">
+                  {p.position}
+                </span>
+              </motion.li>
             ))}
-          </div>
+          </ul>
         </div>
 
-        {/* Awards */}
+        {/* Awards as table */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-6">
-            수상 실적
-          </h3>
-          <div className="space-y-3">
+          <div className="flex items-end justify-between mb-8 pb-4 border-b border-gold-line">
+            <div>
+              <p className="font-serif italic text-gold-dark text-xs md:text-sm tracking-[0.18em] uppercase mb-2">
+                02 — Awards
+              </p>
+              <h3 className="text-xl md:text-2xl font-medium text-ink">
+                수상 실적
+              </h3>
+            </div>
+            <span className="text-xs text-gray-400 font-mono tabular-nums">
+              {awards.length.toString().padStart(2, "0")} records
+            </span>
+          </div>
+
+          <ul>
             {awards.map((award, i) => (
-              <motion.div
+              <motion.li
                 key={award.title}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -12 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="flex items-center gap-4"
+                transition={{ duration: 0.5, delay: i * 0.08 }}
+                className="group flex items-center gap-6 py-5 border-b border-gold-line/60 hover:bg-marble-light/50 transition-colors duration-300"
               >
-                <div className="flex-1 h-10 rounded-lg bg-gold/10 flex items-center px-4">
-                  <span className="text-sm font-medium text-gray-700">
-                    {award.title}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-gold-dark whitespace-nowrap">
+                <span className="text-xs text-gray-400 font-mono tabular-nums w-8">
+                  {(i + 1).toString().padStart(2, "0")}
+                </span>
+                <span className="flex-1 text-sm md:text-base font-medium text-ink">
+                  {award.title}
+                </span>
+                <span className="font-serif italic text-sm md:text-base text-gold-dark whitespace-nowrap">
                   {award.result}
                 </span>
-              </motion.div>
+              </motion.li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
     </section>
