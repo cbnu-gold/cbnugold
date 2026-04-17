@@ -12,6 +12,7 @@ const navItems = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
   { href: "/activity", label: "Activity" },
+  { href: "/wiki", label: "Wiki" },
 ];
 
 export function Header() {
@@ -30,7 +31,7 @@ export function Header() {
       <header
         className={`fixed top-0 left-0 right-0 z-50 h-16 transition-all duration-300 ${
           scrolled
-            ? "bg-white/85 backdrop-blur-2xl border-b border-gold-line shadow-[0_1px_0_0_rgba(201,168,76,0.08)]"
+            ? "bg-white/88 backdrop-blur-2xl border-b border-ink/10 shadow-[0_1px_0_0_rgba(14,20,32,0.03)]"
             : "bg-transparent"
         }`}
       >
@@ -45,7 +46,7 @@ export function Header() {
               className="h-8 w-auto"
               priority
             />
-            <span className="hidden sm:block font-serif italic text-[11px] text-gold-dark tracking-[0.18em] uppercase border-l border-gold-line pl-3">
+            <span className="hidden sm:block font-serif italic text-[11px] text-ink/55 tracking-[0.18em] uppercase border-l border-ink/15 pl-3">
               Est. 2021
             </span>
           </Link>
@@ -64,27 +65,27 @@ export function Header() {
                     href={item.href}
                     className={`relative px-3 py-2 text-[13px] uppercase tracking-[0.12em] transition-colors ${
                       isActive
-                        ? "text-gold-dark font-medium"
-                        : "text-gray-500 hover:text-gold-dark font-medium"
+                        ? "text-ink font-medium"
+                        : "text-ink/55 hover:text-ink font-medium"
                     }`}
                   >
                     {item.label}
                     {isActive && (
-                      <span className="absolute bottom-1 left-3 right-3 h-px bg-gold" />
+                      <span className="absolute bottom-1 left-3 right-3 h-px bg-ink" />
                     )}
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="h-4 w-px bg-gold-line" />
+            <div className="h-4 w-px bg-ink/15" />
 
             <div className="flex items-center gap-4">
               <a
                 href="https://www.instagram.com/cbnu_gold/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative text-gray-400 hover:text-gold-dark transition-colors"
+                className="group relative text-ink/40 hover:text-ink transition-colors"
                 aria-label="Instagram"
                 title="@cbnu_gold"
               >
@@ -97,7 +98,7 @@ export function Header() {
                 href="https://cafe.naver.com/cufaclub"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-gold-dark transition-colors text-sm font-bold"
+                className="text-ink/40 hover:text-ink transition-colors text-sm font-bold"
                 aria-label="Naver Cafe"
               >
                 N
@@ -111,7 +112,7 @@ export function Header() {
           {/* Mobile Hamburger */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden h-10 w-10 inline-flex items-center justify-center -mr-2 text-gray-600 hover:text-gold-dark transition-colors"
+            className="md:hidden h-10 w-10 inline-flex items-center justify-center -mr-2 text-ink/70 hover:text-ink transition-colors"
             aria-label="메뉴 열기"
           >
             <Menu size={22} strokeWidth={1.5} />
