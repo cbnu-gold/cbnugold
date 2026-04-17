@@ -7,55 +7,88 @@ import { activities } from "@/data/activities";
 
 export function WhatWeDo() {
   return (
-    <section className="py-24 md:py-32 bg-marble-light">
-      <div className="max-w-6xl mx-auto px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
-        >
-          <SectionLabel label="What We Do" className="mb-6" />
-          <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
-            금은동의 핵심 활동
-          </h2>
-        </motion.div>
+    <section className="py-28 md:py-40 bg-marble-light">
+      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-16">
+        {/* Header */}
+        <div className="grid lg:grid-cols-12 gap-10 mb-16 md:mb-20">
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-5"
+          >
+            <SectionLabel label="What We Do" className="mb-6" />
+            <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-ink leading-[1.1] tracking-[-0.02em]">
+              금은동의
+              <br />
+              <span className="italic text-gold-dark">핵심 활동.</span>
+            </h2>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="lg:col-span-6 lg:col-start-7 flex items-end"
+          >
+            <p className="text-base md:text-lg text-gray-500 font-light leading-relaxed border-l border-gold-line pl-6">
+              실전 중심의 커리큘럼으로, 금융권 채용 프로세스 전반을 체계적으로 준비합니다.
+              매주 진행되는 스터디, 멘토링, 경진대회를 통해 지식과 경험을 동시에 축적합니다.
+            </p>
+          </motion.div>
+        </div>
 
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+        {/* Product cards */}
+        <div className="grid md:grid-cols-3 border-t border-gold-line">
           {activities.map((activity, i) => (
-            <motion.div
+            <motion.article
               key={activity.number}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group bg-white border border-gray-200 rounded-xl p-6 transition-all duration-300 hover:border-gold/40 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-gold/5 hover:border-t-2 hover:border-t-gold"
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.7, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+              className={`group relative bg-marble-light hover:bg-white transition-colors duration-500 border-b border-gold-line ${
+                i < 2 ? "md:border-r md:border-gold-line" : ""
+              }`}
             >
-              {/* Number */}
-              <span className="text-5xl font-bold font-mono text-gold/20 group-hover:text-gold/40 transition-colors">
-                {activity.number}
-              </span>
+              {/* Top gold bar animation */}
+              <span className="absolute top-0 left-0 h-px bg-gold w-0 group-hover:w-full transition-[width] duration-500 ease-out" />
 
-              {/* Title */}
-              <h3 className="text-xl font-bold text-gray-900 mt-4 mb-1">
-                {activity.title}
-              </h3>
-              <p className="text-sm text-gold mb-4">{activity.subtitle}</p>
+              <div className="px-6 md:px-8 py-10 md:py-12 min-h-[360px] flex flex-col">
+                {/* Number */}
+                <div className="flex items-center justify-between mb-8">
+                  <span className="font-serif italic text-gold-dark text-3xl md:text-4xl tabular-nums font-light">
+                    {activity.number}
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-gray-400 font-mono">
+                    {activity.subtitle}
+                  </span>
+                </div>
 
-              {/* Description */}
-              <p className="text-sm text-gray-500 leading-relaxed mb-6">
-                {activity.description}
-              </p>
+                {/* Divider */}
+                <div className="h-px bg-gold-line mb-6" />
 
-              {/* Tags */}
-              <div className="flex flex-wrap gap-2">
-                {activity.tags.map((tag) => (
-                  <Badge key={tag} variant="tag">
-                    {tag}
-                  </Badge>
-                ))}
+                {/* Title */}
+                <h3 className="text-xl md:text-2xl font-medium text-ink mb-4 tracking-tight">
+                  {activity.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-sm text-gray-500 leading-relaxed mb-8 flex-1">
+                  {activity.description}
+                </p>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-1.5">
+                  {activity.tags.map((tag) => (
+                    <Badge key={tag} variant="tag">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </motion.div>
+            </motion.article>
           ))}
         </div>
       </div>
