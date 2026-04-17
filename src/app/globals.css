@@ -22,8 +22,8 @@
   --color-ivory: #F5F1E8;
 
   --font-sans: "Pretendard Variable", "Pretendard", "Inter", system-ui, sans-serif;
-  --font-display: "Inter", "Pretendard", sans-serif;
-  --font-serif: "Fraunces", "Times New Roman", serif;
+  --font-display: "Inter", "Pretendard Variable", "Pretendard", sans-serif;
+  --font-serif: "Fraunces", "Pretendard Variable", "Pretendard", "Times New Roman", serif;
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
 }
 

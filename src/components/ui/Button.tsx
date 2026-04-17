@@ -12,10 +12,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-gradient-to-br from-gold-light via-gold to-gold-dark text-white font-medium border border-gold-dark/40 shadow-[0_8px_24px_-8px_rgba(201,168,76,0.45)] hover:shadow-[0_10px_28px_-8px_rgba(201,168,76,0.65)] hover:brightness-[1.03] active:brightness-95",
+    "bg-ink text-white font-medium border border-ink hover:bg-navy-800 active:bg-navy-900 shadow-[0_6px_18px_-10px_rgba(14,20,32,0.5)]",
   secondary:
-    "border border-gold/60 text-ink font-medium hover:border-gold hover:bg-gold/5 active:bg-gold/10",
-  ghost: "text-gold-dark font-medium hover:bg-gold/10",
+    "border border-ink/25 text-ink font-medium hover:border-ink hover:bg-ink/[0.04] active:bg-ink/[0.08]",
+  ghost: "text-ink/70 font-medium hover:text-ink hover:bg-ink/[0.04]",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
