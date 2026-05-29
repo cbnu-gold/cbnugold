@@ -6,14 +6,22 @@ export default async function ActivityPage() {
   const data = await getPublicCmsData();
   const regular = data.activities.filter((item) => item.category === "regular");
   const special = data.activities.filter((item) => item.category !== "regular");
+  const intro = data.blocks.find(
+    (block) => block.page_slug === "activity" && block.block_key === "intro"
+  );
 
   return (
     <div className="bg-marble-light pt-20 text-ink">
       <section className="border-b border-ink/10 bg-white py-14 md:py-20">
         <div className="mx-auto max-w-[1000px] px-5 text-center sm:px-6">
-          <h1 className="text-3xl font-bold tracking-normal sm:text-5xl">금은동의 활동</h1>
+          <p className="text-sm font-semibold text-gold-dark">
+            {intro?.subtitle ?? "정기 활동과 특별 활동"}
+          </p>
+          <h1 className="mt-4 text-3xl font-bold tracking-normal sm:text-5xl">
+            {intro?.title ?? "금은동의 활동"}
+          </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
-            정기 활동과 특별 활동을 구분해 안내합니다.
+            {intro?.body ?? "정기 활동과 특별 활동을 구분해 안내합니다."}
           </p>
         </div>
       </section>

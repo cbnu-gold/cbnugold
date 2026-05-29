@@ -1,17 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { formatPhone } from "@/lib/validations";
 import {
-  Search,
-  CheckCircle,
-  XCircle,
   AlertCircle,
+  ArrowLeft,
+  CheckCircle,
   Loader2,
+  Search,
+  XCircle,
 } from "lucide-react";
 
 const statusLabels: Record<string, string> = {
@@ -38,16 +36,16 @@ export default function CheckPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   function validate() {
-    const errs: Record<string, string> = {};
-    if (!name.trim()) errs.name = "이름을 입력해주세요";
-    if (!studentId.trim()) errs.studentId = "학번을 입력해주세요";
-    if (!phone.trim()) errs.phone = "연락처를 입력해주세요";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    const nextErrors: Record<string, string> = {};
+    if (!name.trim()) nextErrors.name = "이름을 입력해주세요";
+    if (!studentId.trim()) nextErrors.studentId = "학번을 입력해주세요";
+    if (!phone.trim()) nextErrors.phone = "연락처를 입력해주세요";
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
     if (!validate()) return;
 
     setIsLoading(true);
@@ -55,7 +53,7 @@ export default function CheckPage() {
     setErrorMessage("");
 
     try {
-      const res = await fetch("/api/apply/check", {
+      const response = await fetch("/api/apply/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -65,16 +63,13 @@ export default function CheckPage() {
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "조회에 실패했습니다");
-      }
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "조회에 실패했습니다");
 
-      const data: CheckResult = await res.json();
-      setResult(data);
-    } catch (err) {
+      setResult(payload as CheckResult);
+    } catch (error) {
       setErrorMessage(
-        err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다"
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다"
       );
     } finally {
       setIsLoading(false);
@@ -82,8 +77,7 @@ export default function CheckPage() {
   }
 
   function formatDate(dateStr: string) {
-    const d = new Date(dateStr);
-    return d.toLocaleString("ko-KR", {
+    return new Date(dateStr).toLocaleString("ko-KR", {
       timeZone: "Asia/Seoul",
       year: "numeric",
       month: "long",
@@ -94,132 +88,168 @@ export default function CheckPage() {
   }
 
   return (
-    <div className="pt-24">
-      <section className="py-20 md:py-28 bg-white marble-texture min-h-[70vh]">
-        <div className="max-w-md mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <SectionLabel label="접수 조회" className="mb-6" />
-            <h2 className="text-2xl md:text-4xl font-bold text-gray-900 text-center mb-3">
-              지원 확인
-            </h2>
-            <p className="text-gray-500 text-center mb-10">
-              이름, 학번, 연락처를 입력하면 지원서 접수 여부를 확인할 수
-              있습니다
-            </p>
-          </motion.div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {errorMessage && (
-              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-600">{errorMessage}</p>
-              </div>
-            )}
-
-            <Input
-              id="check-name"
-              label="이름"
-              placeholder="홍길동"
-              required
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (errors.name)
-                  setErrors((prev) => ({ ...prev, name: "" }));
-              }}
-              error={errors.name}
-            />
-            <Input
-              id="check-studentId"
-              label="학번"
-              placeholder="2021123456"
-              required
-              value={studentId}
-              onChange={(e) => {
-                setStudentId(e.target.value);
-                if (errors.studentId)
-                  setErrors((prev) => ({ ...prev, studentId: "" }));
-              }}
-              error={errors.studentId}
-            />
-            <Input
-              id="check-phone"
-              label="연락처"
-              placeholder="010-1234-5678"
-              required
-              value={phone}
-              onChange={(e) => {
-                setPhone(formatPhone(e.target.value));
-                if (errors.phone)
-                  setErrors((prev) => ({ ...prev, phone: "" }));
-              }}
-              error={errors.phone}
-            />
-
-            <Button type="submit" disabled={isLoading} className="w-full" size="lg">
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  조회 중...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Search className="w-4 h-4" />
-                  조회하기
-                </span>
-              )}
-            </Button>
-          </form>
-
-          {/* 결과 */}
-          {result && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
-            >
-              {result.found ? (
-                <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center">
-                  <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    지원서가 접수되었습니다
-                  </h3>
-                  <div className="space-y-1 text-sm text-gray-600">
-                    <p>
-                      접수 일시:{" "}
-                      <span className="font-medium">
-                        {formatDate(result.appliedAt!)}
-                      </span>
-                    </p>
-                    <p>
-                      현재 상태:{" "}
-                      <span className="font-medium text-gold">
-                        {statusLabels[result.status!] || result.status}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl text-center">
-                  <XCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    조회 결과가 없습니다
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    입력한 정보와 일치하는 지원 내역이 없습니다.
-                    <br />
-                    이름, 학번, 연락처를 다시 확인해주세요.
-                  </p>
-                </div>
-              )}
-            </motion.div>
-          )}
+    <div className="bg-marble-light pt-20 text-ink">
+      <section className="border-b border-ink/10 bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-[900px] px-5 text-center sm:px-6">
+          <p className="text-sm font-semibold text-gold-dark">접수 조회</p>
+          <h1 className="mt-4 text-3xl font-bold tracking-normal sm:text-5xl">
+            지원 확인
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+            이름, 학번, 연락처를 입력하면 지원서 접수 여부를 확인할 수 있습니다.
+          </p>
         </div>
       </section>
+
+      <section className="mx-auto grid max-w-[1000px] gap-5 px-5 py-8 sm:px-6 md:grid-cols-[1fr_0.82fr] md:py-12">
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-xl border border-ink/10 bg-white p-5 shadow-sm md:p-6"
+        >
+          <div className="mb-6">
+            <h2 className="text-xl font-bold">접수 정보 입력</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              제출 당시 입력한 정보와 동일하게 입력해주세요.
+            </p>
+          </div>
+
+          {errorMessage && (
+            <div className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {errorMessage}
+            </div>
+          )}
+
+          <div className="grid gap-4">
+            <InputField
+              id="check-name"
+              label="이름"
+              value={name}
+              placeholder="홍길동"
+              error={errors.name}
+              onChange={(value) => {
+                setName(value);
+                if (errors.name) setErrors((prev) => ({ ...prev, name: "" }));
+              }}
+            />
+            <InputField
+              id="check-student-id"
+              label="학번"
+              value={studentId}
+              placeholder="2021123456"
+              error={errors.studentId}
+              onChange={(value) => {
+                setStudentId(value);
+                if (errors.studentId) setErrors((prev) => ({ ...prev, studentId: "" }));
+              }}
+            />
+            <InputField
+              id="check-phone"
+              label="연락처"
+              value={phone}
+              placeholder="010-1234-5678"
+              error={errors.phone}
+              onChange={(value) => {
+                setPhone(formatPhone(value));
+                if (errors.phone) setErrors((prev) => ({ ...prev, phone: "" }));
+              }}
+            />
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  조회 중
+                </>
+              ) : (
+                <>
+                  <Search className="h-4 w-4" />
+                  조회하기
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        <aside className="rounded-xl border border-ink/10 bg-white p-5 shadow-sm md:p-6">
+          <h2 className="text-xl font-bold">확인 안내</h2>
+          <ul className="mt-4 grid gap-2 text-sm leading-6 text-slate-600">
+            <li>· 접수 여부와 현재 선발 상태만 조회됩니다.</li>
+            <li>· 지원서 파일과 세부 평가 내용은 공개되지 않습니다.</li>
+            <li>· 입력 정보가 일치하지 않으면 조회되지 않습니다.</li>
+          </ul>
+          <Link
+            href="/join"
+            className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/30"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            모집 안내로 이동
+          </Link>
+        </aside>
+
+        {result && (
+          <div className="rounded-xl border border-ink/10 bg-white p-5 shadow-sm md:col-span-2 md:p-6">
+            {result.found ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
+                <CheckCircle className="mx-auto h-11 w-11 text-emerald-600" />
+                <h2 className="mt-4 text-xl font-bold text-emerald-950">
+                  지원서가 접수되었습니다
+                </h2>
+                <div className="mt-3 grid gap-1 text-sm text-emerald-800">
+                  {result.appliedAt && <p>접수 일시: {formatDate(result.appliedAt)}</p>}
+                  {result.status && (
+                    <p>현재 상태: {statusLabels[result.status] || result.status}</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center">
+                <XCircle className="mx-auto h-11 w-11 text-slate-400" />
+                <h2 className="mt-4 text-xl font-bold text-slate-950">
+                  조회 결과가 없습니다
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  이름, 학번, 연락처를 다시 확인해주세요.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
+  );
+}
+
+function InputField({
+  id,
+  label,
+  value,
+  placeholder,
+  error,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  placeholder: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label htmlFor={id} className="grid gap-1.5 text-sm">
+      <span className="font-medium text-slate-700">{label}</span>
+      <input
+        id={id}
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-12 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-gold focus:ring-2 focus:ring-gold/20"
+      />
+      {error && <span className="text-xs text-red-600">{error}</span>}
+    </label>
   );
 }

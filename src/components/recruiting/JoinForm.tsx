@@ -124,11 +124,19 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
       </aside>
 
       <section className="scroll-mt-24 rounded-xl border border-ink/10 bg-white p-5 md:p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            제출 후 접수 여부를 확인할 수 있습니다.
-          </p>
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              제출 후 접수 여부를 확인할 수 있습니다.
+            </p>
+          </div>
+          <Link
+            href="/join/check"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/30"
+          >
+            지원 확인
+          </Link>
         </div>
 
         {!isOpen ? (

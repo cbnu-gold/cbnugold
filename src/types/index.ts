@@ -37,11 +37,6 @@ export interface Generation {
   president: string | null;
 }
 
-export interface MentoringPartner {
-  name: string;
-  type: string;
-}
-
 export interface RecruitmentSettings {
   is_open: boolean;
   generation: number;

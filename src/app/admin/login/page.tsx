@@ -55,8 +55,8 @@ export default function AdminLoginPage() {
 
         {error && (
           <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-            <p className="text-sm text-red-300">{error}</p>
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
