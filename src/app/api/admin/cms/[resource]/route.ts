@@ -10,7 +10,6 @@ const resourceMap = {
   achievements: { table: "achievement_items", order: "sort_order" },
   history: { table: "history_entries", order: "year" },
   faqs: { table: "faq_items", order: "sort_order" },
-  wiki: { table: "wiki_articles", order: "sort_order" },
   media: { table: "media_assets", order: "created_at" },
   admins: { table: "admin_profiles", order: "email" },
   audit: { table: "audit_logs", order: "created_at" },
@@ -20,6 +19,10 @@ type Resource = keyof typeof resourceMap;
 
 function getResource(resource: string) {
   return resourceMap[resource as Resource] ?? null;
+}
+
+function ownerOnly(resource: string, role?: string) {
+  return resource === "admins" && role !== "owner";
 }
 
 export async function GET(
@@ -56,6 +59,9 @@ export async function POST(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
+  if (ownerOnly(resource, admin.profile.role)) {
+    return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
 
   const body = await request.json();
   const supabase = createServerClient();
@@ -84,6 +90,9 @@ export async function PATCH(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
+  if (ownerOnly(resource, admin.profile.role)) {
+    return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
 
   const { id, key, values } = await request.json();
   if (!id && !key) return NextResponse.json({ error: "id 또는 key가 필요합니다" }, { status: 400 });
@@ -113,6 +122,9 @@ export async function DELETE(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
+  if (ownerOnly(resource, admin.profile.role)) {
+    return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id가 필요합니다" }, { status: 400 });

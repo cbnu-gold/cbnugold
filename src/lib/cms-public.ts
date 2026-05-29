@@ -4,7 +4,12 @@ import {
   fallbackRecruitment,
   fallbackSettings,
 } from "@/lib/cms-fallback";
-export { formatKoreanDateTime, isRecruitmentOpen } from "@/lib/recruitment";
+export {
+  formatKoreanDateTime,
+  getRecruitmentPhase,
+  getRecruitmentPhaseLabel,
+  isRecruitmentOpen,
+} from "@/lib/recruitment";
 import type {
   ActivityItem,
   AchievementItem,
@@ -14,7 +19,6 @@ import type {
   PublicCmsData,
   RecruitmentCycle,
   SiteSettingsValue,
-  WikiArticle,
 } from "@/types";
 
 function getPublicSupabase() {
@@ -45,7 +49,6 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
       achievementsResult,
       historyResult,
       faqsResult,
-      wikiResult,
     ] = await Promise.all([
       supabase
         .from("site_settings")
@@ -85,11 +88,6 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
         .select("*")
         .eq("status", "published")
         .order("sort_order"),
-      supabase
-        .from("wiki_articles")
-        .select("*")
-        .eq("status", "published")
-        .order("sort_order"),
     ]);
 
     return {
@@ -116,10 +114,6 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
         fallbackCmsData.history
       ),
       faqs: chooseFallback(faqsResult.data as FAQItem[] | null, fallbackCmsData.faqs),
-      wikiArticles: chooseFallback(
-        wikiResult.data as WikiArticle[] | null,
-        fallbackCmsData.wikiArticles
-      ),
     };
   } catch (error) {
     console.error("CMS fallback activated:", error);

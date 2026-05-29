@@ -13,12 +13,12 @@ export default async function ActivityPage() {
         <div className="mx-auto max-w-[1000px] px-6 text-center">
           <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">금은동의 활동</h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
-            지원자가 실제로 참여하게 될 정규 활동과 확장 활동을 한눈에 볼 수 있도록 정리했습니다.
+            정기 활동과 특별 활동을 구분해 안내합니다.
           </p>
         </div>
       </section>
 
-      <ActivitySection title="정규 활동" description="매주 반복되며 금융권 취업 역량을 직접적으로 만드는 활동입니다." items={regular.length ? regular : data.activities} />
+      <ActivitySection title="정규 활동" description="매주 진행하는 시장 읽기, 리포트 분석, 발표 활동입니다." items={regular.length ? regular : data.activities} />
       <ActivitySection title="특별 활동" description="멘토링, 연합 활동, 외부 프로젝트처럼 경험 폭을 넓히는 활동입니다." items={special} />
     </div>
   );

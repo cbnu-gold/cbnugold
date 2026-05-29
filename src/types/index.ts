@@ -182,19 +182,6 @@ export interface FAQItem {
   sort_order: number;
 }
 
-export interface WikiArticle {
-  id?: string;
-  slug: string;
-  category: string;
-  title: string;
-  title_en: string | null;
-  summary: string;
-  body: string;
-  source_note: string | null;
-  status: ContentStatus;
-  sort_order: number;
-}
-
 export interface MediaAsset {
   id?: string;
   bucket: string;
@@ -224,5 +211,4 @@ export interface PublicCmsData {
   achievements: AchievementItem[];
   history: HistoryItem[];
   faqs: FAQItem[];
-  wikiArticles: WikiArticle[];
 }

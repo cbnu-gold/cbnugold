@@ -6,7 +6,6 @@ const navItems = [
   { href: "/", label: "홈" },
   { href: "/about", label: "소개" },
   { href: "/activity", label: "활동" },
-  { href: "/wiki", label: "위키" },
   { href: "/join", label: "지원" },
 ];
 
@@ -31,8 +30,7 @@ export function Footer() {
               충북대학교 금융권 취업 동아리 금은동
             </p>
             <p className="text-sm text-ink/55 leading-relaxed max-w-md">
-              충북대학교 금융권 취업 동아리. 실전 중심의 커리큘럼과 선배 네트워크로
-              다음 세대 금융인을 양성합니다.
+              신문 스크랩, 리포트 분석, 세일즈 페어, 멘토링을 진행합니다.
             </p>
           </div>
 
@@ -106,9 +104,6 @@ export function Footer() {
         <div className="mt-14 md:mt-20 pt-6 border-t border-ink/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <p className="text-[11px] text-ink/40 font-mono tabular-nums tracking-wider">
             © {new Date().getFullYear()} CBNU GOLD SOCIETY · ALL RIGHTS RESERVED.
-          </p>
-          <p className="text-[11px] text-ink/40 tracking-wider">
-            Designed &amp; Built by <span className="text-ink/70">이찬희</span>
           </p>
         </div>
       </div>

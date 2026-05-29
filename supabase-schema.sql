@@ -46,6 +46,22 @@ AS $$
   );
 $$;
 
+CREATE OR REPLACE FUNCTION public.is_owner()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM admin_profiles
+    WHERE id = auth.uid()
+      AND is_active = true
+      AND role = 'owner'
+  );
+$$;
+
 CREATE TABLE IF NOT EXISTS site_settings (
   key TEXT PRIMARY KEY,
   value JSONB NOT NULL,
@@ -169,22 +185,7 @@ CREATE TABLE IF NOT EXISTS faq_items (
   CONSTRAINT faq_items_status_check CHECK (status IN ('draft', 'published', 'archived'))
 );
 
-CREATE TABLE IF NOT EXISTS wiki_articles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT NOT NULL UNIQUE,
-  category TEXT NOT NULL,
-  title TEXT NOT NULL,
-  title_en TEXT,
-  summary TEXT NOT NULL,
-  body TEXT NOT NULL DEFAULT '',
-  source_note TEXT,
-  status TEXT NOT NULL DEFAULT 'published',
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  updated_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT wiki_articles_status_check CHECK (status IN ('draft', 'published', 'archived'))
-);
+DROP TABLE IF EXISTS wiki_articles CASCADE;
 
 CREATE TABLE IF NOT EXISTS media_assets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -246,7 +247,6 @@ CREATE INDEX IF NOT EXISTS idx_applicants_generation ON applicants(generation);
 CREATE INDEX IF NOT EXISTS idx_applicants_status ON applicants(status);
 CREATE INDEX IF NOT EXISTS idx_content_blocks_page ON content_blocks(page_slug, status, sort_order);
 CREATE INDEX IF NOT EXISTS idx_recruitment_open ON recruitment_cycles(status, is_open, generation DESC);
-CREATE INDEX IF NOT EXISTS idx_wiki_articles_category ON wiki_articles(category, status, sort_order);
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_activity_items_category_title ON activity_items(category, title);
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_achievement_items_kind_title_result ON achievement_items(kind, title, result);
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_history_entries_year ON history_entries(year);
@@ -276,7 +276,6 @@ BEGIN
     'achievement_items',
     'history_entries',
     'faq_items',
-    'wiki_articles',
     'media_assets',
     'applicants'
   ]
@@ -299,7 +298,6 @@ ALTER TABLE activity_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE achievement_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE history_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faq_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wiki_articles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE media_assets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applicants ENABLE ROW LEVEL SECURITY;
@@ -316,18 +314,8 @@ CREATE POLICY "Admins can read admin profiles"
 
 CREATE POLICY "Owners can manage admin profiles"
   ON admin_profiles FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM admin_profiles ap
-      WHERE ap.id = auth.uid() AND ap.is_active = true AND ap.role = 'owner'
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM admin_profiles ap
-      WHERE ap.id = auth.uid() AND ap.is_active = true AND ap.role = 'owner'
-    )
-  );
+  USING (public.is_owner())
+  WITH CHECK (public.is_owner());
 
 CREATE POLICY "Public can read published settings"
   ON site_settings FOR SELECT
@@ -401,15 +389,6 @@ CREATE POLICY "Admins can manage faqs"
   USING (public.is_admin())
   WITH CHECK (public.is_admin());
 
-CREATE POLICY "Public can read published wiki"
-  ON wiki_articles FOR SELECT
-  USING (status = 'published');
-
-CREATE POLICY "Admins can manage wiki"
-  ON wiki_articles FOR ALL
-  USING (public.is_admin())
-  WITH CHECK (public.is_admin());
-
 CREATE POLICY "Public can read published media"
   ON media_assets FOR SELECT
   USING (status = 'published');
@@ -427,10 +406,6 @@ CREATE POLICY "Admins can insert audit logs"
   ON audit_logs FOR INSERT
   WITH CHECK (public.is_admin());
 
-CREATE POLICY "Anyone can apply"
-  ON applicants FOR INSERT
-  WITH CHECK (true);
-
 CREATE POLICY "Admins can view applicants"
   ON applicants FOR SELECT
   USING (public.is_admin_viewer());
@@ -445,7 +420,7 @@ INSERT INTO site_settings (key, value, status) VALUES
   "site_title": "금은동",
   "club_name": "충북대학교 금융권 취업 동아리 금은동",
   "hero_title": "충북대 금융권 취업 동아리, 금은동",
-  "hero_subtitle": "시장 읽기, 리포트 분석, 직무 준비, 현직자 멘토링을 한 흐름으로 연결합니다.",
+  "hero_subtitle": "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
   "primary_cta_label": "지원 안내 보기",
   "primary_cta_href": "/join",
   "secondary_cta_label": "활동 살펴보기",
@@ -484,18 +459,18 @@ INSERT INTO recruitment_cycles (
   'published'
 )
 ON CONFLICT DO NOTHING;
-
 INSERT INTO content_pages (slug, title, description, status, sort_order) VALUES
 ('home', '홈', '금은동 공식 홈페이지 메인', 'published', 1),
 ('join', '지원', '신입부원 모집 안내와 지원 폼', 'published', 2),
 ('about', '소개', '금은동 소개와 운영 구조', 'published', 3),
-('activity', '활동', '정규 및 특별 활동', 'published', 4),
-('wiki', '위키', '금융권 백과', 'published', 5)
+('activity', '활동', '정규 및 특별 활동', 'published', 4)
 ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, status = EXCLUDED.status;
 
+DELETE FROM content_pages WHERE slug = 'wiki';
+
 INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_label, cta_href, status, sort_order) VALUES
-('home', 'hero', '충북대 금융권 취업 동아리, 금은동', '금융권 취업을 실전으로 준비합니다', '신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 통해 금융권 직무 이해와 실전 역량을 함께 쌓습니다.', '지원 안내 보기', '/join', 'published', 1),
-('home', 'proof', '성과로 검증되는 커리큘럼', '취업·인턴·수상 실적', '금은동은 활동 기록과 선배 네트워크를 축적해 후배의 지원 전략으로 전환합니다.', '성과 보기', '/about', 'published', 2)
+('home', 'hero', '충북대 금융권 취업 동아리, 금은동', '금융권 취업을 실전으로 준비합니다', '신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.', '지원 안내 보기', '/join', 'published', 1),
+('home', 'proof', '2025년 성과', '취업·인턴·수상', '2025년 취업, 인턴, 수상 기록입니다.', '소개 보기', '/about', 'published', 2)
 ON CONFLICT (page_slug, block_key) DO UPDATE
 SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, status = EXCLUDED.status;
 
@@ -514,10 +489,16 @@ INSERT INTO achievement_items (title, organization, result, kind, year, status, 
 ('흥국생명', '보험', '채용연계 인턴', 'placement', 2025, 'published', 6),
 ('IBK 기업은행', '은행', '동계 청년 인턴', 'placement', 2025, 'published', 7),
 ('예금보험공사', '공기업', '청년 인턴', 'placement', 2025, 'published', 8),
-('직무분석경진대회', NULL, '최우수상', 'award', 2025, 'published', 1),
-('성과보고회', NULL, '최우수상', 'award', 2025, 'published', 2),
-('미래내일 일경험사업', NULL, '고용노동부 장관상', 'award', 2025, 'published', 3)
-ON CONFLICT DO NOTHING;
+('국민연금공단', '공기업', '청년 인턴', 'placement', 2025, 'published', 9),
+('기획재정부', '정부', '청년 인턴', 'placement', 2025, 'published', 10),
+('KB 국민은행', '은행', '디지털 서포터즈', 'placement', 2025, 'published', 11),
+('직무분석경진대회', NULL, '최우수상', 'award', 2025, 'published', 12),
+('성과보고회', NULL, '최우수상', 'award', 2025, 'published', 13),
+('미래내일 일경험사업', NULL, '고용노동부 장관상', 'award', 2025, 'published', 14),
+('KB 폴라리스 25기', NULL, '우수단원', 'award', 2025, 'published', 15),
+('N돌핀', NULL, '우수단원', 'award', 2025, 'published', 16)
+ON CONFLICT (kind, title, result) DO UPDATE
+SET organization = EXCLUDED.organization, year = EXCLUDED.year, status = EXCLUDED.status, sort_order = EXCLUDED.sort_order;
 
 INSERT INTO history_entries (year, generation, president, milestones, is_current, status, sort_order) VALUES
 (2021, 1, '김정훈', ARRAY['신문스크랩 동아리로 출범', '1기 8명 창단'], false, 'published', 1),
@@ -534,10 +515,3 @@ INSERT INTO faq_items (question, answer, status, sort_order) VALUES
 ('면접은 어떤 형식인가요?', '제출한 지원서를 바탕으로 기본 질문과 추가 질문을 함께 진행합니다.', 'published', 3),
 ('회비는 얼마인가요?', '학기당 10,000원이며 조건 충족 시 환급됩니다. 세부 조건은 OT에서 안내합니다.', 'published', 4)
 ON CONFLICT DO NOTHING;
-
-INSERT INTO wiki_articles (slug, category, title, title_en, summary, body, source_note, status, sort_order) VALUES
-('sectors', 'sectors', '섹터', 'Sectors', '은행, 증권, 보험, 자산운용, 카드, 금융공기업, 핀테크의 구조와 비즈니스 모델을 정리합니다.', '은행·증권·보험·자산운용·카드·금융공기업·핀테크의 구조와 비즈니스 모델을 단계적으로 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 1),
-('jobs', 'jobs', '직무', 'Job Families', 'IB, S&T, 리서치, PB, 리스크, 심사, 운용 등 금융 직무별 업무와 요구 역량을 정리합니다.', '금융 직무별 업무 범위, 요구 역량, 준비 자료를 지원자 관점에서 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 2),
-('certifications', 'certifications', '자격증', 'Certifications', 'CFA, FRM, AFPK, 투자자산운용사 등 금융권 핵심 자격증의 난이도와 활용처를 정리합니다.', '금융권 준비에 필요한 자격증의 난이도, 활용처, 학습 경로를 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 3),
-('prep', 'prep', '준비 가이드', 'Preparation', '자소서, 필기, 면접, 인턴 로드맵 등 금융권 채용 프로세스를 단계별로 정리합니다.', '자기소개서, 필기, 면접, 인턴 로드맵을 단계별로 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 4)
-ON CONFLICT (slug) DO NOTHING;

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatPhone, validateField, validateFile } from "@/lib/validations";
 import type { FAQItem, RecruitmentCycle } from "@/types";
+import type { RecruitmentPhase } from "@/lib/recruitment";
 
 interface FormData {
   name: string;
@@ -24,9 +25,10 @@ interface JoinFormProps {
   recruitment: RecruitmentCycle;
   faqs: FAQItem[];
   isOpen: boolean;
+  phase: RecruitmentPhase;
 }
 
-export function JoinForm({ recruitment, faqs, isOpen }: JoinFormProps) {
+export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     studentId: "",
@@ -99,7 +101,7 @@ export function JoinForm({ recruitment, faqs, isOpen }: JoinFormProps) {
       <aside className="rounded-xl border border-ink/10 bg-white p-6">
         <h2 className="text-xl font-bold">지원서 다운로드</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          지원서 작성 후 아래 제출 폼에 업로드해주세요. 파일명은 이름과 연락처를 포함해 관리하기 쉽게 작성해주세요.
+          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명에는 이름과 연락처를 포함해주세요.
         </p>
         <div className="mt-5 grid gap-3">
           {recruitment.docx_url && (
@@ -125,13 +127,17 @@ export function JoinForm({ recruitment, faqs, isOpen }: JoinFormProps) {
         <div className="mb-6">
           <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            제출 후 지원 확인 페이지에서 접수 여부를 확인할 수 있습니다.
+            제출 후 접수 여부를 확인할 수 있습니다.
           </p>
         </div>
 
         {!isOpen ? (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-sm leading-7 text-slate-600">
-            현재 온라인 접수 기간이 아닙니다. 다음 모집 일정은 금은동 공식 채널과 이 페이지에서 안내됩니다.
+            {phase === "closed"
+              ? "이번 기수 온라인 접수는 마감되었습니다. 다음 모집 일정은 금은동 공식 채널과 이 페이지에서 안내됩니다."
+              : phase === "scheduled"
+                ? "온라인 접수 시작 전입니다. 모집 시작일 이후 이 페이지에서 지원서를 제출할 수 있습니다."
+                : "현재 온라인 접수가 준비 중입니다. 모집 일정이 확정되면 이 페이지에서 안내됩니다."}
           </div>
         ) : success ? (
           <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-6 text-center">
