@@ -17,6 +17,9 @@ const checks = [
   { path: "/admin/login", method: "GET", expected: 200 },
   { path: "/wiki", method: "GET", expected: 404 },
   { path: "/api/admin/cms/settings", method: "GET", expected: 401 },
+  { path: "/api/admin/applicants", method: "GET", expected: 401 },
+  { path: "/api/admin/cms/admins", method: "GET", expected: 401 },
+  { path: "/api/admin/cms/audit", method: "GET", expected: 401 },
   {
     path: "/api/apply/check",
     method: "POST",

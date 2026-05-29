@@ -59,7 +59,7 @@
 - `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
 - `/api/health`가 `200`과 `status: ok`를 반환하는지 확인
 - 심층 DB/Storage 점검이 필요하면 `HEALTHCHECK_TOKEN` 설정 후 `npm run check:ops -- https://배포주소 --deep --token=토큰`을 실행합니다.
-- 비로그인 상태에서 `/api/admin/*`가 401/403을 반환하는지 확인
+- `check:ops`는 비로그인 상태의 `/api/admin/cms/settings`, `/api/admin/applicants`, `/api/admin/cms/admins`, `/api/admin/cms/audit`가 401을 반환하는지 함께 확인합니다.
 - 일반 Supabase 인증 사용자가 `admin_profiles`에 없을 때 관리자 API 접근이 차단되는지 확인
 - `/api/apply/check` 반복 조회가 단기 제한으로 차단되는지 확인
 - 지원서 파일 URL이 공개 Supabase public URL로 노출되지 않는지 확인
