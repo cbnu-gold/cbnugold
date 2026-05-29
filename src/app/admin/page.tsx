@@ -421,6 +421,8 @@ export default function AdminPage() {
 
   async function deleteItem(resource: string, id?: string) {
     if (!id) return;
+    const confirmed = window.confirm("이 항목을 삭제할까요? 공개 페이지와 관리자 목록에서 즉시 제거될 수 있습니다.");
+    if (!confirmed) return;
     setSaving(resource);
     setMessage("");
     setError("");
@@ -613,6 +615,7 @@ export default function AdminPage() {
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">지원서 파일은 signed URL로만 열립니다.</p>
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">콘텐츠는 published 상태만 공개 페이지에 노출됩니다.</p>
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">모든 주요 수정은 audit_logs에 기록됩니다.</p>
+                  <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">활성 소유자 계정은 최소 1개 이상 유지됩니다.</p>
                 </div>
               </div>
             </section>

@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { verifyAdmin, writeAuditLog, type VerifiedAdmin } from "@/lib/admin-auth";
+import {
+  deletingWouldLeaveNoActiveOwner,
+  patchRemovesActiveOwner,
+  wouldLeaveNoActiveOwner,
+  type AdminProfilePatch,
+  type AdminSafetyProfile,
+} from "@/lib/admin-safety";
 import { createServerClient } from "@/lib/supabase-server";
+import type { AdminRole } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 const resourceMap = {
   settings: { table: "site_settings", order: "key", trackUpdatedBy: true },
@@ -87,6 +96,130 @@ function validatePayload(resource: Resource, payload: CmsPayload) {
     return "관리자 권한값이 올바르지 않습니다";
   }
 
+  if (
+    resource === "admins" &&
+    "email" in payload &&
+    typeof payload.email === "string" &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)
+  ) {
+    return "관리자 이메일 형식이 올바르지 않습니다";
+  }
+
+  if (
+    resource === "admins" &&
+    "id" in payload &&
+    typeof payload.id === "string" &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload.id)
+  ) {
+    return "관리자 사용자 UUID 형식이 올바르지 않습니다";
+  }
+
+  return null;
+}
+
+async function getAdminProfile(
+  supabase: SupabaseClient,
+  id: string
+): Promise<{ profile: AdminSafetyProfile | null; error: string | null }> {
+  const { data, error } = await supabase
+    .from("admin_profiles")
+    .select("id,role,is_active")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return { profile: null, error: error.message };
+  return { profile: data as AdminSafetyProfile | null, error: null };
+}
+
+async function getActiveOwnerCount(supabase: SupabaseClient) {
+  const { count, error } = await supabase
+    .from("admin_profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("role", "owner")
+    .eq("is_active", true);
+
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+async function validateAdminProfileUpdate(
+  supabase: SupabaseClient,
+  admin: VerifiedAdmin,
+  id: string,
+  payload: CmsPayload
+) {
+  const { profile, error } = await getAdminProfile(supabase, id);
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  if (!profile) return NextResponse.json({ error: "관리자 계정을 찾을 수 없습니다" }, { status: 404 });
+
+  const patch: AdminProfilePatch = {};
+  if (typeof payload.role === "string" && adminRoles.has(payload.role)) {
+    patch.role = payload.role as AdminRole;
+  }
+  if (typeof payload.is_active === "boolean") {
+    patch.is_active = payload.is_active;
+  }
+
+  if (admin.id === id && patchRemovesActiveOwner(profile, patch)) {
+    return NextResponse.json(
+      { error: "본인의 소유자 권한은 직접 비활성화하거나 변경할 수 없습니다" },
+      { status: 400 }
+    );
+  }
+
+  if (patch.role || typeof patch.is_active === "boolean") {
+    let activeOwnerCount = 0;
+    try {
+      activeOwnerCount = await getActiveOwnerCount(supabase);
+    } catch {
+      return NextResponse.json(
+        { error: "소유자 계정 상태를 확인하지 못했습니다" },
+        { status: 500 }
+      );
+    }
+    if (wouldLeaveNoActiveOwner(profile, patch, activeOwnerCount)) {
+      return NextResponse.json(
+        { error: "활성 소유자 계정은 최소 1개 이상 유지해야 합니다" },
+        { status: 400 }
+      );
+    }
+  }
+
+  return null;
+}
+
+async function validateAdminProfileDelete(
+  supabase: SupabaseClient,
+  admin: VerifiedAdmin,
+  id: string
+) {
+  if (admin.id === id) {
+    return NextResponse.json(
+      { error: "현재 로그인한 관리자 계정은 직접 삭제할 수 없습니다" },
+      { status: 400 }
+    );
+  }
+
+  const { profile, error } = await getAdminProfile(supabase, id);
+  if (error) return NextResponse.json({ error }, { status: 500 });
+  if (!profile) return NextResponse.json({ error: "관리자 계정을 찾을 수 없습니다" }, { status: 404 });
+
+  let activeOwnerCount = 0;
+  try {
+    activeOwnerCount = await getActiveOwnerCount(supabase);
+  } catch {
+    return NextResponse.json(
+      { error: "소유자 계정 상태를 확인하지 못했습니다" },
+      { status: 500 }
+    );
+  }
+  if (deletingWouldLeaveNoActiveOwner(profile, activeOwnerCount)) {
+    return NextResponse.json(
+      { error: "활성 소유자 계정은 최소 1개 이상 유지해야 합니다" },
+      { status: 400 }
+    );
+  }
+
   return null;
 }
 
@@ -132,6 +265,9 @@ export async function POST(
   const payload = sanitizePayload(resource as Resource, body, admin.id, "insert");
   const validationError = validatePayload(resource as Resource, payload);
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+  if (resource === "admins" && typeof payload.id !== "string") {
+    return NextResponse.json({ error: "관리자 사용자 UUID가 필요합니다" }, { status: 400 });
+  }
 
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -165,11 +301,18 @@ export async function PATCH(
 
   const { id, key, values } = await request.json();
   if (!id && !key) return NextResponse.json({ error: "id 또는 key가 필요합니다" }, { status: 400 });
+  if (resource === "admins" && !id) {
+    return NextResponse.json({ error: "관리자 수정에는 사용자 UUID가 필요합니다" }, { status: 400 });
+  }
 
   const supabase = createServerClient();
   const payload = sanitizePayload(resource as Resource, values ?? {}, admin.id, "update");
   const validationError = validatePayload(resource as Resource, payload);
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+  if (resource === "admins" && id) {
+    const adminProfileError = await validateAdminProfileUpdate(supabase, admin, id, payload);
+    if (adminProfileError) return adminProfileError;
+  }
 
   let query = supabase.from(target.table).update(payload).select("*");
   query = key ? query.eq("key", key) : query.eq("id", id);
@@ -202,6 +345,11 @@ export async function DELETE(
   if (!id) return NextResponse.json({ error: "id가 필요합니다" }, { status: 400 });
 
   const supabase = createServerClient();
+  if (resource === "admins") {
+    const adminProfileError = await validateAdminProfileDelete(supabase, admin, id);
+    if (adminProfileError) return adminProfileError;
+  }
+
   const { error } = await supabase.from(target.table).delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 

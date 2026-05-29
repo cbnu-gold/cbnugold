@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { validationRules } from "@/lib/validations";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, studentId, phone } = await request.json();
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown";
+    const rateLimit = checkRateLimit(`apply-check:${ip}`, 10, 10 * 60 * 1000);
+
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { error: "짧은 시간 안에 조회 시도가 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
+    }
+
+    const body = await request.json();
+    const name = String(body.name ?? "").trim();
+    const studentId = String(body.studentId ?? "").replace(/\D/g, "");
+    const phone = String(body.phone ?? "").replace(/\D/g, "");
 
     if (!name || !validationRules.name.pattern.test(name)) {
       return NextResponse.json({ error: "올바른 이름을 입력해주세요" }, { status: 400 });

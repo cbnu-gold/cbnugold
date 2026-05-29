@@ -22,6 +22,7 @@
 - `viewer`는 조회만 가능하도록 설계했습니다.
 - 관리자 계정 탭에서는 Supabase Auth 사용자 UUID와 이메일을 연결합니다. 계정 생성 자체는 Supabase Auth에서 먼저 처리합니다.
 - `owner`만 관리자 계정을 추가, 비활성화, 삭제할 수 있습니다.
+- 활성 `owner` 계정은 최소 1개 이상 유지됩니다. 현재 로그인한 `owner`는 본인 권한 비활성화, 강등, 삭제가 차단됩니다.
 
 ## 3. 콘텐츠 운영
 
@@ -52,4 +53,5 @@
 - `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
 - 비로그인 상태에서 `/api/admin/*`가 401/403을 반환하는지 확인
 - 일반 Supabase 인증 사용자가 `admin_profiles`에 없을 때 관리자 API 접근이 차단되는지 확인
+- `/api/apply/check` 반복 조회가 단기 제한으로 차단되는지 확인
 - 지원서 파일 URL이 공개 Supabase public URL로 노출되지 않는지 확인

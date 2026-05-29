@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
+import {
+  deletingWouldLeaveNoActiveOwner,
+  patchRemovesActiveOwner,
+  wouldLeaveNoActiveOwner,
+} from "../src/lib/admin-safety";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -47,4 +52,17 @@ test("rate limit blocks requests after the configured limit", () => {
   assert.equal(checkRateLimit(key, 2, 60_000).ok, true);
   assert.equal(checkRateLimit(key, 2, 60_000).ok, true);
   assert.equal(checkRateLimit(key, 2, 60_000).ok, false);
+});
+
+test("admin owner safety prevents removing the last active owner", () => {
+  const owner = { id: "owner-id", role: "owner" as const, is_active: true };
+  const editor = { id: "editor-id", role: "editor" as const, is_active: true };
+
+  assert.equal(patchRemovesActiveOwner(owner, { role: "admin" }), true);
+  assert.equal(patchRemovesActiveOwner(owner, { is_active: false }), true);
+  assert.equal(patchRemovesActiveOwner(editor, { is_active: false }), false);
+  assert.equal(wouldLeaveNoActiveOwner(owner, { role: "admin" }, 1), true);
+  assert.equal(wouldLeaveNoActiveOwner(owner, { role: "admin" }, 2), false);
+  assert.equal(deletingWouldLeaveNoActiveOwner(owner, 1), true);
+  assert.equal(deletingWouldLeaveNoActiveOwner(owner, 2), false);
 });

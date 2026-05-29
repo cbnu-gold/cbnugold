@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
 
-    const name = formData.get("name") as string;
-    const studentId = formData.get("studentId") as string;
-    const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
-    const file = formData.get("file") as File;
+    const name = String(formData.get("name") ?? "").trim();
+    const studentId = String(formData.get("studentId") ?? "").replace(/\D/g, "");
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const phone = String(formData.get("phone") ?? "").replace(/\D/g, "");
+    const fileValue = formData.get("file");
 
     if (!name || !validationRules.name.pattern.test(name)) {
       return NextResponse.json({ error: "올바른 이름을 입력해주세요" }, { status: 400 });
@@ -66,10 +66,11 @@ export async function POST(request: NextRequest) {
     if (!phone || !validationRules.phone.pattern.test(phone)) {
       return NextResponse.json({ error: "올바른 전화번호를 입력해주세요" }, { status: 400 });
     }
-    if (!file) {
+    if (!(fileValue instanceof File)) {
       return NextResponse.json({ error: "파일을 첨부해주세요" }, { status: 400 });
     }
 
+    const file = fileValue;
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
     if (!fileRules.allowedExtensions.includes(ext)) {
       return NextResponse.json({ error: fileRules.message }, { status: 400 });
@@ -106,8 +107,7 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const generation = activeCycle?.generation ?? 9;
     const timestamp = Date.now();
-    const safeStudentId = studentId.replace(/\D/g, "");
-    const filePath = `${generation}/${safeStudentId}_${timestamp}${ext}`;
+    const filePath = `${generation}/${studentId}_${timestamp}${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("applications")
