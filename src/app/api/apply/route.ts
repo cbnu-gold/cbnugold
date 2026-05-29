@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getResendClient, buildAdminEmail } from "@/lib/resend";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { isRecruitmentOpen } from "@/lib/recruitment";
 import { validationRules, fileRules } from "@/lib/validations";
 import type { RecruitmentCycle } from "@/types";
 
@@ -88,13 +89,14 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     const activeCycle = cycleData as RecruitmentCycle | null;
-    const now = Date.now();
-    const isOpen =
-      !activeCycle ||
-      (activeCycle.is_open &&
-        (!activeCycle.end_at || now <= new Date(activeCycle.end_at).getTime()));
+    if (!activeCycle) {
+      return NextResponse.json(
+        { error: "모집 설정을 확인하는 중입니다. 운영진에게 문의해주세요." },
+        { status: 503 }
+      );
+    }
 
-    if (!isOpen) {
+    if (!isRecruitmentOpen(activeCycle)) {
       return NextResponse.json(
         { error: "현재 모집 접수 기간이 아닙니다." },
         { status: 403 }

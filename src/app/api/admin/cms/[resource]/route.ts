@@ -3,19 +3,25 @@ import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
 import { createServerClient } from "@/lib/supabase-server";
 
 const resourceMap = {
-  settings: { table: "site_settings", order: "key" },
-  blocks: { table: "content_blocks", order: "sort_order" },
-  recruitment: { table: "recruitment_cycles", order: "generation" },
-  activities: { table: "activity_items", order: "sort_order" },
-  achievements: { table: "achievement_items", order: "sort_order" },
-  history: { table: "history_entries", order: "year" },
-  faqs: { table: "faq_items", order: "sort_order" },
-  media: { table: "media_assets", order: "created_at" },
-  admins: { table: "admin_profiles", order: "email" },
-  audit: { table: "audit_logs", order: "created_at" },
+  settings: { table: "site_settings", order: "key", trackUpdatedBy: true },
+  blocks: { table: "content_blocks", order: "sort_order", trackUpdatedBy: true },
+  recruitment: { table: "recruitment_cycles", order: "generation", trackUpdatedBy: true },
+  activities: { table: "activity_items", order: "sort_order", trackUpdatedBy: true },
+  achievements: { table: "achievement_items", order: "sort_order", trackUpdatedBy: true },
+  history: { table: "history_entries", order: "year", trackUpdatedBy: true },
+  faqs: { table: "faq_items", order: "sort_order", trackUpdatedBy: true },
+  media: { table: "media_assets", order: "created_at", trackUpdatedBy: true },
+  admins: { table: "admin_profiles", order: "email", trackUpdatedBy: false },
+  audit: { table: "audit_logs", order: "created_at", trackUpdatedBy: false },
 } as const;
 
 type Resource = keyof typeof resourceMap;
+type CmsPayload = Record<string, unknown>;
+
+const contentStatuses = new Set(["draft", "published", "archived"]);
+const adminRoles = new Set(["owner", "admin", "editor", "viewer"]);
+const achievementKinds = new Set(["placement", "award", "metric"]);
+const readOnlyFields = new Set(["created_at", "updated_at", "signed_url", "__isNew"]);
 
 function getResource(resource: string) {
   return resourceMap[resource as Resource] ?? null;
@@ -23,6 +29,55 @@ function getResource(resource: string) {
 
 function ownerOnly(resource: string, role?: string) {
   return resource === "admins" && role !== "owner";
+}
+
+function sanitizePayload(
+  resource: Resource,
+  values: CmsPayload,
+  adminId: string,
+  mode: "insert" | "update"
+) {
+  const target = resourceMap[resource];
+  const payload = Object.fromEntries(
+    Object.entries(values).filter(([key, value]) => {
+      if (value === undefined) return false;
+      if (mode === "update" && key === "id") return false;
+      return !readOnlyFields.has(key);
+    })
+  );
+
+  if (target.trackUpdatedBy) payload.updated_by = adminId;
+  return payload;
+}
+
+function validatePayload(resource: Resource, payload: CmsPayload) {
+  if (
+    "status" in payload &&
+    typeof payload.status === "string" &&
+    !contentStatuses.has(payload.status)
+  ) {
+    return "상태값은 draft, published, archived 중 하나여야 합니다";
+  }
+
+  if (
+    resource === "achievements" &&
+    "kind" in payload &&
+    typeof payload.kind === "string" &&
+    !achievementKinds.has(payload.kind)
+  ) {
+    return "성과 분류값이 올바르지 않습니다";
+  }
+
+  if (
+    resource === "admins" &&
+    "role" in payload &&
+    typeof payload.role === "string" &&
+    !adminRoles.has(payload.role)
+  ) {
+    return "관리자 권한값이 올바르지 않습니다";
+  }
+
+  return null;
 }
 
 export async function GET(
@@ -64,10 +119,14 @@ export async function POST(
   }
 
   const body = await request.json();
+  const payload = sanitizePayload(resource as Resource, body, admin.id, "insert");
+  const validationError = validatePayload(resource as Resource, payload);
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from(target.table)
-    .insert({ ...body, updated_by: admin.id })
+    .insert(payload)
     .select("*")
     .single();
 
@@ -98,7 +157,10 @@ export async function PATCH(
   if (!id && !key) return NextResponse.json({ error: "id 또는 key가 필요합니다" }, { status: 400 });
 
   const supabase = createServerClient();
-  const payload = { ...values, updated_by: admin.id };
+  const payload = sanitizePayload(resource as Resource, values ?? {}, admin.id, "update");
+  const validationError = validatePayload(resource as Resource, payload);
+  if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+
   let query = supabase.from(target.table).update(payload).select("*");
   query = key ? query.eq("key", key) : query.eq("id", id);
   const { data, error } = await query.single();

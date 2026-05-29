@@ -31,9 +31,11 @@ import {
   LogOut,
   Megaphone,
   Save,
+  Search,
   ShieldCheck,
   Trash2,
   Upload,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -47,6 +49,7 @@ type Tab =
   | "history"
   | "faqs"
   | "media"
+  | "admins"
   | "audit";
 
 type ResourceState = {
@@ -59,6 +62,7 @@ type ResourceState = {
   history: HistoryItem[];
   faqs: FAQItem[];
   media: MediaAsset[];
+  admins: AdminProfile[];
   audit: AuditLog[];
 };
 
@@ -88,6 +92,7 @@ const initialState: ResourceState = {
   history: [],
   faqs: [],
   media: [],
+  admins: [],
   audit: [],
 };
 
@@ -101,6 +106,7 @@ const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "history", label: "연혁", icon: Database },
   { key: "faqs", label: "FAQ", icon: BookOpen },
   { key: "media", label: "미디어", icon: ImageUp },
+  { key: "admins", label: "관리자", icon: UserCog },
   { key: "audit", label: "감사 로그", icon: ShieldCheck },
 ];
 
@@ -111,6 +117,27 @@ const statusLabels: Record<string, string> = {
   accepted: "합격",
   rejected: "불합격",
 };
+
+const applicantStatusOptions = Object.entries(statusLabels).map(([value, label]) => ({ value, label }));
+
+const contentStatusOptions = [
+  { value: "draft", label: "초안" },
+  { value: "published", label: "게시" },
+  { value: "archived", label: "보관" },
+];
+
+const achievementKindOptions = [
+  { value: "placement", label: "취업·인턴" },
+  { value: "award", label: "수상·외부활동" },
+  { value: "metric", label: "지표" },
+];
+
+const adminRoleOptions = [
+  { value: "owner", label: "소유자" },
+  { value: "admin", label: "관리자" },
+  { value: "editor", label: "편집자" },
+  { value: "viewer", label: "조회자" },
+];
 
 function joinList(value: string[] | null | undefined) {
   return (value ?? []).join("\n");
@@ -216,6 +243,8 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [applicantSearch, setApplicantSearch] = useState("");
+  const [applicantStatusFilter, setApplicantStatusFilter] = useState("all");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
 
@@ -250,7 +279,7 @@ export default function AdminPage() {
       return data;
     };
 
-    const [me, applicants, settings, recruitment, blocks, activities, achievements, history, faqs, media, audit] =
+    const [me, applicants, settings, recruitment, blocks, activities, achievements, history, faqs, media, admins, audit] =
       await Promise.all([
         fetchWithToken("/api/admin/me"),
         fetchWithToken("/api/admin/applicants"),
@@ -262,6 +291,7 @@ export default function AdminPage() {
         fetchWithToken("/api/admin/cms/history"),
         fetchWithToken("/api/admin/cms/faqs"),
         fetchWithToken("/api/admin/cms/media"),
+        fetchWithToken("/api/admin/cms/admins"),
         fetchWithToken("/api/admin/cms/audit"),
       ]);
 
@@ -276,6 +306,7 @@ export default function AdminPage() {
       history: history.items ?? [],
       faqs: faqs.items ?? [],
       media: media.items ?? [],
+      admins: admins.items ?? [],
       audit: audit.items ?? [],
     });
     setLoading(false);
@@ -311,6 +342,25 @@ export default function AdminPage() {
     }, {});
   }, [state.applicants]);
 
+  const filteredApplicants = useMemo(() => {
+    const query = applicantSearch.trim().toLowerCase();
+    return state.applicants.filter((applicant) => {
+      const matchesStatus =
+        applicantStatusFilter === "all" || applicant.status === applicantStatusFilter;
+      const haystack = [
+        applicant.name,
+        applicant.student_id,
+        applicant.email,
+        applicant.phone,
+        applicant.admin_note ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return matchesStatus && (!query || haystack.includes(query));
+    });
+  }, [applicantSearch, applicantStatusFilter, state.applicants]);
+
   async function logout() {
     await getSupabase().auth.signOut();
     router.push("/admin/login");
@@ -327,11 +377,11 @@ export default function AdminPage() {
     setMessage("사이트 설정을 저장했습니다.");
   }
 
-  async function saveItem(resource: string, item: Record<string, unknown>) {
+  async function saveItem(resource: string, item: Record<string, unknown>, forceCreate = false) {
     setSaving(resource);
     setMessage("");
-    const method = item.id ? "PATCH" : "POST";
-    const body = item.id ? { id: item.id, values: item } : item;
+    const method = item.id && !forceCreate ? "PATCH" : "POST";
+    const body = method === "PATCH" ? { id: item.id, values: item } : item;
     const data = await adminFetch(`/api/admin/cms/${resource}`, {
       method,
       body: JSON.stringify(body),
@@ -363,7 +413,7 @@ export default function AdminPage() {
 
   function downloadApplicants() {
     const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "관리자 메모", "접수일"];
-    const rows = state.applicants.map((applicant) => [
+    const rows = filteredApplicants.map((applicant) => [
       applicant.name,
       applicant.student_id,
       applicant.email,
@@ -459,6 +509,7 @@ export default function AdminPage() {
                 ["대기", applicantCounts.pending ?? 0],
                 ["면접", applicantCounts.interview ?? 0],
                 ["게시 콘텐츠", state.blocks.length + state.activities.length],
+                ["관리자 계정", state.admins.length],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-sm text-slate-500">{label}</p>
@@ -481,15 +532,42 @@ export default function AdminPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold">지원자 관리</h2>
-                  <p className="text-sm text-slate-500">CSV에는 개인정보가 포함됩니다. 내부 선발 관리 용도로만 사용하세요.</p>
+                  <p className="text-sm text-slate-500">
+                    CSV에는 개인정보가 포함됩니다. 현재 필터 결과 {filteredApplicants.length}명만 내려받습니다.
+                  </p>
                 </div>
                 <AdminButton onClick={downloadApplicants}>
                   <Download className="h-4 w-4" />
                   CSV 다운로드
                 </AdminButton>
               </div>
+              <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[1fr_220px]">
+                <label className="grid gap-1.5 text-sm">
+                  <span className="font-medium text-slate-700">검색</span>
+                  <span className="relative">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      value={applicantSearch}
+                      onChange={(event) => setApplicantSearch(event.target.value)}
+                      placeholder="이름, 학번, 이메일, 연락처, 메모"
+                      className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+                    />
+                  </span>
+                </label>
+                <SelectField
+                  label="상태 필터"
+                  value={applicantStatusFilter}
+                  onChange={setApplicantStatusFilter}
+                  options={[{ value: "all", label: "전체" }, ...applicantStatusOptions]}
+                />
+              </div>
               <div className="mt-5 grid gap-3 md:hidden">
-                {state.applicants.map((applicant) => (
+                {filteredApplicants.length === 0 && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500">
+                    조건에 맞는 지원자가 없습니다.
+                  </div>
+                )}
+                {filteredApplicants.map((applicant) => (
                   <ApplicantMobileCard
                     key={applicant.id}
                     applicant={applicant}
@@ -519,7 +597,7 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {state.applicants.map((applicant) => (
+                    {filteredApplicants.map((applicant) => (
                       <tr key={applicant.id} className="border-b border-slate-100 align-top">
                         <td className="py-3 pr-3 font-medium">{applicant.name}</td>
                         <td className="py-3 pr-3 font-mono text-xs">{applicant.student_id}</td>
@@ -589,6 +667,13 @@ export default function AdminPage() {
                         </td>
                       </tr>
                     ))}
+                    {filteredApplicants.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                          조건에 맞는 지원자가 없습니다.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -627,7 +712,7 @@ export default function AdminPage() {
                   <div className="grid gap-4 md:grid-cols-3">
                     <Field label="기수" type="number" value={item.generation} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, generation: Number(value) } : x))} />
                     <Field label="제목" value={item.title} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, title: value } : x))} />
-                    <Field label="상태" value={item.status} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, status: value as RecruitmentCycle["status"] } : x))} />
+                    <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, status: value as RecruitmentCycle["status"] } : x))} />
                     <Field label="시작" type="datetime-local" value={item.start_at?.slice(0, 16) ?? ""} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, start_at: value ? new Date(value).toISOString() : null } : x))} />
                     <Field label="마감" type="datetime-local" value={item.end_at?.slice(0, 16) ?? ""} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, end_at: value ? new Date(value).toISOString() : null } : x))} />
                     <label className="flex items-end gap-2 text-sm font-medium text-slate-700">
@@ -687,7 +772,7 @@ export default function AdminPage() {
                     <div className="grid gap-4 md:grid-cols-4">
                       <Field label="페이지" value={item.page_slug} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, page_slug: value } : x))} />
                       <Field label="키" value={item.block_key} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, block_key: value } : x))} />
-                      <Field label="상태" value={item.status} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, status: value as ContentBlock["status"] } : x))} />
+                      <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, status: value as ContentBlock["status"] } : x))} />
                       <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                     </div>
                     <Field label="제목" value={item.title} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, title: value } : x))} />
@@ -719,6 +804,11 @@ export default function AdminPage() {
                 <>
                   <Field label="제목" value={item.title} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, title: value } : x))} />
                   <Field label="부제목" value={item.subtitle} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, subtitle: value } : x))} />
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field label="분류" value={item.category} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, category: value } : x))} />
+                    <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, status: value as ActivityItem["status"] } : x))} />
+                    <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
+                  </div>
                   <TextField label="설명" value={item.description} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, description: value } : x))} />
                   <Field label="태그(쉼표 구분)" value={item.tags.join(", ")} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, tags: splitTags(value) } : x))} />
                   <ItemActions save={() => saveItem("activities", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("activities", item.id)} />
@@ -737,8 +827,13 @@ export default function AdminPage() {
                 <>
                   <div className="grid gap-4 md:grid-cols-3">
                     <Field label="제목/기관" value={item.title} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, title: value } : x))} />
-                    <Field label="분류" value={item.kind} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, kind: value as AchievementItem["kind"] } : x))} />
+                    <SelectField label="분류" value={item.kind} options={achievementKindOptions} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, kind: value as AchievementItem["kind"] } : x))} />
                     <Field label="연도" type="number" value={item.year} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, year: Number(value) } : x))} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field label="기관/분야" value={item.organization} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, organization: value } : x))} />
+                    <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, status: value as AchievementItem["status"] } : x))} />
+                    <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                   </div>
                   <Field label="결과/직무" value={item.result} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, result: value } : x))} />
                   <ItemActions save={() => saveItem("achievements", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("achievements", item.id)} />
@@ -760,6 +855,14 @@ export default function AdminPage() {
                     <Field label="기수" type="number" value={item.generation} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, generation: value ? Number(value) : null } : x))} />
                     <Field label="회장" value={item.president} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, president: value } : x))} />
                   </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, status: value as HistoryItem["status"] } : x))} />
+                    <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
+                    <label className="flex items-end gap-2 text-sm font-medium text-slate-700">
+                      <input type="checkbox" checked={item.is_current} onChange={(event) => updateList("history", state.history.map((x, i) => i === index ? { ...x, is_current: event.target.checked } : x))} />
+                      현재 기수
+                    </label>
+                  </div>
                   <TextField label="마일스톤 · 줄바꿈 구분" value={joinList(item.milestones)} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, milestones: splitLines(value) } : x))} />
                   <ItemActions save={() => saveItem("history", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("history", item.id)} />
                 </>
@@ -776,6 +879,10 @@ export default function AdminPage() {
               render={(item, index) => (
                 <>
                   <Field label="질문" value={item.question} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, question: value } : x))} />
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, status: value as FAQItem["status"] } : x))} />
+                    <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
+                  </div>
                   <TextField label="답변" value={item.answer} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, answer: value } : x))} />
                   <ItemActions save={() => saveItem("faqs", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("faqs", item.id)} />
                 </>
@@ -805,6 +912,51 @@ export default function AdminPage() {
             </section>
           )}
 
+          {tab === "admins" && (
+            <SimpleResourceEditor
+              title="관리자 계정"
+              items={state.admins}
+              addLabel="관리자 추가"
+              description="활성 계정만 관리자 API와 대시보드에 접근할 수 있습니다."
+              onAdd={() =>
+                updateList("admins", [
+                  { id: "", email: "", name: "", role: "editor", is_active: true, __isNew: true } as AdminProfile & { __isNew: boolean },
+                  ...state.admins,
+                ])
+              }
+              render={(item, index) => (
+                <>
+                  <div className="rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                    Supabase Auth에서 계정을 만든 뒤, 해당 사용자의 UUID를 입력해야 관리자 권한이 연결됩니다.
+                    관리자 계정 수정은 소유자 권한에서만 처리됩니다.
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Field label="사용자 UUID" value={item.id} onChange={(value) => updateList("admins", state.admins.map((x, i) => i === index ? { ...x, id: value } : x))} />
+                    <Field label="이메일" value={item.email} onChange={(value) => updateList("admins", state.admins.map((x, i) => i === index ? { ...x, email: value } : x))} />
+                    <Field label="이름" value={item.name} onChange={(value) => updateList("admins", state.admins.map((x, i) => i === index ? { ...x, name: value } : x))} />
+                    <SelectField label="권한" value={item.role} options={adminRoleOptions} onChange={(value) => updateList("admins", state.admins.map((x, i) => i === index ? { ...x, role: value as AdminProfile["role"] } : x))} />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input type="checkbox" checked={item.is_active} onChange={(event) => updateList("admins", state.admins.map((x, i) => i === index ? { ...x, is_active: event.target.checked } : x))} />
+                    활성 계정
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <AdminButton onClick={() => saveItem("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew)).then(() => loadAll(token))}>
+                      <Save className="h-4 w-4" />
+                      저장
+                    </AdminButton>
+                    {item.id !== admin?.id && (
+                      <AdminButton variant="danger" onClick={() => deleteItem("admins", item.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        삭제
+                      </AdminButton>
+                    )}
+                  </div>
+                </>
+              )}
+            />
+          )}
+
           {tab === "audit" && (
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-bold">감사 로그</h2>
@@ -822,6 +974,35 @@ export default function AdminPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string | null | undefined;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <label className="grid gap-1.5 text-sm">
+      <span className="font-medium text-slate-700">{label}</span>
+      <select
+        value={value ?? ""}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -934,12 +1115,14 @@ function SimpleResourceEditor<T>({
   title,
   items,
   addLabel,
+  description = "published 항목만 공개 페이지에 표시됩니다.",
   onAdd,
   render,
 }: {
   title: string;
   items: T[];
   addLabel: string;
+  description?: string;
   onAdd: () => void;
   render: (item: T, index: number) => React.ReactNode;
 }) {
@@ -948,7 +1131,7 @@ function SimpleResourceEditor<T>({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold">{title}</h2>
-          <p className="text-sm text-slate-500">published 항목만 공개 페이지에 표시됩니다.</p>
+          <p className="text-sm text-slate-500">{description}</p>
         </div>
         <AdminButton onClick={onAdd} variant="secondary">{addLabel}</AdminButton>
       </div>

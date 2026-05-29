@@ -20,6 +20,8 @@
 - `/admin/login`에서 Supabase Auth 계정으로 로그인합니다.
 - 로그인만으로는 관리자가 되지 않습니다. `admin_profiles.is_active = true`이고 `role`이 `owner`, `admin`, `editor`여야 수정할 수 있습니다.
 - `viewer`는 조회만 가능하도록 설계했습니다.
+- 관리자 계정 탭에서는 Supabase Auth 사용자 UUID와 이메일을 연결합니다. 계정 생성 자체는 Supabase Auth에서 먼저 처리합니다.
+- `owner`만 관리자 계정을 추가, 비활성화, 삭제할 수 있습니다.
 
 ## 3. 콘텐츠 운영
 
@@ -32,8 +34,10 @@
 
 - 지원서 파일은 public URL로 저장하지 않습니다.
 - `/admin` 지원자 탭에서 10분짜리 signed URL로만 확인합니다.
-- CSV 다운로드에는 개인정보가 포함되므로 내부 선발 관리 용도로만 사용합니다.
+- 지원자 탭에서 이름, 학번, 이메일, 연락처, 메모 검색과 상태 필터를 사용할 수 있습니다.
+- CSV 다운로드에는 개인정보가 포함되며, 현재 필터 결과만 내려받습니다.
 - 상태값은 `pending`, `reviewed`, `interview`, `accepted`, `rejected`입니다.
+- 점수는 0~100 사이 정수만 저장됩니다.
 
 ## 5. 검증 체크리스트
 

@@ -44,6 +44,13 @@ Required storage buckets:
 Admin accounts must exist in both Supabase Auth and the `admin_profiles` table.
 See [`docs/ADMIN_CMS_RUNBOOK.md`](docs/ADMIN_CMS_RUNBOOK.md) for the operating checklist.
 
+## Admin Operations
+
+- `/admin` manages applicants, recruitment cycles, page content, activities, achievements, history, FAQ, media, admin profiles, and audit logs.
+- Application files are stored in the private `applications` bucket and opened through short-lived signed URLs.
+- Public pages only render `published` CMS records, with static fallback content for safe deploys.
+- The application API requires a published open recruitment cycle before accepting submissions.
+
 ## Project Structure
 
 ```
