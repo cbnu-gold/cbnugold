@@ -27,6 +27,7 @@ import {
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
 } from "../src/lib/admin-safety";
+import { buildApplicantAuditMetadata } from "../src/lib/applicant-audit";
 import {
   getOptionalCmsHrefError,
   isSafeCmsHref,
@@ -76,6 +77,21 @@ const baseSettings = {
 test("CSV values are escaped for commas, quotes, and new lines", () => {
   assert.equal(escapeCsvValue('홍길동,"메모"'), '"홍길동,""메모"""');
   assert.equal(toCsv(["이름", "메모"], [["홍길동", "1차\n확인"]]), '이름,메모\n홍길동,"1차\n확인"');
+});
+
+test("applicant audit metadata excludes memo and score contents", () => {
+  const metadata = buildApplicantAuditMetadata({
+    status: "interview",
+    admin_note: "면접 평가와 개인정보",
+    review_score: 92,
+  });
+
+  assert.deepEqual(metadata, {
+    changed_fields: ["admin_note", "review_score", "status"],
+    status: "interview",
+  });
+  assert.equal(JSON.stringify(metadata).includes("면접 평가"), false);
+  assert.equal(JSON.stringify(metadata).includes("92"), false);
 });
 
 test("recruitment is open only when published, enabled, and before deadline", () => {

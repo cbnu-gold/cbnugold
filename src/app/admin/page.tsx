@@ -546,6 +546,11 @@ export default function AdminPage() {
 
   function downloadApplicants() {
     if (!requireApplicantAccess("지원자 CSV 다운로드")) return;
+    const confirmed = window.confirm(
+      `지원자 CSV에는 이름, 연락처, 관리자 메모 등 개인정보가 포함됩니다.\n현재 필터 결과 ${filteredApplicants.length}명만 내려받습니다.`
+    );
+    if (!confirmed) return;
+
     const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "관리자 메모", "접수일"];
     const rows = filteredApplicants.map((applicant) => [
       applicant.name,

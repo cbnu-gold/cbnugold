@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forbidden, verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
 import { canManageApplicants } from "@/lib/admin-permissions";
+import { buildApplicantAuditMetadata } from "@/lib/applicant-audit";
 import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
@@ -96,6 +97,6 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await writeAuditLog(admin, "update_applicant", "applicants", id, update);
+  await writeAuditLog(admin, "update_applicant", "applicants", id, buildApplicantAuditMetadata(update));
   return NextResponse.json({ applicant: await attachSignedUrl(data as Applicant) });
 }
