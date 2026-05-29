@@ -51,7 +51,14 @@
 - `npm run test`
 - `npm run build`
 - `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
+- `/api/health`가 `200`과 `status: ok`를 반환하는지 확인
 - 비로그인 상태에서 `/api/admin/*`가 401/403을 반환하는지 확인
 - 일반 Supabase 인증 사용자가 `admin_profiles`에 없을 때 관리자 API 접근이 차단되는지 확인
 - `/api/apply/check` 반복 조회가 단기 제한으로 차단되는지 확인
 - 지원서 파일 URL이 공개 Supabase public URL로 노출되지 않는지 확인
+
+## 6. 장애 판단 기준
+
+- `/api/health`가 `503`이면 Vercel 환경변수, Supabase 프로젝트 DNS, 테이블 스키마, Storage 버킷 중 하나를 먼저 확인합니다.
+- `applications` 버킷은 private, `cms-media` 버킷은 public이어야 합니다.
+- 헬스체크는 비밀값을 반환하지 않고 항목별 통과 여부만 반환합니다.

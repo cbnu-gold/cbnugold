@@ -8,6 +8,7 @@ import {
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
 } from "../src/lib/admin-safety";
+import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -65,4 +66,19 @@ test("admin owner safety prevents removing the last active owner", () => {
   assert.equal(wouldLeaveNoActiveOwner(owner, { role: "admin" }, 2), false);
   assert.equal(deletingWouldLeaveNoActiveOwner(owner, 1), true);
   assert.equal(deletingWouldLeaveNoActiveOwner(owner, 2), false);
+});
+
+test("health status reports degraded when any check fails", () => {
+  assert.equal(getHealthStatus([{ name: "env", ok: true }]), "ok");
+  assert.equal(
+    getHealthStatus([
+      { name: "env", ok: true },
+      { name: "db", ok: false },
+    ]),
+    "degraded"
+  );
+  assert.equal(
+    sanitizeHealthError(new Error("TypeError: fetch failed")),
+    "Supabase에 연결할 수 없습니다"
+  );
 });
