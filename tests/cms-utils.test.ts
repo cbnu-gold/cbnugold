@@ -15,6 +15,11 @@ import {
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
 } from "../src/lib/admin-safety";
+import {
+  getOptionalCmsHrefError,
+  isSafeCmsHref,
+  normalizeOptionalCmsHref,
+} from "../src/lib/cms-links";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import type { RecruitmentCycle } from "../src/types";
@@ -179,5 +184,19 @@ test("site settings validation rejects unsafe public links", () => {
       instagram_url: "http://example.com",
     }).error,
     "인스타그램 URL은 https URL만 사용할 수 있습니다"
+  );
+});
+
+test("CMS href validation allows internal paths and https URLs only", () => {
+  assert.equal(isSafeCmsHref("/join/check"), true);
+  assert.equal(isSafeCmsHref("https://forms.gle/example"), true);
+  assert.equal(isSafeCmsHref("http://example.com"), false);
+  assert.equal(isSafeCmsHref("//example.com"), false);
+  assert.equal(isSafeCmsHref("javascript:alert(1)"), false);
+  assert.equal(normalizeOptionalCmsHref("  /join  "), "/join");
+  assert.equal(normalizeOptionalCmsHref("http://example.com"), null);
+  assert.equal(
+    getOptionalCmsHrefError("javascript:alert(1)", "CTA 링크"),
+    "CTA 링크는 사이트 내부 경로 또는 https URL만 사용할 수 있습니다"
   );
 });

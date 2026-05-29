@@ -129,13 +129,22 @@ export default async function Home() {
                 ))}
               </div>
             </div>
-            <Link
-              href="/join"
-              className="flex items-center justify-between rounded-lg bg-marble-light px-4 py-3 text-sm font-semibold text-ink transition hover:bg-gold/10"
-            >
-              {recruitmentOpen ? "모집 상세와 지원서 제출" : "모집 안내 확인"}
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/join"
+                className="flex items-center justify-between rounded-lg bg-marble-light px-4 py-3 text-sm font-semibold text-ink transition hover:bg-gold/10"
+              >
+                {recruitmentOpen ? "모집 상세와 지원서 제출" : "모집 안내 확인"}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/join/check"
+                className="flex items-center justify-between rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-gold/30 hover:text-ink"
+              >
+                접수 여부 확인
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 border-y border-ink/10 py-4 sm:grid-cols-3 lg:col-span-2 lg:max-w-2xl">

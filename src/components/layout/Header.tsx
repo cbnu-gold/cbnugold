@@ -13,6 +13,7 @@ const navItems = [
   { href: "/", label: "홈" },
   { href: "/about", label: "소개" },
   { href: "/activity", label: "활동" },
+  { href: "/join/check", label: "지원 확인" },
 ];
 
 export function Header({ settings }: { settings: SiteSettingsValue }) {

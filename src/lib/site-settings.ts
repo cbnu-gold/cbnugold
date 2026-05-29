@@ -1,4 +1,5 @@
 import type { SiteSettingsValue } from "@/types";
+import { isHttpsUrl, isSafeCmsHref } from "@/lib/cms-links";
 
 type SiteSettingFieldKind = "text" | "email" | "phone" | "internal-or-https" | "optional-https";
 
@@ -33,22 +34,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function isSafeInternalPath(value: string) {
-  return value.startsWith("/") && !value.startsWith("//") && !value.includes("\\") && !/\s/.test(value);
-}
-
-function isHttpsUrl(value: string) {
-  try {
-    return new URL(value).protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-
 function validateFieldValue(kind: SiteSettingFieldKind, value: string) {
   if (kind === "email") return emailPattern.test(value);
   if (kind === "phone") return phonePattern.test(value);
-  if (kind === "internal-or-https") return isSafeInternalPath(value) || isHttpsUrl(value);
+  if (kind === "internal-or-https") return isSafeCmsHref(value);
   if (kind === "optional-https") return value === "" || isHttpsUrl(value);
   return true;
 }

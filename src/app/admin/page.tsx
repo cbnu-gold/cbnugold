@@ -913,8 +913,8 @@ export default function AdminPage() {
                     </label>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Field label="DOCX URL" value={item.docx_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, docx_url: value } : x))} />
-                    <Field label="HWP URL" value={item.hwp_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, hwp_url: value } : x))} />
+                    <Field label="DOCX URL" hint="/파일명.docx 또는 https URL" value={item.docx_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, docx_url: value } : x))} />
+                    <Field label="HWP URL" hint="/파일명.hwp 또는 https URL" value={item.hwp_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, hwp_url: value } : x))} />
                   </div>
                   <TextField label="지원 자격 · 줄바꿈 구분" value={joinList(item.requirements)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requirements: splitLines(value) } : x))} />
                   <div className="flex gap-2">
@@ -1008,6 +1008,11 @@ export default function AdminPage() {
                     <Field label="제목" value={item.title} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, title: value } : x))} />
                     <Field label="부제목" value={item.subtitle} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, subtitle: value } : x))} />
                     <TextField label="본문" value={item.body} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, body: value } : x))} />
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <Field label="CTA 문구" value={item.cta_label} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, cta_label: value } : x))} />
+                      <Field label="CTA 링크" hint="/join 또는 https URL" value={item.cta_href} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, cta_href: value } : x))} />
+                      <Field label="미디어 URL" hint="이미지/문서 경로 또는 https URL" value={item.media_url} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, media_url: value } : x))} />
+                    </div>
                     <div className="flex gap-2">
                       <AdminButton onClick={() => saveItemAndReload("blocks", item as unknown as Record<string, unknown>)} disabled={!canWrite}>
                         <Save className="h-4 w-4" />

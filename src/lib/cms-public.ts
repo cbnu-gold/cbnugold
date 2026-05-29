@@ -5,6 +5,8 @@ import {
   fallbackRecruitment,
   fallbackSettings,
 } from "@/lib/cms-fallback";
+import { normalizeOptionalCmsHref } from "@/lib/cms-links";
+import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 export {
   formatKoreanDateTime,
   getRecruitmentPhase,
@@ -20,7 +22,6 @@ import type {
   HistoryItem,
   PublicCmsData,
   RecruitmentCycle,
-  SiteSettingsValue,
 } from "@/types";
 
 function getPublicSupabase() {
@@ -36,6 +37,26 @@ function getPublicSupabase() {
 
 function chooseFallback<T>(value: T[] | null | undefined, fallback: T[]) {
   return value && value.length > 0 ? value : fallback;
+}
+
+function getSafeSettings(value: unknown) {
+  return validateAndNormalizeSiteSettingsValue(value).value ?? fallbackSettings;
+}
+
+function getSafeBlocks(blocks: ContentBlock[]) {
+  return blocks.map((block) => ({
+    ...block,
+    cta_href: normalizeOptionalCmsHref(block.cta_href),
+    media_url: normalizeOptionalCmsHref(block.media_url),
+  }));
+}
+
+function getSafeRecruitment(recruitment: RecruitmentCycle) {
+  return {
+    ...recruitment,
+    docx_url: normalizeOptionalCmsHref(recruitment.docx_url),
+    hwp_url: normalizeOptionalCmsHref(recruitment.hwp_url),
+  };
 }
 
 export const getPublicCmsData = cache(async function getPublicCmsData(): Promise<PublicCmsData> {
@@ -98,21 +119,22 @@ export const getPublicCmsData = cache(async function getPublicCmsData(): Promise
         .order("sort_order"),
     ]);
 
+    const blocks = chooseFallback(
+      blocksResult.data as ContentBlock[] | null,
+      fallbackCmsData.blocks
+    );
+    const recruitment =
+      (recruitmentResult.data as RecruitmentCycle | null) ??
+      fallbackRecruitment;
+
     return {
-      settings:
-        (settingsResult.data?.value as SiteSettingsValue | undefined) ??
-        fallbackSettings,
+      settings: getSafeSettings(settingsResult.data?.value),
       pages: chooseFallback(
         pagesResult.data as ContentPage[] | null,
         fallbackCmsData.pages
       ),
-      blocks: chooseFallback(
-        blocksResult.data as ContentBlock[] | null,
-        fallbackCmsData.blocks
-      ),
-      recruitment:
-        (recruitmentResult.data as RecruitmentCycle | null) ??
-        fallbackRecruitment,
+      blocks: getSafeBlocks(blocks),
+      recruitment: getSafeRecruitment(recruitment),
       activities: chooseFallback(
         activitiesResult.data as ActivityItem[] | null,
         fallbackCmsData.activities

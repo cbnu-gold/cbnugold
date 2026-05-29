@@ -8,6 +8,7 @@ const navItems = [
   { href: "/about", label: "소개" },
   { href: "/activity", label: "활동" },
   { href: "/join", label: "지원" },
+  { href: "/join/check", label: "지원 확인" },
 ];
 
 export function Footer({ settings }: { settings: SiteSettingsValue }) {

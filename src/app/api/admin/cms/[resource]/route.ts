@@ -12,6 +12,7 @@ import {
   type AdminProfilePatch,
   type AdminSafetyProfile,
 } from "@/lib/admin-safety";
+import { getOptionalCmsHrefError, normalizeOptionalCmsHref } from "@/lib/cms-links";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
 import type { AdminRole } from "@/types";
@@ -67,6 +68,24 @@ function validatePayload(resource: Resource, payload: CmsPayload) {
     const result = validateAndNormalizeSiteSettingsValue(payload.value);
     if (result.error) return result.error;
     payload.value = result.value;
+  }
+
+  if (resource === "blocks") {
+    const ctaError = getOptionalCmsHrefError(payload.cta_href, "블록 CTA 링크");
+    if (ctaError) return ctaError;
+    const mediaError = getOptionalCmsHrefError(payload.media_url, "블록 미디어 URL");
+    if (mediaError) return mediaError;
+    if ("cta_href" in payload) payload.cta_href = normalizeOptionalCmsHref(payload.cta_href);
+    if ("media_url" in payload) payload.media_url = normalizeOptionalCmsHref(payload.media_url);
+  }
+
+  if (resource === "recruitment") {
+    const docxError = getOptionalCmsHrefError(payload.docx_url, "DOCX 지원서 URL");
+    if (docxError) return docxError;
+    const hwpError = getOptionalCmsHrefError(payload.hwp_url, "HWP 지원서 URL");
+    if (hwpError) return hwpError;
+    if ("docx_url" in payload) payload.docx_url = normalizeOptionalCmsHref(payload.docx_url);
+    if ("hwp_url" in payload) payload.hwp_url = normalizeOptionalCmsHref(payload.hwp_url);
   }
 
   if (
