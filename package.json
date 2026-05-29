@@ -6,17 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test tests/*.test.ts",
+    "verify": "npm run lint && npm run test && npm run build"
   },
   "dependencies": {
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.96.0",
     "framer-motion": "^12.34.1",
     "lucide-react": "^0.574.0",
-    "next": "16.1.6",
+    "next": "^16.2.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.2"
+    "resend": "^6.12.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -24,8 +26,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint-config-next": "^16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "^8.5.15",
+    "ws": "^8.21.0"
   }
 }

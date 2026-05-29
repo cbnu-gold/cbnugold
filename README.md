@@ -34,7 +34,15 @@ NEXT_PUBLIC_SITE_URL=https://cbnugold.com
 
 ## Database Setup
 
-Run `supabase-schema.sql` in the Supabase SQL Editor to create tables and RLS policies.
+Run `supabase-schema.sql` in the Supabase SQL Editor to create CMS, recruitment, applicant, admin, audit, and RLS policies.
+
+Required storage buckets:
+
+- `applications` private bucket for submitted application files
+- `cms-media` public bucket for CMS-managed media assets
+
+Admin accounts must exist in both Supabase Auth and the `admin_profiles` table.
+See [`docs/ADMIN_CMS_RUNBOOK.md`](docs/ADMIN_CMS_RUNBOOK.md) for the operating checklist.
 
 ## Project Structure
 
