@@ -20,9 +20,12 @@
 
 - `/admin/login`에서 Supabase Auth 계정으로 로그인합니다.
 - 로그인만으로는 관리자가 되지 않습니다. `admin_profiles.is_active = true`이고 `role`이 `owner`, `admin`, `editor`여야 수정할 수 있습니다.
-- `viewer`는 조회만 가능하도록 설계했습니다.
+- `editor`는 콘텐츠, 모집, 미디어 운영을 담당합니다. 지원자 개인정보, 감사 로그, 관리자 계정 목록은 볼 수 없습니다.
+- `viewer`는 민감정보를 제외한 CMS 조회만 가능하도록 설계했습니다.
 - 관리자 계정 탭에서는 Supabase Auth 사용자 UUID와 이메일을 연결합니다. 계정 생성 자체는 Supabase Auth에서 먼저 처리합니다.
 - `owner`만 관리자 계정을 추가, 비활성화, 삭제할 수 있습니다.
+- `owner`와 `admin`만 지원자 개인정보와 지원서 signed URL을 조회하거나 지원자 상태를 수정할 수 있습니다.
+- `owner`와 `admin`만 감사 로그를 조회할 수 있습니다.
 - 활성 `owner` 계정은 최소 1개 이상 유지됩니다. 현재 로그인한 `owner`는 본인 권한 비활성화, 강등, 삭제가 차단됩니다.
 
 ## 3. 콘텐츠 운영

@@ -4,6 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
+import {
+  canManageAdmins as roleCanManageAdmins,
+  canManageApplicants as roleCanManageApplicants,
+  canViewAudit as roleCanViewAudit,
+  canWriteContent,
+} from "@/lib/admin-permissions";
 import type {
   ActivityItem,
   AdminProfile,
@@ -290,10 +296,15 @@ export default function AdminPage() {
       return data;
     };
 
-    const [me, applicants, settings, recruitment, pages, blocks, activities, achievements, history, faqs, media, admins, audit] =
+    const me = await fetchWithToken("/api/admin/me");
+    const activeRole = (me.admin as AdminProfile | undefined)?.role;
+    const canLoadApplicants = roleCanManageApplicants(activeRole);
+    const canLoadAdmins = roleCanManageAdmins(activeRole);
+    const canLoadAudit = roleCanViewAudit(activeRole);
+
+    const [applicants, settings, recruitment, pages, blocks, activities, achievements, history, faqs, media, admins, audit] =
       await Promise.all([
-        fetchWithToken("/api/admin/me"),
-        fetchWithToken("/api/admin/applicants"),
+        canLoadApplicants ? fetchWithToken("/api/admin/applicants") : Promise.resolve({ applicants: [] }),
         fetchWithToken("/api/admin/cms/settings"),
         fetchWithToken("/api/admin/cms/recruitment"),
         fetchWithToken("/api/admin/cms/pages"),
@@ -303,8 +314,8 @@ export default function AdminPage() {
         fetchWithToken("/api/admin/cms/history"),
         fetchWithToken("/api/admin/cms/faqs"),
         fetchWithToken("/api/admin/cms/media"),
-        fetchWithToken("/api/admin/cms/admins"),
-        fetchWithToken("/api/admin/cms/audit"),
+        canLoadAdmins ? fetchWithToken("/api/admin/cms/admins") : Promise.resolve({ items: [] }),
+        canLoadAudit ? fetchWithToken("/api/admin/cms/audit") : Promise.resolve({ items: [] }),
       ]);
 
     setAdmin(me.admin);
@@ -374,8 +385,25 @@ export default function AdminPage() {
     });
   }, [applicantSearch, applicantStatusFilter, state.applicants]);
 
-  const canWrite = Boolean(admin && admin.role !== "viewer");
-  const canManageAdmins = admin?.role === "owner";
+  const role = admin?.role;
+  const canWrite = canWriteContent(role);
+  const canHandleApplicants = roleCanManageApplicants(role);
+  const canManageAdminAccounts = roleCanManageAdmins(role);
+  const canReadAudit = roleCanViewAudit(role);
+  const visibleTabs = useMemo(
+    () =>
+      tabs.filter((item) => {
+        if (item.key === "applicants") return canHandleApplicants;
+        if (item.key === "admins") return canManageAdminAccounts;
+        if (item.key === "audit") return canReadAudit;
+        return true;
+      }),
+    [canHandleApplicants, canManageAdminAccounts, canReadAudit]
+  );
+
+  useEffect(() => {
+    if (!visibleTabs.some((item) => item.key === tab)) setTab("overview");
+  }, [tab, visibleTabs]);
 
   async function logout() {
     await getSupabase().auth.signOut();
@@ -390,9 +418,16 @@ export default function AdminPage() {
   }
 
   function requireOwner(action = "관리자 계정 관리") {
-    if (canManageAdmins) return true;
+    if (canManageAdminAccounts) return true;
     setMessage("");
     setError(`${action}에는 소유자 권한이 필요합니다.`);
+    return false;
+  }
+
+  function requireApplicantAccess(action = "지원자 관리") {
+    if (canHandleApplicants) return true;
+    setMessage("");
+    setError(`${action}에는 관리자 권한이 필요합니다.`);
     return false;
   }
 
@@ -461,7 +496,7 @@ export default function AdminPage() {
   }
 
   async function updateApplicant(id: string, values: Partial<Applicant>) {
-    if (!requireWrite("지원자 정보 수정")) return;
+    if (!requireApplicantAccess("지원자 정보 수정")) return;
     setMessage("");
     setError("");
     try {
@@ -480,7 +515,7 @@ export default function AdminPage() {
   }
 
   function downloadApplicants() {
-    if (!requireWrite("지원자 CSV 다운로드")) return;
+    if (!requireApplicantAccess("지원자 CSV 다운로드")) return;
     const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "관리자 메모", "접수일"];
     const rows = filteredApplicants.map((applicant) => [
       applicant.name,
@@ -587,7 +622,7 @@ export default function AdminPage() {
             {admin && <p className="mt-1 text-xs text-slate-500">{admin.email} · {admin.role}</p>}
           </div>
           <nav className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:gap-1 lg:overflow-visible lg:pb-0">
-            {tabs.map((item) => {
+            {visibleTabs.map((item) => {
               const Icon = item.icon;
               const active = tab === item.key;
               return (
@@ -632,15 +667,17 @@ export default function AdminPage() {
           {tab === "overview" && (
             <section className="grid gap-4 lg:grid-cols-4">
               {[
-                ["전체 지원자", state.applicants.length],
-                ["대기", applicantCounts.pending ?? 0],
-                ["면접", applicantCounts.interview ?? 0],
+                ["전체 지원자", canHandleApplicants ? state.applicants.length : "권한 필요"],
+                ["대기", canHandleApplicants ? (applicantCounts.pending ?? 0) : "권한 필요"],
+                ["면접", canHandleApplicants ? (applicantCounts.interview ?? 0) : "권한 필요"],
                 ["게시 콘텐츠", state.pages.length + state.blocks.length + state.activities.length],
-                ["관리자 계정", state.admins.length],
+                ["관리자 계정", canManageAdminAccounts ? state.admins.length : "권한 필요"],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-sm text-slate-500">{label}</p>
-                  <p className="mt-2 text-3xl font-bold tabular-nums">{value}</p>
+                  <p className={`mt-2 font-bold tabular-nums ${typeof value === "number" ? "text-3xl" : "text-xl"}`}>
+                    {value}
+                  </p>
                 </div>
               ))}
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
@@ -664,7 +701,7 @@ export default function AdminPage() {
                     CSV에는 개인정보가 포함됩니다. 현재 필터 결과 {filteredApplicants.length}명만 내려받습니다.
                   </p>
                 </div>
-                <AdminButton onClick={downloadApplicants} disabled={!canWrite}>
+                <AdminButton onClick={downloadApplicants} disabled={!canHandleApplicants}>
                   <Download className="h-4 w-4" />
                   CSV 다운로드
                 </AdminButton>
@@ -699,7 +736,7 @@ export default function AdminPage() {
                   <ApplicantMobileCard
                     key={applicant.id}
                     applicant={applicant}
-                    disabled={!canWrite}
+                    disabled={!canHandleApplicants}
                     onUpdate={updateApplicant}
                     onLocalChange={(id, values) =>
                       setState((prev) => ({
@@ -737,7 +774,7 @@ export default function AdminPage() {
                         <td className="py-3 pr-3">
                           <select
                             value={applicant.status}
-                            disabled={!canWrite}
+                            disabled={!canHandleApplicants}
                             onChange={(event) => updateApplicant(applicant.id, { status: event.target.value as Applicant["status"] })}
                             className="rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           >
@@ -752,7 +789,7 @@ export default function AdminPage() {
                             min={0}
                             max={100}
                             value={applicant.review_score ?? ""}
-                            disabled={!canWrite}
+                            disabled={!canHandleApplicants}
                             onBlur={(event) =>
                               updateApplicant(applicant.id, {
                                 review_score: event.target.value ? Number(event.target.value) : null,
@@ -775,7 +812,7 @@ export default function AdminPage() {
                           <textarea
                             value={applicant.admin_note ?? ""}
                             rows={2}
-                            disabled={!canWrite}
+                            disabled={!canHandleApplicants}
                             onBlur={(event) => updateApplicant(applicant.id, { admin_note: event.target.value })}
                             onChange={(event) =>
                               setState((prev) => ({
@@ -1141,7 +1178,7 @@ export default function AdminPage() {
               items={state.admins}
               addLabel="관리자 추가"
               description="활성 계정만 관리자 API와 대시보드에 접근할 수 있습니다."
-              canAdd={canManageAdmins}
+              canAdd={canManageAdminAccounts}
               onAdd={() =>
                 updateList("admins", [
                   { id: "", email: "", name: "", role: "editor", is_active: true, __isNew: true } as AdminProfile & { __isNew: boolean },
@@ -1165,12 +1202,12 @@ export default function AdminPage() {
                     활성 계정
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    <AdminButton onClick={() => saveItemAndReload("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew))} disabled={!canManageAdmins}>
+                    <AdminButton onClick={() => saveItemAndReload("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew))} disabled={!canManageAdminAccounts}>
                       <Save className="h-4 w-4" />
                       저장
                     </AdminButton>
                     {item.id !== admin?.id && (
-                      <AdminButton variant="danger" onClick={() => deleteItem("admins", item.id)} disabled={!canManageAdmins}>
+                      <AdminButton variant="danger" onClick={() => deleteItem("admins", item.id)} disabled={!canManageAdminAccounts}>
                         <Trash2 className="h-4 w-4" />
                         삭제
                       </AdminButton>

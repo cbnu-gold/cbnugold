@@ -4,6 +4,12 @@ import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
 import {
+  canManageAdmins,
+  canManageApplicants,
+  canViewAudit,
+  canWriteContent,
+} from "../src/lib/admin-permissions";
+import {
   deletingWouldLeaveNoActiveOwner,
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
@@ -66,6 +72,23 @@ test("admin owner safety prevents removing the last active owner", () => {
   assert.equal(wouldLeaveNoActiveOwner(owner, { role: "admin" }, 2), false);
   assert.equal(deletingWouldLeaveNoActiveOwner(owner, 1), true);
   assert.equal(deletingWouldLeaveNoActiveOwner(owner, 2), false);
+});
+
+test("admin roles separate content editing from sensitive applicant data", () => {
+  assert.equal(canWriteContent("owner"), true);
+  assert.equal(canWriteContent("admin"), true);
+  assert.equal(canWriteContent("editor"), true);
+  assert.equal(canWriteContent("viewer"), false);
+
+  assert.equal(canManageApplicants("owner"), true);
+  assert.equal(canManageApplicants("admin"), true);
+  assert.equal(canManageApplicants("editor"), false);
+  assert.equal(canManageApplicants("viewer"), false);
+
+  assert.equal(canManageAdmins("owner"), true);
+  assert.equal(canManageAdmins("admin"), false);
+  assert.equal(canViewAudit("admin"), true);
+  assert.equal(canViewAudit("editor"), false);
 });
 
 test("health status reports degraded when any check fails", () => {

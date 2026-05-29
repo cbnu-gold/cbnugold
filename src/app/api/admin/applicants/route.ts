@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { forbidden, verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { canManageApplicants } from "@/lib/admin-permissions";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
 
@@ -26,8 +27,11 @@ async function attachSignedUrl(applicant: Applicant) {
 }
 
 export async function GET(request: NextRequest) {
-  const { response } = await verifyAdmin(request, true);
+  const { admin, response } = await verifyAdmin(request, true);
   if (response) return response;
+  if (!admin || !canManageApplicants(admin.profile.role)) {
+    return forbidden("지원자 개인정보 조회 권한이 없습니다");
+  }
 
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -48,6 +52,9 @@ export async function PATCH(request: NextRequest) {
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
+  if (!canManageApplicants(admin.profile.role)) {
+    return forbidden("지원자 정보 수정 권한이 없습니다");
+  }
 
   const { id, status, admin_note, review_score } = await request.json();
   if (!id) return NextResponse.json({ error: "지원자 id가 필요합니다" }, { status: 400 });

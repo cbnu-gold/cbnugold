@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog, type VerifiedAdmin } from "@/lib/admin-auth";
 import {
+  canManageAdmins,
+  canViewAudit,
+  canWriteContent,
+} from "@/lib/admin-permissions";
+import {
   deletingWouldLeaveNoActiveOwner,
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
@@ -35,10 +40,6 @@ const readOnlyFields = new Set(["created_at", "updated_at", "signed_url", "__isN
 
 function getResource(resource: string) {
   return resourceMap[resource as Resource] ?? null;
-}
-
-function ownerOnly(resource: string, role?: string) {
-  return resource === "admins" && role !== "owner";
 }
 
 function sanitizePayload(
@@ -231,8 +232,15 @@ export async function GET(
   const target = getResource(resource);
   if (!target) return NextResponse.json({ error: "지원하지 않는 CMS 리소스입니다" }, { status: 404 });
 
-  const { response } = await verifyAdmin(request, true);
+  const { admin, response } = await verifyAdmin(request, true);
   if (response) return response;
+  if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
+  if (resource === "admins" && !canManageAdmins(admin.profile.role)) {
+    return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
+  if (resource === "audit" && !canViewAudit(admin.profile.role)) {
+    return NextResponse.json({ error: "감사 로그 조회 권한이 없습니다" }, { status: 403 });
+  }
 
   const supabase = createServerClient();
   let query = supabase.from(target.table).select("*");
@@ -257,8 +265,11 @@ export async function POST(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
-  if (ownerOnly(resource, admin.profile.role)) {
+  if (resource === "admins" && !canManageAdmins(admin.profile.role)) {
     return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
+  if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
+    return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
 
   const body = await request.json();
@@ -295,8 +306,11 @@ export async function PATCH(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
-  if (ownerOnly(resource, admin.profile.role)) {
+  if (resource === "admins" && !canManageAdmins(admin.profile.role)) {
     return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
+  if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
+    return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
 
   const { id, key, values } = await request.json();
@@ -337,8 +351,11 @@ export async function DELETE(
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
-  if (ownerOnly(resource, admin.profile.role)) {
+  if (resource === "admins" && !canManageAdmins(admin.profile.role)) {
     return NextResponse.json({ error: "소유자 권한이 필요합니다" }, { status: 403 });
+  }
+  if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
+    return NextResponse.json({ error: "콘텐츠 삭제 권한이 없습니다" }, { status: 403 });
   }
 
   const id = request.nextUrl.searchParams.get("id");
