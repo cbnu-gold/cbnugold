@@ -35,6 +35,20 @@ const checks = [
     body: "not-json",
   },
   {
+    path: "/api/admin/cms/media",
+    method: "POST",
+    expected: 401,
+    headers: { "content-type": "application/json" },
+    body: "not-json",
+  },
+  {
+    path: "/api/admin/media/not-a-real-id",
+    method: "PATCH",
+    expected: 401,
+    headers: { "content-type": "application/json" },
+    body: "not-json",
+  },
+  {
     path: "/api/apply/check",
     method: "POST",
     expected: 400,

@@ -36,6 +36,7 @@
 - 페이지, 콘텐츠 블록, 활동, 성과, 연혁, FAQ는 저장 시 제목, 본문, 순서, 연도, 태그 형식을 서버에서 검증합니다.
 - DB를 직접 수정해 배열 필드가 깨진 경우에도 공개 조회 단계에서 태그, 마일스톤, FAQ 등 반복 콘텐츠를 정규화합니다.
 - 관리자 CMS, 지원자 상태 변경, 미디어 수정 API는 잘못된 JSON 요청을 400으로 처리합니다.
+- 미디어 생성은 전용 업로드 API만 사용합니다. 일반 CMS API는 미디어 레코드를 직접 생성·수정·삭제하지 않습니다.
 - 페이지 메타 탭에서는 홈, 소개, 활동, 지원 페이지의 검색/공유용 제목과 설명을 관리합니다.
 - 사이트 기본 설정은 헤더, 푸터, 홈 CTA, 지원 문의 채널에 공통 적용됩니다. 내부 링크는 `/join`처럼 `/`로 시작하고, 외부 링크는 `https://`만 저장됩니다.
 - 문의 이메일, 전화번호, 외부 채널 URL은 서버에서 한 번 더 검증합니다. 저장 오류가 표시되면 해당 입력값을 먼저 수정합니다.
@@ -68,7 +69,7 @@
 - `/api/health`가 `200`과 `status: ok`를 반환하는지 확인
 - 심층 DB/Storage 점검이 필요하면 `HEALTHCHECK_TOKEN` 설정 후 `npm run check:ops -- https://배포주소 --deep --token=토큰`을 실행합니다.
 - `check:ops`는 비로그인 상태의 `/api/admin/cms/settings`, `/api/admin/applicants`, `/api/admin/cms/admins`, `/api/admin/cms/audit`가 401을 반환하는지 함께 확인합니다.
-- `check:ops`는 비로그인 malformed 관리자 쓰기 요청이 JSON 파싱보다 먼저 401로 차단되는지도 확인합니다.
+- `check:ops`는 비로그인 malformed 관리자 쓰기 요청과 전용 미디어 API 요청이 JSON 파싱보다 먼저 401로 차단되는지도 확인합니다.
 - 일반 Supabase 인증 사용자가 `admin_profiles`에 없을 때 관리자 API 접근이 차단되는지 확인
 - `/api/apply/check` 반복 조회가 단기 제한으로 차단되는지 확인
 - 지원서 파일 URL이 공개 Supabase public URL로 노출되지 않는지 확인

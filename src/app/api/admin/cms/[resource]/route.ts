@@ -5,6 +5,7 @@ import {
   canViewAudit,
   canWriteContent,
 } from "@/lib/admin-permissions";
+import { getCmsResourceMutationBlockMessage } from "@/lib/admin-cms-resources";
 import {
   deletingWouldLeaveNoActiveOwner,
   patchRemovesActiveOwner,
@@ -306,6 +307,8 @@ export async function POST(
   if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
     return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
+  const mutationBlockMessage = getCmsResourceMutationBlockMessage(resource);
+  if (mutationBlockMessage) return NextResponse.json({ error: mutationBlockMessage }, { status: 404 });
 
   const bodyResult = await readJsonObject(request, "CMS 생성 요청 형식이 올바르지 않습니다");
   if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
@@ -349,6 +352,8 @@ export async function PATCH(
   if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
     return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
+  const mutationBlockMessage = getCmsResourceMutationBlockMessage(resource);
+  if (mutationBlockMessage) return NextResponse.json({ error: mutationBlockMessage }, { status: 404 });
 
   const bodyResult = await readJsonObject(request, "CMS 수정 요청 형식이 올바르지 않습니다");
   if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
@@ -404,6 +409,8 @@ export async function DELETE(
   if (resource !== "admins" && !canWriteContent(admin.profile.role)) {
     return NextResponse.json({ error: "콘텐츠 삭제 권한이 없습니다" }, { status: 403 });
   }
+  const mutationBlockMessage = getCmsResourceMutationBlockMessage(resource);
+  if (mutationBlockMessage) return NextResponse.json({ error: mutationBlockMessage }, { status: 404 });
 
   const id = request.nextUrl.searchParams.get("id");
   if (!id) return NextResponse.json({ error: "id가 필요합니다" }, { status: 400 });

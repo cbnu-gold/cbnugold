@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { cmsMediaBucket } from "@/lib/admin-media";
 import { createServerClient } from "@/lib/supabase-server";
 
 const allowedTypes = new Set([
@@ -45,18 +46,18 @@ export async function POST(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await supabase.storage
-    .from("cms-media")
+    .from(cmsMediaBucket)
     .upload(path, buffer, { contentType: file.type, upsert: false });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
-  const { data: urlData } = supabase.storage.from("cms-media").getPublicUrl(path);
+  const { data: urlData } = supabase.storage.from(cmsMediaBucket).getPublicUrl(path);
   const { data, error } = await supabase
     .from("media_assets")
     .insert({
-      bucket: "cms-media",
+      bucket: cmsMediaBucket,
       path,
       public_url: urlData.publicUrl,
       alt,

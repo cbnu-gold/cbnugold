@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { cmsMediaBucket, isCmsMediaBucket } from "@/lib/admin-media";
 import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 
@@ -43,6 +44,7 @@ export async function PATCH(
     .from("media_assets")
     .update(update)
     .eq("id", id)
+    .eq("bucket", cmsMediaBucket)
     .select("*")
     .single();
 
@@ -71,9 +73,12 @@ export async function DELETE(
     .single();
 
   if (readError) return NextResponse.json({ error: readError.message }, { status: 404 });
+  if (!isCmsMediaBucket(asset.bucket)) {
+    return NextResponse.json({ error: "CMS 미디어 버킷의 파일만 삭제할 수 있습니다" }, { status: 400 });
+  }
 
   const { error: storageError } = await supabase.storage
-    .from(asset.bucket)
+    .from(cmsMediaBucket)
     .remove([asset.path]);
 
   if (storageError) {
