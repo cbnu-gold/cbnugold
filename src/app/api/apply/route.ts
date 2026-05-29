@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
-import { getResendClient, buildAdminEmail } from "@/lib/resend";
+import {
+  buildAdminEmail,
+  getAdminEmailRecipients,
+  getResendClient,
+  getResendFromEmail,
+} from "@/lib/resend";
 import {
   buildApplicationStoragePath,
   getApplicationFileExtension,
@@ -160,19 +165,20 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const resend = getResendClient();
-      const adminEmail = buildAdminEmail({ name, studentId, email, phone });
+      const adminEmails = getAdminEmailRecipients();
+      if (adminEmails.length > 0) {
+        const resend = getResendClient();
+        const adminEmail = buildAdminEmail({ name, studentId, email, phone });
 
-      const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((e) =>
-        e.trim()
-      ) || ["cni351237@naver.com"];
-
-      await resend.emails.send({
-        from: "금은동 시스템 <onboarding@resend.dev>",
-        to: adminEmails,
-        subject: adminEmail.subject,
-        text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
-      });
+        await resend.emails.send({
+          from: getResendFromEmail(),
+          to: adminEmails,
+          subject: adminEmail.subject,
+          text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
+        });
+      } else {
+        console.warn("Admin application notification skipped: ADMIN_EMAILS is not configured");
+      }
     } catch (emailError) {
       console.error("Email send error:", emailError);
     }

@@ -10,6 +10,10 @@ import {
   normalizeApplicationFileName,
 } from "../src/lib/application-files";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
+import {
+  buildAdminEmail,
+  getAdminEmailRecipients,
+} from "../src/lib/resend";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
 import {
@@ -342,4 +346,24 @@ test("application file storage paths avoid applicant identifiers", () => {
   const storagePath = buildApplicationStoragePath(9, ".pdf", "fixed-file-id");
   assert.equal(storagePath, "9/fixed-file-id.pdf");
   assert.equal(storagePath.includes("2021123456"), false);
+});
+
+test("admin email notification avoids implicit recipients and subject PII", () => {
+  assert.deepEqual(getAdminEmailRecipients("admin@example.com, bad-email, ADMIN@example.com"), [
+    "admin@example.com",
+  ]);
+  assert.deepEqual(getAdminEmailRecipients(""), []);
+
+  const email = buildAdminEmail({
+    name: "홍길동",
+    studentId: "2021123456",
+    email: "hong@example.com",
+    phone: "01012345678",
+  });
+
+  assert.equal(email.subject, "[금은동] 새로운 지원서 접수");
+  assert.equal(email.subject.includes("홍길동"), false);
+  assert.equal(email.subject.includes("2021123456"), false);
+  assert.equal(email.text.includes("홍길동"), true);
+  assert.equal(email.text.includes("2021123456"), true);
 });

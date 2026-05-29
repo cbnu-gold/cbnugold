@@ -13,6 +13,7 @@
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY`
    - `RESEND_API_KEY`
+   - `RESEND_FROM_EMAIL`
    - `ADMIN_EMAILS`
    - `HEALTHCHECK_TOKEN` (선택, 심층 운영 점검용)
 
@@ -55,6 +56,7 @@
 - 지원서 파일은 public URL로 저장하지 않습니다.
 - `/admin` 지원자 탭에서 10분짜리 signed URL로만 확인합니다.
 - Storage 경로에는 학번·전화번호 같은 지원자 식별자를 넣지 않고 무작위 파일 ID를 사용합니다.
+- 지원 알림 메일은 `ADMIN_EMAILS`에 명시된 주소로만 발송합니다. 값이 비어 있으면 하드코딩된 fallback 수신자를 사용하지 않습니다.
 - 지원자 탭에서 이름, 학번, 이메일, 연락처, 메모 검색과 상태 필터를 사용할 수 있습니다.
 - CSV 다운로드에는 개인정보가 포함되며, 현재 필터 결과만 내려받습니다.
 - 상태값은 `pending`, `reviewed`, `interview`, `accepted`, `rejected`입니다.
