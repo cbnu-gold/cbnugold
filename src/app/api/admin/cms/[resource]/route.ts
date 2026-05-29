@@ -13,6 +13,7 @@ import {
   type AdminSafetyProfile,
 } from "@/lib/admin-safety";
 import { getOptionalCmsHrefError, normalizeOptionalCmsHref } from "@/lib/cms-links";
+import { validateAndNormalizeRecruitmentPayload } from "@/lib/recruitment-admin";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
 import type { AdminRole } from "@/types";
@@ -80,6 +81,9 @@ function validatePayload(resource: Resource, payload: CmsPayload) {
   }
 
   if (resource === "recruitment") {
+    const recruitmentError = validateAndNormalizeRecruitmentPayload(payload);
+    if (recruitmentError) return recruitmentError;
+
     const docxError = getOptionalCmsHrefError(payload.docx_url, "DOCX 지원서 URL");
     if (docxError) return docxError;
     const hwpError = getOptionalCmsHrefError(payload.hwp_url, "HWP 지원서 URL");

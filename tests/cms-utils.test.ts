@@ -21,6 +21,7 @@ import {
   normalizeOptionalCmsHref,
 } from "../src/lib/cms-links";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
+import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import type { RecruitmentCycle } from "../src/types";
 
@@ -198,5 +199,42 @@ test("CMS href validation allows internal paths and https URLs only", () => {
   assert.equal(
     getOptionalCmsHrefError("javascript:alert(1)", "CTA 링크"),
     "CTA 링크는 사이트 내부 경로 또는 https URL만 사용할 수 있습니다"
+  );
+});
+
+test("recruitment admin validation normalizes editable public fields", () => {
+  const payload: Record<string, unknown> = {
+    generation: "10",
+    title: "  금은동 10기 모집  ",
+    is_open: false,
+    start_at: "2026-02-01T00:00:00.000Z",
+    end_at: "2026-02-10T09:00:00.000Z",
+    document_result_at: "",
+    interview_at: null,
+    final_result_at: null,
+    meeting_time: "  매주 화요일 19:00 정기모임  ",
+    fee_note: "",
+    privacy_retention: "지원 결과 발표일로부터 6개월 후 파기",
+    requirements: [" 충북대학교 재학생 ", ""],
+  };
+
+  assert.equal(validateAndNormalizeRecruitmentPayload(payload), null);
+  assert.equal(payload.generation, 10);
+  assert.equal(payload.title, "금은동 10기 모집");
+  assert.equal(payload.document_result_at, null);
+  assert.deepEqual(payload.requirements, ["충북대학교 재학생"]);
+  assert.equal(payload.meeting_time, "매주 화요일 19:00 정기모임");
+  assert.equal(payload.fee_note, null);
+});
+
+test("recruitment admin validation rejects invalid schedule order", () => {
+  const payload = {
+    start_at: "2026-02-10T00:00:00.000Z",
+    end_at: "2026-02-01T00:00:00.000Z",
+  };
+
+  assert.equal(
+    validateAndNormalizeRecruitmentPayload(payload),
+    "모집 마감 일시는 모집 시작 이후여야 합니다"
   );
 });

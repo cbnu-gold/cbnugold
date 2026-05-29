@@ -167,6 +167,14 @@ function splitTags(value: string) {
     .filter(Boolean);
 }
 
+function toDatetimeLocal(value: string | null | undefined) {
+  return value?.slice(0, 16) ?? "";
+}
+
+function fromDatetimeLocal(value: string) {
+  return value ? new Date(value).toISOString() : null;
+}
+
 function getSettingInputType(key: keyof SiteSettingsValue) {
   if (key === "contact_email") return "email";
   if (key === "contact_phone") return "tel";
@@ -905,8 +913,8 @@ export default function AdminPage() {
                     <Field label="기수" type="number" value={item.generation} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, generation: Number(value) } : x))} />
                     <Field label="제목" value={item.title} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, title: value } : x))} />
                     <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, status: value as RecruitmentCycle["status"] } : x))} />
-                    <Field label="시작" type="datetime-local" value={item.start_at?.slice(0, 16) ?? ""} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, start_at: value ? new Date(value).toISOString() : null } : x))} />
-                    <Field label="마감" type="datetime-local" value={item.end_at?.slice(0, 16) ?? ""} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, end_at: value ? new Date(value).toISOString() : null } : x))} />
+                    <Field label="시작" type="datetime-local" value={toDatetimeLocal(item.start_at)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, start_at: fromDatetimeLocal(value) } : x))} />
+                    <Field label="마감" type="datetime-local" value={toDatetimeLocal(item.end_at)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, end_at: fromDatetimeLocal(value) } : x))} />
                     <label className="flex items-end gap-2 text-sm font-medium text-slate-700">
                       <input type="checkbox" checked={item.is_open} onChange={(event) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, is_open: event.target.checked } : x))} />
                       모집 열림
@@ -915,6 +923,16 @@ export default function AdminPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <Field label="DOCX URL" hint="/파일명.docx 또는 https URL" value={item.docx_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, docx_url: value } : x))} />
                     <Field label="HWP URL" hint="/파일명.hwp 또는 https URL" value={item.hwp_url} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, hwp_url: value } : x))} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field label="서류 발표" type="datetime-local" value={toDatetimeLocal(item.document_result_at)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, document_result_at: fromDatetimeLocal(value) } : x))} />
+                    <Field label="면접" type="datetime-local" value={toDatetimeLocal(item.interview_at)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, interview_at: fromDatetimeLocal(value) } : x))} />
+                    <Field label="최종 발표" type="datetime-local" value={toDatetimeLocal(item.final_result_at)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, final_result_at: fromDatetimeLocal(value) } : x))} />
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <Field label="정규 활동" hint="예: 매주 화요일 19:00 정기모임" value={item.meeting_time} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, meeting_time: value } : x))} />
+                    <Field label="회비 안내" value={item.fee_note} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, fee_note: value } : x))} />
+                    <Field label="개인정보 보유 기간" value={item.privacy_retention} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, privacy_retention: value } : x))} />
                   </div>
                   <TextField label="지원 자격 · 줄바꿈 구분" value={joinList(item.requirements)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requirements: splitLines(value) } : x))} />
                   <div className="flex gap-2">
