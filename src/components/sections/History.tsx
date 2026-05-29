@@ -14,7 +14,7 @@ export function History() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <SectionLabel label="History" className="mb-6" />
+          <SectionLabel label="연혁" className="mb-6" />
           <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
             금은동의 발자취
           </h2>
@@ -57,7 +57,7 @@ export function History() {
                     </span>
                     {entry.isCurrent && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-gold/10 text-gold-dark font-medium">
-                        Now
+                        현재
                       </span>
                     )}
                   </div>

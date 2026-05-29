@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2 } from "lucide-react";
 import { JoinForm } from "@/components/recruiting/JoinForm";
 import {
   formatKoreanDateTime,
@@ -24,31 +24,35 @@ export default async function JoinPage() {
   ];
 
   return (
-    <div className="bg-marble-light pt-24 text-ink">
-      <section className="border-b border-ink/10 bg-white py-16 md:py-24">
-        <div className="mx-auto max-w-[1100px] px-6 text-center">
+    <div className="bg-marble-light pb-20 pt-20 text-ink md:pb-0">
+      <section className="border-b border-ink/10 bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-[1100px] px-5 text-center sm:px-6">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${open ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
             {phaseLabel}
           </span>
-          <h1 className="mt-5 text-4xl font-bold tracking-normal sm:text-5xl">{data.recruitment.title}</h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+          <h1 className="mt-5 text-3xl font-bold tracking-normal sm:text-5xl">{data.recruitment.title}</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
             모집 일정, 지원 자격, 제출 서류를 확인하세요.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1100px] px-6 py-10 md:py-14">
-        <div className="grid gap-4 md:grid-cols-4">
+      <section className="mx-auto max-w-[1100px] px-5 py-8 sm:px-6 md:py-12">
+        <div className="grid gap-3 md:grid-cols-4">
           {steps.map(([title, value], index) => (
-            <div key={title} className="rounded-xl border border-ink/10 bg-white p-5">
-              <span className="font-mono text-sm text-gold-dark">{String(index + 1).padStart(2, "0")}</span>
-              <h2 className="mt-3 font-bold">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{value}</p>
+            <div key={title} className="grid grid-cols-[2.5rem_1fr] gap-3 rounded-xl border border-ink/10 bg-white p-4 md:block md:p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold/10 font-mono text-sm text-gold-dark md:block md:h-auto md:w-auto md:bg-transparent">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <h2 className="font-bold md:mt-3">{title}</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600 md:mt-2">{value}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 grid gap-4 rounded-xl border border-ink/10 bg-white p-6 md:grid-cols-2">
+        <div className="mt-5 grid gap-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:grid-cols-2 md:p-6">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold">
               <CheckCircle2 className="h-5 w-5 text-gold-dark" />
@@ -71,9 +75,19 @@ export default async function JoinPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1100px] px-6 pb-20 md:pb-28">
+      <section id="apply-section" className="mx-auto max-w-[1100px] px-5 pb-12 sm:px-6 md:pb-24">
         <JoinForm recruitment={data.recruitment} faqs={data.faqs} isOpen={open} phase={phase} />
       </section>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white/95 px-5 py-3 shadow-[0_-12px_30px_-24px_rgba(14,20,32,0.5)] backdrop-blur md:hidden">
+        <a
+          href="#apply-section"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white"
+        >
+          {open ? "지원서 제출하기" : "모집 안내 확인"}
+          <ArrowRight className="h-4 w-4" />
+        </a>
+      </div>
     </div>
   );
 }

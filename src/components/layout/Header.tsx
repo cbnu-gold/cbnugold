@@ -45,7 +45,7 @@ export function Header() {
               className="h-8 w-auto"
               priority
             />
-            <span className="hidden sm:block font-serif italic text-[11px] text-ink/55 tracking-[0.18em] uppercase border-l border-ink/15 pl-3">
+            <span className="hidden border-l border-ink/15 pl-3 text-[11px] font-medium text-ink/55 sm:block">
               Est. 2021
             </span>
           </Link>

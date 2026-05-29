@@ -102,7 +102,7 @@ export default function CheckPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <SectionLabel label="Check" className="mb-6" />
+            <SectionLabel label="접수 조회" className="mb-6" />
             <h2 className="text-2xl md:text-4xl font-bold text-gray-900 text-center mb-3">
               지원 확인
             </h2>

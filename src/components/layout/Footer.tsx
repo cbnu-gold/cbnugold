@@ -12,11 +12,10 @@ const navItems = [
 export function Footer() {
   return (
     <footer className="border-t border-ink/10 bg-marble-light">
-      <div className="max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-16 py-16 md:py-20">
-        {/* Top grid — 4 columns */}
-        <div className="grid grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
+      <div className="mx-auto max-w-[1400px] px-5 py-12 sm:px-8 md:py-16 lg:px-16">
+        <div className="grid gap-9 md:grid-cols-3 lg:grid-cols-12 lg:gap-8">
           {/* Brand */}
-          <div className="col-span-2 lg:col-span-5">
+          <div className="lg:col-span-5">
             <Link href="/" className="inline-block mb-5">
               <Image
                 src="/images/logo.png"
@@ -35,8 +34,8 @@ export function Footer() {
           </div>
 
           {/* Explore */}
-          <div className="col-span-1 lg:col-span-2 lg:col-start-7">
-            <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
+          <div className="lg:col-span-2 lg:col-start-7">
+            <h4 className="mb-4 text-xs font-semibold text-ink/55">
               바로가기
             </h4>
             <ul className="space-y-3">
@@ -54,8 +53,8 @@ export function Footer() {
           </div>
 
           {/* Contact */}
-          <div className="col-span-1 lg:col-span-2">
-            <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
+          <div className="lg:col-span-2">
+            <h4 className="mb-4 text-xs font-semibold text-ink/55">
               연락처
             </h4>
             <p className="text-sm text-ink font-medium mb-1">6대 회장 이승현</p>
@@ -71,8 +70,8 @@ export function Footer() {
           </div>
 
           {/* Social */}
-          <div className="col-span-2 lg:col-span-1 lg:col-start-12">
-            <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
+          <div className="lg:col-span-1 lg:col-start-12">
+            <h4 className="mb-4 text-xs font-semibold text-ink/55">
               채널
             </h4>
             <div className="flex lg:flex-col items-start gap-4 lg:gap-4">
@@ -101,8 +100,8 @@ export function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-14 md:mt-20 pt-6 border-t border-ink/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <p className="text-[11px] text-ink/40 font-mono tabular-nums tracking-wider">
+        <div className="mt-10 border-t border-ink/10 pt-6 md:mt-14">
+          <p className="text-[11px] font-mono tabular-nums text-ink/40">
             © {new Date().getFullYear()} CBNU GOLD SOCIETY · ALL RIGHTS RESERVED.
           </p>
         </div>

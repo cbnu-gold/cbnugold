@@ -14,7 +14,7 @@ export function Mentoring() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
         >
-          <SectionLabel label="Mentoring" className="mb-6" />
+          <SectionLabel label="멘토링" className="mb-6" />
           <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-4">
             현직자 멘토링 네트워크
           </h2>

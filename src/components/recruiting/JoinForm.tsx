@@ -97,21 +97,21 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
-      <aside className="rounded-xl border border-ink/10 bg-white p-6">
+    <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8">
+      <aside className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
         <h2 className="text-xl font-bold">지원서 다운로드</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명에는 이름과 연락처를 포함해주세요.
         </p>
         <div className="mt-5 grid gap-3">
           {recruitment.docx_url && (
-            <a href={recruitment.docx_url} download className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+            <a href={recruitment.docx_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
               <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 워드 지원서</span>
               <Download className="h-4 w-4" />
             </a>
           )}
           {recruitment.hwp_url && (
-            <a href={recruitment.hwp_url} download className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+            <a href={recruitment.hwp_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
               <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 한글 지원서</span>
               <Download className="h-4 w-4" />
             </a>
@@ -123,7 +123,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
         </div>
       </aside>
 
-      <section className="rounded-xl border border-ink/10 bg-white p-6">
+      <section className="scroll-mt-24 rounded-xl border border-ink/10 bg-white p-5 md:p-6">
         <div className="mb-6">
           <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
           <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -149,9 +149,9 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
             </Link>
           </div>
         ) : (
-          <form onSubmit={submit} className="grid gap-4">
+          <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
             {serverError && (
-              <div className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 md:col-span-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {serverError}
               </div>
@@ -161,11 +161,11 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
             <InputLike label="이메일" type="email" value={formData.email} error={errors.email} onChange={(value) => changeField("email", value)} />
             <InputLike label="전화번호" value={formData.phone} error={errors.phone} onChange={(value) => changeField("phone", value)} />
 
-            <div>
+            <div className="md:col-span-2">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center transition hover:border-gold/50"
+                className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center transition hover:border-gold/50 md:py-8"
               >
                 <Upload className="mx-auto h-7 w-7 text-slate-400" />
                 <p className="mt-3 text-sm font-semibold text-slate-700">{file ? file.name : "지원서 파일 선택"}</p>
@@ -185,7 +185,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
               {errors.file && <p className="mt-1 text-xs text-red-600">{errors.file}</p>}
             </div>
 
-            <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+            <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600 md:col-span-2">
               <input
                 type="checkbox"
                 checked={consent}
@@ -199,12 +199,12 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
                 성명, 학번, 이메일, 전화번호, 지원서 파일을 입부 지원 검토와 합격 여부 안내 목적으로 수집·이용하는 데 동의합니다.
               </span>
             </label>
-            {errors.consent && <p className="text-xs text-red-600">{errors.consent}</p>}
+            {errors.consent && <p className="text-xs text-red-600 md:col-span-2">{errors.consent}</p>}
 
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-60 md:col-span-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               지원서 제출하기
@@ -213,7 +213,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
         )}
       </section>
 
-      <section className="rounded-xl border border-ink/10 bg-white p-6 lg:col-span-2">
+      <section className="rounded-xl border border-ink/10 bg-white p-5 md:p-6 lg:col-span-2">
         <h2 className="text-xl font-bold">자주 묻는 질문</h2>
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           {faqs.map((faq) => (

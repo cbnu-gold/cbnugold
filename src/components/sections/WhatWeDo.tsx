@@ -18,8 +18,8 @@ export function WhatWeDo() {
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-5"
           >
-            <SectionLabel label="What We Do" className="mb-6" />
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-ink leading-[1.1] tracking-[-0.02em]">
+            <SectionLabel label="핵심 활동" className="mb-6" />
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-light text-ink leading-[1.1] tracking-normal">
               금은동의
               <br />
               핵심 활동<span className="text-gold-dark">.</span>
@@ -61,7 +61,7 @@ export function WhatWeDo() {
                   <span className="font-mono tabular-nums text-ink/80 text-3xl md:text-4xl font-light">
                     {activity.number}
                   </span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-ink/40 font-mono">
+                  <span className="text-[10px] text-ink/40 font-mono">
                     {activity.subtitle}
                   </span>
                 </div>

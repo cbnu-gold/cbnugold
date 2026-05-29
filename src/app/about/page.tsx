@@ -26,16 +26,16 @@ const visionCards = [
 
 export default function AboutPage() {
   return (
-    <div className="pt-24">
+    <div className="pt-20">
       {/* Intro */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6 text-center">
+      <section className="bg-white py-16 marble-texture md:py-24">
+        <div className="mx-auto max-w-4xl px-5 text-center sm:px-6">
           <div>
-            <SectionLabel label="About" className="mb-6" />
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
+            <SectionLabel label="금은동 소개" className="mb-5" />
+            <h1 className="mb-5 text-3xl font-bold text-gray-900 md:text-5xl">
               충북대학교 금융권 취업 동아리
             </h1>
-            <p className="text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
+            <p className="mx-auto max-w-2xl text-base leading-7 text-gray-500 md:text-lg md:leading-8">
               금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을
               준비하는 충북대학교 동아리입니다. 직무잡아드림 소속으로
               신문 스크랩, 리포트 분석, 멘토링, 직무별 활동을 진행합니다.
@@ -45,21 +45,21 @@ export default function AboutPage() {
       </section>
 
       {/* Vision */}
-      <section className="py-24 md:py-32 bg-marble-light">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="bg-marble-light py-16 md:py-24">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6">
           <div>
-            <SectionLabel label="Vision" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+            <SectionLabel label="운영 기준" className="mb-5" />
+            <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 md:mb-12 md:text-4xl">
               활동 방향
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid gap-4 md:grid-cols-3 md:gap-6">
             {visionCards.map((card) => (
               <div key={card.title}>
-                <Card className="text-center py-10">
-                  <card.icon className="w-10 h-10 text-gold mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">
+                <Card className="py-7 text-center md:py-10">
+                  <card.icon className="mx-auto mb-4 h-9 w-9 text-gold" />
+                  <h3 className="mb-3 text-lg font-bold text-gray-800 md:text-xl">
                     {card.title}
                   </h3>
                   <p className="text-sm text-gray-500 leading-relaxed">
@@ -73,11 +73,11 @@ export default function AboutPage() {
       </section>
 
       {/* Organization */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6">
+      <section className="bg-white py-16 marble-texture md:py-24">
+        <div className="mx-auto max-w-4xl px-5 sm:px-6">
           <div>
-            <SectionLabel label="Organization" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+            <SectionLabel label="운영 체계" className="mb-5" />
+            <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 md:mb-12 md:text-4xl">
               조직 구조
             </h2>
           </div>
@@ -85,7 +85,7 @@ export default function AboutPage() {
           <div className="flex flex-col items-center gap-6">
             {/* 회장 */}
             <div className="bg-white border-2 border-gold/40 rounded-xl px-8 py-4 text-center shadow-sm">
-              <p className="text-xs text-gold-dark uppercase tracking-wider mb-1">
+              <p className="mb-1 text-xs font-semibold text-gold-dark">
                 회장
               </p>
               <p className="text-lg font-semibold text-gray-900">이승현</p>
@@ -95,7 +95,7 @@ export default function AboutPage() {
 
             {/* 부회장 */}
             <div className="bg-white border border-gold/25 rounded-xl px-8 py-4 text-center shadow-sm">
-              <p className="text-xs text-gold-dark/60 uppercase tracking-wider mb-1">
+              <p className="mb-1 text-xs font-semibold text-gold-dark/60">
                 부회장
               </p>
               <p className="text-lg font-semibold text-gray-800">전윤철</p>
@@ -119,9 +119,9 @@ export default function AboutPage() {
       </section>
 
       {/* Partners */}
-      <section className="py-16 bg-marble-light">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex flex-wrap items-center justify-center gap-6">
+      <section className="bg-marble-light py-10 md:py-14">
+        <div className="mx-auto max-w-4xl px-5 sm:px-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <span className="text-sm text-gray-400">소속 및 협력</span>
             <span className="text-gray-700 font-medium">직무잡아드림</span>
             <span className="text-gold/30">|</span>
@@ -133,16 +133,16 @@ export default function AboutPage() {
       </section>
 
       {/* Curriculum */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6">
+      <section className="bg-white py-16 marble-texture md:py-24">
+        <div className="mx-auto max-w-4xl px-5 sm:px-6">
           <div>
-            <SectionLabel label="Curriculum" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+            <SectionLabel label="학기 운영" className="mb-5" />
+            <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 md:mb-12 md:text-4xl">
               학기별 커리큘럼
             </h2>
           </div>
 
-          <div className="space-y-12">
+          <div className="space-y-8 md:space-y-12">
             {curriculum.map((semester) => (
               <div key={semester.label}>
                 <h3 className="text-lg font-semibold text-gold mb-4">
@@ -152,7 +152,7 @@ export default function AboutPage() {
                   {semester.items.map((item) => (
                     <div
                       key={item.title}
-                      className="flex gap-4 bg-marble-light border border-gray-200 rounded-lg p-4"
+                      className="flex gap-3 rounded-lg border border-gray-200 bg-marble-light p-4 sm:gap-4"
                     >
                       <span className="text-xs text-gold/70 font-mono whitespace-nowrap pt-0.5">
                         {item.month}
