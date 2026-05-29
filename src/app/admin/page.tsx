@@ -616,6 +616,16 @@ export default function AdminPage() {
     }
   }
 
+  async function copyMediaUrl(url: string | null | undefined) {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setMessage("미디어 URL을 복사했습니다.");
+    } catch {
+      setError("브라우저에서 클립보드 복사를 허용하지 않았습니다. 열기 버튼으로 URL을 확인해주세요.");
+    }
+  }
+
   async function deleteMedia(item: MediaAsset) {
     if (!item.id) return;
     if (!requireWrite("미디어 삭제")) return;
@@ -1156,14 +1166,14 @@ export default function AdminPage() {
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <div>
                 <h2 className="text-lg font-bold">미디어 관리</h2>
-                <p className="text-sm text-slate-500">PNG, JPG, WebP, PDF만 업로드합니다. SVG는 공개 버킷 보안상 허용하지 않습니다.</p>
+                <p className="text-sm text-slate-500">이미지와 모집 양식 파일을 업로드합니다. SVG와 스크립트 실행 가능 파일은 허용하지 않습니다.</p>
               </div>
               <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
                 <label className="grid gap-1.5 text-sm">
                   <span className="font-medium text-slate-700">파일</span>
                   <input
                     type="file"
-                    accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.hwp,image/png,image/jpeg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/x-hwp,application/haansofthwp"
                     onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
                     className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                   />
@@ -1212,6 +1222,11 @@ export default function AdminPage() {
                       {item.public_url && (
                         <AdminButton variant="secondary" onClick={() => window.open(item.public_url ?? "", "_blank", "noopener,noreferrer")}>
                           열기
+                        </AdminButton>
+                      )}
+                      {item.public_url && (
+                        <AdminButton variant="secondary" onClick={() => copyMediaUrl(item.public_url)}>
+                          URL 복사
                         </AdminButton>
                       )}
                       <AdminButton variant="danger" onClick={() => deleteMedia(item)} disabled={!canWrite}>

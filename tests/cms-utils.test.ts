@@ -33,6 +33,10 @@ import {
   isSafeCmsHref,
   normalizeOptionalCmsHref,
 } from "../src/lib/cms-links";
+import {
+  getCmsMediaKind,
+  getCmsMediaUploadValidationError,
+} from "../src/lib/cms-media-files";
 import { validateAndNormalizeCmsResourcePayload } from "../src/lib/cms-resource-validation";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
@@ -345,6 +349,24 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.equal(getCmsResourceMutationBlockMessage("blocks"), null);
   assert.equal(isCmsMediaBucket(cmsMediaBucket), true);
   assert.equal(isCmsMediaBucket("applications"), false);
+});
+
+test("CMS media upload validation supports application forms and blocks MIME mismatch", () => {
+  assert.equal(
+    getCmsMediaUploadValidationError(
+      "9기_지원서.docx",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      1024
+    ),
+    null
+  );
+  assert.equal(getCmsMediaUploadValidationError("9기_지원서.hwp", "application/x-hwp", 1024), null);
+  assert.equal(getCmsMediaKind(".docx"), "document");
+  assert.equal(getCmsMediaKind(".webp"), "image");
+  assert.equal(
+    getCmsMediaUploadValidationError("지원서.docx", "application/pdf", 1024),
+    "파일 확장자와 MIME 형식이 일치하지 않습니다"
+  );
 });
 
 test("application file storage paths avoid applicant identifiers", () => {
