@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
@@ -89,6 +90,34 @@ test("admin roles separate content editing from sensitive applicant data", () =>
   assert.equal(canManageAdmins("admin"), false);
   assert.equal(canViewAudit("admin"), true);
   assert.equal(canViewAudit("editor"), false);
+});
+
+test("Supabase RLS policies match sensitive admin role boundaries", () => {
+  const schema = readFileSync(new URL("../supabase-schema.sql", import.meta.url), "utf8");
+
+  assert.match(
+    schema,
+    /CREATE POLICY "Admins can view applicants"[\s\S]*USING \(public\.can_manage_applicants\(\)\);/
+  );
+  assert.match(
+    schema,
+    /CREATE POLICY "Admins can update applicants"[\s\S]*USING \(public\.can_manage_applicants\(\)\)[\s\S]*WITH CHECK \(public\.can_manage_applicants\(\)\);/
+  );
+  assert.match(
+    schema,
+    /CREATE POLICY "Admins can read audit logs"[\s\S]*USING \(public\.can_view_audit_logs\(\)\);/
+  );
+  assert.match(
+    schema,
+    /CREATE POLICY "Admins can read admin profiles"[\s\S]*USING \(public\.can_read_admin_profiles\(\)\);/
+  );
+
+  const createPolicyNames = [...schema.matchAll(/CREATE POLICY "([^"]+)"/g)].map((match) => match[1]);
+  const dropPolicyNames = new Set([...schema.matchAll(/DROP POLICY IF EXISTS "([^"]+)"/g)].map((match) => match[1]));
+
+  for (const policyName of createPolicyNames) {
+    assert.equal(dropPolicyNames.has(policyName), true, `${policyName} must be dropped before re-create`);
+  }
 });
 
 test("health status reports degraded when any check fails", () => {

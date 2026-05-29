@@ -43,7 +43,7 @@ AS $$
   );
 $$;
 
-CREATE OR REPLACE FUNCTION public.is_admin_viewer()
+CREATE OR REPLACE FUNCTION public.can_read_admin_profiles()
 RETURNS BOOLEAN
 LANGUAGE SQL
 STABLE
@@ -55,7 +55,7 @@ AS $$
     FROM admin_profiles
     WHERE id = auth.uid()
       AND is_active = true
-      AND role IN ('owner', 'admin', 'editor', 'viewer')
+      AND role = 'owner'
   );
 $$;
 
@@ -72,6 +72,38 @@ AS $$
     WHERE id = auth.uid()
       AND is_active = true
       AND role = 'owner'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_manage_applicants()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM admin_profiles
+    WHERE id = auth.uid()
+      AND is_active = true
+      AND role IN ('owner', 'admin')
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_view_audit_logs()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM admin_profiles
+    WHERE id = auth.uid()
+      AND is_active = true
+      AND role IN ('owner', 'admin')
   );
 $$;
 
@@ -320,10 +352,33 @@ DROP POLICY IF EXISTS "Admins can view applicants" ON applicants;
 DROP POLICY IF EXISTS "Admins can update applicants" ON applicants;
 DROP POLICY IF EXISTS "Anyone can read settings" ON site_settings;
 DROP POLICY IF EXISTS "Admins can update settings" ON site_settings;
+DROP POLICY IF EXISTS "Admins can read admin profiles" ON admin_profiles;
+DROP POLICY IF EXISTS "Owners can manage admin profiles" ON admin_profiles;
+DROP POLICY IF EXISTS "Public can read published settings" ON site_settings;
+DROP POLICY IF EXISTS "Admins can manage settings" ON site_settings;
+DROP POLICY IF EXISTS "Public can read published pages" ON content_pages;
+DROP POLICY IF EXISTS "Admins can manage pages" ON content_pages;
+DROP POLICY IF EXISTS "Public can read published blocks" ON content_blocks;
+DROP POLICY IF EXISTS "Admins can manage blocks" ON content_blocks;
+DROP POLICY IF EXISTS "Public can read published recruitment" ON recruitment_cycles;
+DROP POLICY IF EXISTS "Admins can manage recruitment" ON recruitment_cycles;
+DROP POLICY IF EXISTS "Public can read published activities" ON activity_items;
+DROP POLICY IF EXISTS "Admins can manage activities" ON activity_items;
+DROP POLICY IF EXISTS "Public can read published achievements" ON achievement_items;
+DROP POLICY IF EXISTS "Admins can manage achievements" ON achievement_items;
+DROP POLICY IF EXISTS "Public can read published history" ON history_entries;
+DROP POLICY IF EXISTS "Admins can manage history" ON history_entries;
+DROP POLICY IF EXISTS "Public can read published faqs" ON faq_items;
+DROP POLICY IF EXISTS "Admins can manage faqs" ON faq_items;
+DROP POLICY IF EXISTS "Public can read published media" ON media_assets;
+DROP POLICY IF EXISTS "Admins can manage media" ON media_assets;
+DROP POLICY IF EXISTS "Admins can read audit logs" ON audit_logs;
+DROP POLICY IF EXISTS "Admins can insert audit logs" ON audit_logs;
+DROP FUNCTION IF EXISTS public.is_admin_viewer();
 
 CREATE POLICY "Admins can read admin profiles"
   ON admin_profiles FOR SELECT
-  USING (public.is_admin_viewer());
+  USING (public.can_read_admin_profiles());
 
 CREATE POLICY "Owners can manage admin profiles"
   ON admin_profiles FOR ALL
@@ -413,7 +468,7 @@ CREATE POLICY "Admins can manage media"
 
 CREATE POLICY "Admins can read audit logs"
   ON audit_logs FOR SELECT
-  USING (public.is_admin_viewer());
+  USING (public.can_view_audit_logs());
 
 CREATE POLICY "Admins can insert audit logs"
   ON audit_logs FOR INSERT
@@ -421,12 +476,12 @@ CREATE POLICY "Admins can insert audit logs"
 
 CREATE POLICY "Admins can view applicants"
   ON applicants FOR SELECT
-  USING (public.is_admin_viewer());
+  USING (public.can_manage_applicants());
 
 CREATE POLICY "Admins can update applicants"
   ON applicants FOR UPDATE
-  USING (public.is_admin())
-  WITH CHECK (public.is_admin());
+  USING (public.can_manage_applicants())
+  WITH CHECK (public.can_manage_applicants());
 
 INSERT INTO site_settings (key, value, status) VALUES
 ('site', '{
