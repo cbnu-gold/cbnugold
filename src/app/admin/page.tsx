@@ -217,11 +217,13 @@ function AdminButton({
   onClick,
   variant = "primary",
   type = "button",
+  disabled = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   variant?: "primary" | "secondary" | "danger";
   type?: "button" | "submit";
+  disabled?: boolean;
 }) {
   const styles = {
     primary: "bg-ink text-white hover:bg-navy-800",
@@ -233,7 +235,8 @@ function AdminButton({
     <button
       type={type}
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${styles[variant]}`}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]}`}
     >
       {children}
     </button>
@@ -371,12 +374,30 @@ export default function AdminPage() {
     });
   }, [applicantSearch, applicantStatusFilter, state.applicants]);
 
+  const canWrite = Boolean(admin && admin.role !== "viewer");
+  const canManageAdmins = admin?.role === "owner";
+
   async function logout() {
     await getSupabase().auth.signOut();
     router.push("/admin/login");
   }
 
+  function requireWrite(action = "수정") {
+    if (canWrite) return true;
+    setMessage("");
+    setError(`조회자 권한은 ${action}할 수 없습니다.`);
+    return false;
+  }
+
+  function requireOwner(action = "관리자 계정 관리") {
+    if (canManageAdmins) return true;
+    setMessage("");
+    setError(`${action}에는 소유자 권한이 필요합니다.`);
+    return false;
+  }
+
   async function saveSettings() {
+    if (!requireWrite("사이트 설정 저장")) return;
     setSaving("settings");
     setMessage("");
     setError("");
@@ -394,6 +415,7 @@ export default function AdminPage() {
   }
 
   async function saveItem(resource: string, item: Record<string, unknown>, forceCreate = false) {
+    if (resource === "admins" ? !requireOwner() : !requireWrite("콘텐츠 저장")) return null;
     setSaving(resource);
     setMessage("");
     setError("");
@@ -421,6 +443,7 @@ export default function AdminPage() {
 
   async function deleteItem(resource: string, id?: string) {
     if (!id) return;
+    if (resource === "admins" ? !requireOwner() : !requireWrite("삭제")) return;
     const confirmed = window.confirm("이 항목을 삭제할까요? 공개 페이지와 관리자 목록에서 즉시 제거될 수 있습니다.");
     if (!confirmed) return;
     setSaving(resource);
@@ -438,6 +461,7 @@ export default function AdminPage() {
   }
 
   async function updateApplicant(id: string, values: Partial<Applicant>) {
+    if (!requireWrite("지원자 정보 수정")) return;
     setMessage("");
     setError("");
     try {
@@ -456,6 +480,7 @@ export default function AdminPage() {
   }
 
   function downloadApplicants() {
+    if (!requireWrite("지원자 CSV 다운로드")) return;
     const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "관리자 메모", "접수일"];
     const rows = filteredApplicants.map((applicant) => [
       applicant.name,
@@ -477,6 +502,7 @@ export default function AdminPage() {
   }
 
   async function uploadMedia() {
+    if (!requireWrite("미디어 업로드")) return;
     if (!uploadFile) {
       setError("업로드할 파일을 선택해주세요.");
       return;
@@ -502,6 +528,7 @@ export default function AdminPage() {
 
   async function updateMedia(id: string | undefined, values: Partial<MediaAsset>) {
     if (!id) return;
+    if (!requireWrite("미디어 수정")) return;
     setMessage("");
     setError("");
     try {
@@ -521,6 +548,7 @@ export default function AdminPage() {
 
   async function deleteMedia(item: MediaAsset) {
     if (!item.id) return;
+    if (!requireWrite("미디어 삭제")) return;
     const confirmed = window.confirm("스토리지 파일과 미디어 기록을 함께 삭제할까요?");
     if (!confirmed) return;
     setMessage("");
@@ -595,6 +623,12 @@ export default function AdminPage() {
             </div>
           )}
 
+          {!canWrite && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              현재 계정은 조회자 권한입니다. 콘텐츠, 지원자, 미디어, 관리자 설정은 저장하거나 삭제할 수 없습니다.
+            </div>
+          )}
+
           {tab === "overview" && (
             <section className="grid gap-4 lg:grid-cols-4">
               {[
@@ -630,7 +664,7 @@ export default function AdminPage() {
                     CSV에는 개인정보가 포함됩니다. 현재 필터 결과 {filteredApplicants.length}명만 내려받습니다.
                   </p>
                 </div>
-                <AdminButton onClick={downloadApplicants}>
+                <AdminButton onClick={downloadApplicants} disabled={!canWrite}>
                   <Download className="h-4 w-4" />
                   CSV 다운로드
                 </AdminButton>
@@ -665,6 +699,7 @@ export default function AdminPage() {
                   <ApplicantMobileCard
                     key={applicant.id}
                     applicant={applicant}
+                    disabled={!canWrite}
                     onUpdate={updateApplicant}
                     onLocalChange={(id, values) =>
                       setState((prev) => ({
@@ -702,8 +737,9 @@ export default function AdminPage() {
                         <td className="py-3 pr-3">
                           <select
                             value={applicant.status}
+                            disabled={!canWrite}
                             onChange={(event) => updateApplicant(applicant.id, { status: event.target.value as Applicant["status"] })}
-                            className="rounded-md border border-slate-200 px-2 py-1"
+                            className="rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           >
                             {Object.entries(statusLabels).map(([key, label]) => (
                               <option key={key} value={key}>{label}</option>
@@ -716,6 +752,7 @@ export default function AdminPage() {
                             min={0}
                             max={100}
                             value={applicant.review_score ?? ""}
+                            disabled={!canWrite}
                             onBlur={(event) =>
                               updateApplicant(applicant.id, {
                                 review_score: event.target.value ? Number(event.target.value) : null,
@@ -731,13 +768,14 @@ export default function AdminPage() {
                                 ),
                               }))
                             }
-                            className="w-20 rounded-md border border-slate-200 px-2 py-1"
+                            className="w-20 rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           />
                         </td>
                         <td className="py-3 pr-3">
                           <textarea
                             value={applicant.admin_note ?? ""}
                             rows={2}
+                            disabled={!canWrite}
                             onBlur={(event) => updateApplicant(applicant.id, { admin_note: event.target.value })}
                             onChange={(event) =>
                               setState((prev) => ({
@@ -747,7 +785,7 @@ export default function AdminPage() {
                                 ),
                               }))
                             }
-                            className="w-52 rounded-md border border-slate-200 px-2 py-1"
+                            className="w-52 rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           />
                         </td>
                         <td className="py-3 pr-3">
@@ -778,6 +816,7 @@ export default function AdminPage() {
             <EditorList
               title="모집 관리"
               items={state.recruitment}
+              canAdd={canWrite}
               onAdd={() =>
                 updateList("recruitment", [
                   {
@@ -820,11 +859,11 @@ export default function AdminPage() {
                   </div>
                   <TextField label="지원 자격 · 줄바꿈 구분" value={joinList(item.requirements)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requirements: splitLines(value) } : x))} />
                   <div className="flex gap-2">
-                    <AdminButton onClick={() => saveItemAndReload("recruitment", item as unknown as Record<string, unknown>)}>
+                    <AdminButton onClick={() => saveItemAndReload("recruitment", item as unknown as Record<string, unknown>)} disabled={!canWrite}>
                       <Save className="h-4 w-4" />
                       저장
                     </AdminButton>
-                    <AdminButton variant="danger" onClick={() => deleteItem("recruitment", item.id)}>
+                    <AdminButton variant="danger" onClick={() => deleteItem("recruitment", item.id)} disabled={!canWrite}>
                       <Trash2 className="h-4 w-4" />
                       삭제
                     </AdminButton>
@@ -849,7 +888,7 @@ export default function AdminPage() {
                   ))}
                 </div>
                 <div className="mt-4">
-                  <AdminButton onClick={saveSettings}>
+                  <AdminButton onClick={saveSettings} disabled={!canWrite}>
                     {saving === "settings" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     설정 저장
                   </AdminButton>
@@ -859,6 +898,7 @@ export default function AdminPage() {
               <EditorList
                 title="페이지 메타"
                 items={state.pages}
+                canAdd={canWrite}
                 onAdd={() => updateList("pages", [{ slug: "new-page", title: "", description: "", status: "draft", sort_order: state.pages.length + 1 }, ...state.pages])}
               >
                 {state.pages.map((item, index) => (
@@ -871,11 +911,11 @@ export default function AdminPage() {
                     </div>
                     <TextField label="검색/공유 설명" value={item.description} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, description: value } : x))} rows={3} />
                     <div className="flex gap-2">
-                      <AdminButton onClick={() => saveItemAndReload("pages", item as unknown as Record<string, unknown>)}>
+                      <AdminButton onClick={() => saveItemAndReload("pages", item as unknown as Record<string, unknown>)} disabled={!canWrite}>
                         <Save className="h-4 w-4" />
                         저장
                       </AdminButton>
-                      <AdminButton variant="danger" onClick={() => deleteItem("pages", item.id)}>
+                      <AdminButton variant="danger" onClick={() => deleteItem("pages", item.id)} disabled={!canWrite}>
                         <Trash2 className="h-4 w-4" />
                         삭제
                       </AdminButton>
@@ -887,6 +927,7 @@ export default function AdminPage() {
               <EditorList
                 title="콘텐츠 블록"
                 items={state.blocks}
+                canAdd={canWrite}
                 onAdd={() => updateList("blocks", [{ page_slug: "home", block_key: "new-block", title: "", subtitle: "", body: "", cta_label: "", cta_href: "", media_url: "", status: "draft", sort_order: state.blocks.length + 1 }, ...state.blocks])}
               >
                 {state.blocks.map((item, index) => (
@@ -901,11 +942,11 @@ export default function AdminPage() {
                     <Field label="부제목" value={item.subtitle} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, subtitle: value } : x))} />
                     <TextField label="본문" value={item.body} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, body: value } : x))} />
                     <div className="flex gap-2">
-                      <AdminButton onClick={() => saveItemAndReload("blocks", item as unknown as Record<string, unknown>)}>
+                      <AdminButton onClick={() => saveItemAndReload("blocks", item as unknown as Record<string, unknown>)} disabled={!canWrite}>
                         <Save className="h-4 w-4" />
                         저장
                       </AdminButton>
-                      <AdminButton variant="danger" onClick={() => deleteItem("blocks", item.id)}>
+                      <AdminButton variant="danger" onClick={() => deleteItem("blocks", item.id)} disabled={!canWrite}>
                         <Trash2 className="h-4 w-4" />
                         삭제
                       </AdminButton>
@@ -921,6 +962,7 @@ export default function AdminPage() {
               title="활동 CMS"
               items={state.activities}
               addLabel="활동 추가"
+              canAdd={canWrite}
               onAdd={() => updateList("activities", [{ title: "", subtitle: "", description: "", category: "regular", tags: [], status: "draft", sort_order: state.activities.length + 1 }, ...state.activities])}
               render={(item, index) => (
                 <>
@@ -933,7 +975,7 @@ export default function AdminPage() {
                   </div>
                   <TextField label="설명" value={item.description} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, description: value } : x))} />
                   <Field label="태그(쉼표 구분)" value={item.tags.join(", ")} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, tags: splitTags(value) } : x))} />
-                  <ItemActions save={() => saveItemAndReload("activities", item as unknown as Record<string, unknown>)} remove={() => deleteItem("activities", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("activities", item as unknown as Record<string, unknown>)} remove={() => deleteItem("activities", item.id)} disabled={!canWrite} />
                 </>
               )}
             />
@@ -944,6 +986,7 @@ export default function AdminPage() {
               title="성과 CMS"
               items={state.achievements}
               addLabel="성과 추가"
+              canAdd={canWrite}
               onAdd={() => updateList("achievements", [{ title: "", organization: "", result: "", kind: "placement", year: new Date().getFullYear(), status: "draft", sort_order: state.achievements.length + 1 }, ...state.achievements])}
               render={(item, index) => (
                 <>
@@ -958,7 +1001,7 @@ export default function AdminPage() {
                     <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                   </div>
                   <Field label="결과/직무" value={item.result} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, result: value } : x))} />
-                  <ItemActions save={() => saveItemAndReload("achievements", item as unknown as Record<string, unknown>)} remove={() => deleteItem("achievements", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("achievements", item as unknown as Record<string, unknown>)} remove={() => deleteItem("achievements", item.id)} disabled={!canWrite} />
                 </>
               )}
             />
@@ -969,6 +1012,7 @@ export default function AdminPage() {
               title="연혁 CMS"
               items={state.history}
               addLabel="연혁 추가"
+              canAdd={canWrite}
               onAdd={() => updateList("history", [{ year: new Date().getFullYear(), generation: null, president: "", milestones: [], is_current: false, status: "draft", sort_order: state.history.length + 1 }, ...state.history])}
               render={(item, index) => (
                 <>
@@ -986,7 +1030,7 @@ export default function AdminPage() {
                     </label>
                   </div>
                   <TextField label="마일스톤 · 줄바꿈 구분" value={joinList(item.milestones)} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, milestones: splitLines(value) } : x))} />
-                  <ItemActions save={() => saveItemAndReload("history", item as unknown as Record<string, unknown>)} remove={() => deleteItem("history", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("history", item as unknown as Record<string, unknown>)} remove={() => deleteItem("history", item.id)} disabled={!canWrite} />
                 </>
               )}
             />
@@ -997,6 +1041,7 @@ export default function AdminPage() {
               title="FAQ CMS"
               items={state.faqs}
               addLabel="FAQ 추가"
+              canAdd={canWrite}
               onAdd={() => updateList("faqs", [{ question: "", answer: "", status: "draft", sort_order: state.faqs.length + 1 }, ...state.faqs])}
               render={(item, index) => (
                 <>
@@ -1006,7 +1051,7 @@ export default function AdminPage() {
                     <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                   </div>
                   <TextField label="답변" value={item.answer} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, answer: value } : x))} />
-                  <ItemActions save={() => saveItemAndReload("faqs", item as unknown as Record<string, unknown>)} remove={() => deleteItem("faqs", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("faqs", item as unknown as Record<string, unknown>)} remove={() => deleteItem("faqs", item.id)} disabled={!canWrite} />
                 </>
               )}
             />
@@ -1029,7 +1074,7 @@ export default function AdminPage() {
                   />
                 </label>
                 <Field label="대체 텍스트/설명" value={uploadAlt} onChange={setUploadAlt} />
-                <AdminButton onClick={uploadMedia}>
+                <AdminButton onClick={uploadMedia} disabled={!canWrite}>
                   {saving === "media" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   업로드
                 </AdminButton>
@@ -1065,7 +1110,7 @@ export default function AdminPage() {
                       />
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <AdminButton onClick={() => updateMedia(item.id, { alt: item.alt, status: item.status, kind: item.kind })}>
+                      <AdminButton onClick={() => updateMedia(item.id, { alt: item.alt, status: item.status, kind: item.kind })} disabled={!canWrite}>
                         <Save className="h-4 w-4" />
                         저장
                       </AdminButton>
@@ -1074,7 +1119,7 @@ export default function AdminPage() {
                           열기
                         </AdminButton>
                       )}
-                      <AdminButton variant="danger" onClick={() => deleteMedia(item)}>
+                      <AdminButton variant="danger" onClick={() => deleteMedia(item)} disabled={!canWrite}>
                         <Trash2 className="h-4 w-4" />
                         삭제
                       </AdminButton>
@@ -1096,6 +1141,7 @@ export default function AdminPage() {
               items={state.admins}
               addLabel="관리자 추가"
               description="활성 계정만 관리자 API와 대시보드에 접근할 수 있습니다."
+              canAdd={canManageAdmins}
               onAdd={() =>
                 updateList("admins", [
                   { id: "", email: "", name: "", role: "editor", is_active: true, __isNew: true } as AdminProfile & { __isNew: boolean },
@@ -1119,12 +1165,12 @@ export default function AdminPage() {
                     활성 계정
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    <AdminButton onClick={() => saveItemAndReload("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew))}>
+                    <AdminButton onClick={() => saveItemAndReload("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew))} disabled={!canManageAdmins}>
                       <Save className="h-4 w-4" />
                       저장
                     </AdminButton>
                     {item.id !== admin?.id && (
-                      <AdminButton variant="danger" onClick={() => deleteItem("admins", item.id)}>
+                      <AdminButton variant="danger" onClick={() => deleteItem("admins", item.id)} disabled={!canManageAdmins}>
                         <Trash2 className="h-4 w-4" />
                         삭제
                       </AdminButton>
@@ -1186,10 +1232,12 @@ function SelectField({
 
 function ApplicantMobileCard({
   applicant,
+  disabled = false,
   onUpdate,
   onLocalChange,
 }: {
   applicant: Applicant;
+  disabled?: boolean;
   onUpdate: (id: string, values: Partial<Applicant>) => void | Promise<void>;
   onLocalChange: (id: string, values: Partial<Applicant>) => void;
 }) {
@@ -1219,8 +1267,9 @@ function ApplicantMobileCard({
           <span className="font-medium text-slate-700">상태</span>
           <select
             value={applicant.status}
+            disabled={disabled}
             onChange={(event) => onUpdate(applicant.id, { status: event.target.value as Applicant["status"] })}
-            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2"
+            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           >
             {Object.entries(statusLabels).map(([key, label]) => (
               <option key={key} value={key}>{label}</option>
@@ -1235,6 +1284,7 @@ function ApplicantMobileCard({
             min={0}
             max={100}
             value={applicant.review_score ?? ""}
+            disabled={disabled}
             onBlur={(event) =>
               onUpdate(applicant.id, {
                 review_score: event.target.value ? Number(event.target.value) : null,
@@ -1245,7 +1295,7 @@ function ApplicantMobileCard({
                 review_score: event.target.value ? Number(event.target.value) : null,
               })
             }
-            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2"
+            className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           />
         </label>
 
@@ -1254,9 +1304,10 @@ function ApplicantMobileCard({
           <textarea
             value={applicant.admin_note ?? ""}
             rows={3}
+            disabled={disabled}
             onBlur={(event) => onUpdate(applicant.id, { admin_note: event.target.value })}
             onChange={(event) => onLocalChange(applicant.id, { admin_note: event.target.value })}
-            className="rounded-lg border border-slate-200 px-3 py-2"
+            className="rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           />
         </label>
       </div>
@@ -1268,11 +1319,13 @@ function EditorList({
   title,
   items,
   onAdd,
+  canAdd = true,
   children,
 }: {
   title: string;
   items: unknown[];
   onAdd: () => void;
+  canAdd?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -1282,7 +1335,7 @@ function EditorList({
           <h2 className="text-lg font-bold">{title}</h2>
           <p className="text-sm text-slate-500">{items.length}개 항목</p>
         </div>
-        <AdminButton onClick={onAdd} variant="secondary">추가</AdminButton>
+        <AdminButton onClick={onAdd} variant="secondary" disabled={!canAdd}>추가</AdminButton>
       </div>
       <div className="mt-5 grid gap-4">{children}</div>
     </section>
@@ -1294,6 +1347,7 @@ function SimpleResourceEditor<T>({
   items,
   addLabel,
   description = "published 항목만 공개 페이지에 표시됩니다.",
+  canAdd = true,
   onAdd,
   render,
 }: {
@@ -1301,6 +1355,7 @@ function SimpleResourceEditor<T>({
   items: T[];
   addLabel: string;
   description?: string;
+  canAdd?: boolean;
   onAdd: () => void;
   render: (item: T, index: number) => React.ReactNode;
 }) {
@@ -1311,7 +1366,7 @@ function SimpleResourceEditor<T>({
           <h2 className="text-lg font-bold">{title}</h2>
           <p className="text-sm text-slate-500">{description}</p>
         </div>
-        <AdminButton onClick={onAdd} variant="secondary">{addLabel}</AdminButton>
+        <AdminButton onClick={onAdd} variant="secondary" disabled={!canAdd}>{addLabel}</AdminButton>
       </div>
       <div className="mt-5 grid gap-4">
         {items.map((item, index) => (
@@ -1324,14 +1379,22 @@ function SimpleResourceEditor<T>({
   );
 }
 
-function ItemActions({ save, remove }: { save: () => void; remove: () => void }) {
+function ItemActions({
+  save,
+  remove,
+  disabled = false,
+}: {
+  save: () => void;
+  remove: () => void;
+  disabled?: boolean;
+}) {
   return (
     <div className="flex gap-2">
-      <AdminButton onClick={save}>
+      <AdminButton onClick={save} disabled={disabled}>
         <Save className="h-4 w-4" />
         저장
       </AdminButton>
-      <AdminButton variant="danger" onClick={remove}>
+      <AdminButton variant="danger" onClick={remove} disabled={disabled}>
         <Trash2 className="h-4 w-4" />
         삭제
       </AdminButton>
