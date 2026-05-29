@@ -14,6 +14,7 @@ import type {
   ActivityItem,
   AchievementItem,
   ContentBlock,
+  ContentPage,
   FAQItem,
   HistoryItem,
   PublicCmsData,
@@ -43,6 +44,7 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
   try {
     const [
       settingsResult,
+      pagesResult,
       blocksResult,
       recruitmentResult,
       activitiesResult,
@@ -56,6 +58,11 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
         .eq("key", "site")
         .eq("status", "published")
         .maybeSingle(),
+      supabase
+        .from("content_pages")
+        .select("*")
+        .eq("status", "published")
+        .order("sort_order"),
       supabase
         .from("content_blocks")
         .select("*")
@@ -94,6 +101,10 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
       settings:
         (settingsResult.data?.value as SiteSettingsValue | undefined) ??
         fallbackSettings,
+      pages: chooseFallback(
+        pagesResult.data as ContentPage[] | null,
+        fallbackCmsData.pages
+      ),
       blocks: chooseFallback(
         blocksResult.data as ContentBlock[] | null,
         fallbackCmsData.blocks
@@ -119,4 +130,9 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
     console.error("CMS fallback activated:", error);
     return fallbackCmsData;
   }
+}
+
+export async function getPublicPage(slug: string) {
+  const data = await getPublicCmsData();
+  return data.pages.find((page) => page.slug === slug) ?? null;
 }

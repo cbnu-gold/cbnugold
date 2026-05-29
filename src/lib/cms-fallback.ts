@@ -6,6 +6,7 @@ import type {
   ActivityItem,
   AchievementItem,
   ContentBlock,
+  ContentPage,
   FAQItem,
   HistoryItem,
   PublicCmsData,
@@ -80,6 +81,37 @@ export const fallbackBlocks: ContentBlock[] = [
   },
 ];
 
+export const fallbackPages: ContentPage[] = [
+  {
+    slug: "home",
+    title: "금은동",
+    description: "충북대학교 금융권 취업 동아리 금은동 공식 홈페이지입니다.",
+    status: "published",
+    sort_order: 1,
+  },
+  {
+    slug: "join",
+    title: "신입부원 모집",
+    description: "금은동 신입부원 모집 일정, 지원 자격, 제출 서류를 안내합니다.",
+    status: "published",
+    sort_order: 2,
+  },
+  {
+    slug: "about",
+    title: "동아리 소개",
+    description: "금은동의 운영 방향, 조직 구조, 학기별 활동을 소개합니다.",
+    status: "published",
+    sort_order: 3,
+  },
+  {
+    slug: "activity",
+    title: "활동 소개",
+    description: "금은동의 정규 활동과 특별 활동을 소개합니다.",
+    status: "published",
+    sort_order: 4,
+  },
+];
+
 export const fallbackActivities: ActivityItem[] = baseActivities.map(
   (activity, index) => ({
     title: activity.title,
@@ -132,6 +164,7 @@ export const fallbackFaqs: FAQItem[] = baseFaqs.map((faq, index) => ({
 
 export const fallbackCmsData: PublicCmsData = {
   settings: fallbackSettings,
+  pages: fallbackPages,
   blocks: fallbackBlocks,
   recruitment: fallbackRecruitment,
   activities: fallbackActivities,

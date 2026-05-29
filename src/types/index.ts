@@ -105,6 +105,16 @@ export interface SiteSettingsValue {
   naver_cafe_url: string;
 }
 
+export interface ContentPage {
+  id?: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: ContentStatus;
+  sort_order: number;
+  updated_at?: string;
+}
+
 export interface ContentBlock {
   id?: string;
   page_slug: string;
@@ -205,6 +215,7 @@ export interface AuditLog {
 
 export interface PublicCmsData {
   settings: SiteSettingsValue;
+  pages: ContentPage[];
   blocks: ContentBlock[];
   recruitment: RecruitmentCycle;
   activities: ActivityItem[];

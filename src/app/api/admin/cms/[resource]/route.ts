@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase-server";
 
 const resourceMap = {
   settings: { table: "site_settings", order: "key", trackUpdatedBy: true },
+  pages: { table: "content_pages", order: "sort_order", trackUpdatedBy: true },
   blocks: { table: "content_blocks", order: "sort_order", trackUpdatedBy: true },
   recruitment: { table: "recruitment_cycles", order: "generation", trackUpdatedBy: true },
   activities: { table: "activity_items", order: "sort_order", trackUpdatedBy: true },
@@ -57,6 +58,15 @@ function validatePayload(resource: Resource, payload: CmsPayload) {
     !contentStatuses.has(payload.status)
   ) {
     return "상태값은 draft, published, archived 중 하나여야 합니다";
+  }
+
+  if (
+    resource === "pages" &&
+    "slug" in payload &&
+    typeof payload.slug === "string" &&
+    !/^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(payload.slug)
+  ) {
+    return "페이지 슬러그는 영문 소문자, 숫자, 하이픈, 슬래시만 사용할 수 있습니다";
   }
 
   if (

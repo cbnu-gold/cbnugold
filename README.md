@@ -48,7 +48,7 @@ See [`docs/ADMIN_CMS_RUNBOOK.md`](docs/ADMIN_CMS_RUNBOOK.md) for the operating c
 
 - `/admin` manages applicants, recruitment cycles, page content, activities, achievements, history, FAQ, media, admin profiles, and audit logs.
 - Application files are stored in the private `applications` bucket and opened through short-lived signed URLs.
-- Public pages only render `published` CMS records, with static fallback content for safe deploys.
+- Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
 - The application API requires a published open recruitment cycle before accepting submissions.
 
 ## Project Structure

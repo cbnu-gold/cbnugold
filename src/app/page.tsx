@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   BadgeCheck,
@@ -8,12 +9,33 @@ import {
 } from "lucide-react";
 import {
   getPublicCmsData,
+  getPublicPage,
   getRecruitmentPhase,
   getRecruitmentPhaseLabel,
   isRecruitmentOpen,
 } from "@/lib/cms-public";
 
 export const revalidate = 60;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublicPage("home");
+  const title = page?.title ?? "금은동";
+  const description =
+    page?.description ?? "충북대학교 금융권 취업 동아리 금은동 공식 홈페이지입니다.";
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title: `${title} | 금은동`,
+      description,
+      url: "https://cbnugold.vercel.app",
+    },
+    alternates: {
+      canonical: "https://cbnugold.vercel.app",
+    },
+  };
+}
 
 export default async function Home() {
   const data = await getPublicCmsData();

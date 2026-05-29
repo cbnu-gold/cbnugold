@@ -10,6 +10,7 @@ import type {
   Applicant,
   AuditLog,
   ContentBlock,
+  ContentPage,
   FAQItem,
   AchievementItem,
   HistoryItem,
@@ -56,6 +57,7 @@ type ResourceState = {
   applicants: Applicant[];
   settings: SiteSettingsValue;
   recruitment: RecruitmentCycle[];
+  pages: ContentPage[];
   blocks: ContentBlock[];
   activities: ActivityItem[];
   achievements: AchievementItem[];
@@ -86,6 +88,7 @@ const initialState: ResourceState = {
   applicants: [],
   settings: defaultSettings,
   recruitment: [],
+  pages: [],
   blocks: [],
   activities: [],
   achievements: [],
@@ -279,12 +282,13 @@ export default function AdminPage() {
       return data;
     };
 
-    const [me, applicants, settings, recruitment, blocks, activities, achievements, history, faqs, media, admins, audit] =
+    const [me, applicants, settings, recruitment, pages, blocks, activities, achievements, history, faqs, media, admins, audit] =
       await Promise.all([
         fetchWithToken("/api/admin/me"),
         fetchWithToken("/api/admin/applicants"),
         fetchWithToken("/api/admin/cms/settings"),
         fetchWithToken("/api/admin/cms/recruitment"),
+        fetchWithToken("/api/admin/cms/pages"),
         fetchWithToken("/api/admin/cms/blocks"),
         fetchWithToken("/api/admin/cms/activities"),
         fetchWithToken("/api/admin/cms/achievements"),
@@ -300,6 +304,7 @@ export default function AdminPage() {
       applicants: applicants.applicants ?? [],
       settings: settings.items?.[0]?.value ?? defaultSettings,
       recruitment: recruitment.items ?? [],
+      pages: pages.items ?? [],
       blocks: blocks.items ?? [],
       activities: activities.items ?? [],
       achievements: achievements.items ?? [],
@@ -508,7 +513,7 @@ export default function AdminPage() {
                 ["전체 지원자", state.applicants.length],
                 ["대기", applicantCounts.pending ?? 0],
                 ["면접", applicantCounts.interview ?? 0],
-                ["게시 콘텐츠", state.blocks.length + state.activities.length],
+                ["게시 콘텐츠", state.pages.length + state.blocks.length + state.activities.length],
                 ["관리자 계정", state.admins.length],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -761,6 +766,34 @@ export default function AdminPage() {
                   </AdminButton>
                 </div>
               </div>
+
+              <EditorList
+                title="페이지 메타"
+                items={state.pages}
+                onAdd={() => updateList("pages", [{ slug: "new-page", title: "", description: "", status: "draft", sort_order: state.pages.length + 1 }, ...state.pages])}
+              >
+                {state.pages.map((item, index) => (
+                  <div key={item.id ?? `page-${index}`} className="grid gap-4 rounded-xl border border-slate-200 p-4">
+                    <div className="grid gap-4 md:grid-cols-4">
+                      <Field label="슬러그" value={item.slug} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, slug: value } : x))} />
+                      <Field label="제목" value={item.title} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, title: value } : x))} />
+                      <SelectField label="상태" value={item.status} options={contentStatusOptions} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, status: value as ContentPage["status"] } : x))} />
+                      <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
+                    </div>
+                    <TextField label="검색/공유 설명" value={item.description} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, description: value } : x))} rows={3} />
+                    <div className="flex gap-2">
+                      <AdminButton onClick={async () => { await saveItem("pages", item as unknown as Record<string, unknown>); await loadAll(token); }}>
+                        <Save className="h-4 w-4" />
+                        저장
+                      </AdminButton>
+                      <AdminButton variant="danger" onClick={() => deleteItem("pages", item.id)}>
+                        <Trash2 className="h-4 w-4" />
+                        삭제
+                      </AdminButton>
+                    </div>
+                  </div>
+                ))}
+              </EditorList>
 
               <EditorList
                 title="콘텐츠 블록"
