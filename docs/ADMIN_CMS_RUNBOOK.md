@@ -5,7 +5,7 @@
 1. Supabase SQL Editor에서 `supabase-schema.sql` 전체를 실행합니다.
 2. Supabase Auth에서 관리자 계정을 생성합니다.
 3. 최초 관리자 1명을 `admin_profiles`에 `owner`로 추가합니다.
-4. Storage 버킷을 확인합니다.
+4. SQL이 Storage 버킷을 생성/갱신했는지 확인합니다.
    - `applications`: private, 지원서 저장
    - `cms-media`: public, 이미지/PDF CMS 자료 저장
 5. Vercel 환경변수를 확인합니다.

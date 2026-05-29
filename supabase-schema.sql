@@ -3,6 +3,19 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+DO $$
+BEGIN
+  IF to_regclass('storage.buckets') IS NOT NULL THEN
+    INSERT INTO storage.buckets (id, name, public, file_size_limit)
+    VALUES
+      ('applications', 'applications', false, 10485760),
+      ('cms-media', 'cms-media', true, 10485760)
+    ON CONFLICT (id) DO UPDATE SET
+      public = EXCLUDED.public,
+      file_size_limit = EXCLUDED.file_size_limit;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS admin_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
