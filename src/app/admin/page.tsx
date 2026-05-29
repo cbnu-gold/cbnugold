@@ -10,6 +10,7 @@ import {
   canViewAudit as roleCanViewAudit,
   canWriteContent,
 } from "@/lib/admin-permissions";
+import { siteSettingFields } from "@/lib/site-settings";
 import type {
   ActivityItem,
   AdminProfile,
@@ -166,6 +167,24 @@ function splitTags(value: string) {
     .filter(Boolean);
 }
 
+function getSettingInputType(key: keyof SiteSettingsValue) {
+  if (key === "contact_email") return "email";
+  if (key === "contact_phone") return "tel";
+  if (key === "instagram_url" || key === "naver_cafe_url") return "url";
+  return "text";
+}
+
+function getSettingHint(key: keyof SiteSettingsValue) {
+  if (key === "primary_cta_href" || key === "secondary_cta_href") {
+    return "예: /join 또는 https://forms.gle/...";
+  }
+  if (key === "instagram_url" || key === "naver_cafe_url") {
+    return "외부 채널은 https URL만 저장됩니다. 비워두면 공개 화면에서 숨겨집니다.";
+  }
+  if (key === "contact_phone") return "하이픈 포함 입력 가능";
+  return undefined;
+}
+
 function getActionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
@@ -175,11 +194,13 @@ function Field({
   value,
   onChange,
   type = "text",
+  hint,
 }: {
   label: string;
   value: string | number | null | undefined;
   onChange: (value: string) => void;
   type?: string;
+  hint?: string;
 }) {
   return (
     <label className="grid gap-1.5 text-sm">
@@ -190,6 +211,7 @@ function Field({
         onChange={(event) => onChange(event.target.value)}
         className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
       />
+      {hint && <span className="text-xs leading-5 text-slate-500">{hint}</span>}
     </label>
   );
 }
@@ -914,13 +936,21 @@ export default function AdminPage() {
             <section className="grid gap-5">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-bold">사이트 기본 설정</h2>
+                <p className="mt-1 text-sm text-slate-500">헤더, 푸터, 홈 CTA, 지원 페이지 문의 채널에 공통 적용됩니다.</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  {Object.entries(state.settings).map(([key, value]) => (
+                  {siteSettingFields.map((field) => (
                     <Field
-                      key={key}
-                      label={key}
-                      value={value}
-                      onChange={(next) => setState((prev) => ({ ...prev, settings: { ...prev.settings, [key]: next } }))}
+                      key={field.key}
+                      label={field.label}
+                      type={getSettingInputType(field.key)}
+                      hint={getSettingHint(field.key)}
+                      value={state.settings[field.key]}
+                      onChange={(next) =>
+                        setState((prev) => ({
+                          ...prev,
+                          settings: { ...prev.settings, [field.key]: next },
+                        }))
+                      }
                     />
                   ))}
                 </div>

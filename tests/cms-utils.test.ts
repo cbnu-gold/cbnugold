@@ -16,6 +16,7 @@ import {
   wouldLeaveNoActiveOwner,
 } from "../src/lib/admin-safety";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
+import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -34,6 +35,22 @@ const baseCycle: RecruitmentCycle = {
   hwp_url: null,
   privacy_retention: "6개월",
   status: "published",
+};
+
+const baseSettings = {
+  site_title: "금은동",
+  club_name: "충북대학교 금융권 취업 동아리 금은동",
+  hero_title: "충북대 금융권 취업 동아리 금은동",
+  hero_subtitle: "신문 스크랩, 리포트 분석, 현직자 네트워킹을 진행합니다.",
+  primary_cta_label: "지원 안내 보기",
+  primary_cta_href: "/join",
+  secondary_cta_label: "활동 둘러보기",
+  secondary_cta_href: "/activity",
+  contact_name: "6대 회장 이승현",
+  contact_phone: "010-2623-2004",
+  contact_email: "cni351237@naver.com",
+  instagram_url: "https://www.instagram.com/cbnu_gold/",
+  naver_cafe_url: "https://cafe.naver.com/cufaclub",
 };
 
 test("CSV values are escaped for commas, quotes, and new lines", () => {
@@ -132,5 +149,35 @@ test("health status reports degraded when any check fails", () => {
   assert.equal(
     sanitizeHealthError(new Error("TypeError: fetch failed")),
     "Supabase에 연결할 수 없습니다"
+  );
+});
+
+test("site settings validation normalizes safe values", () => {
+  const result = validateAndNormalizeSiteSettingsValue({
+    ...baseSettings,
+    hero_title: "  충북대 금융권 취업 동아리 금은동  ",
+    instagram_url: "",
+  });
+
+  assert.equal(result.error, null);
+  assert.equal(result.value?.hero_title, "충북대 금융권 취업 동아리 금은동");
+  assert.equal(result.value?.instagram_url, "");
+});
+
+test("site settings validation rejects unsafe public links", () => {
+  assert.equal(
+    validateAndNormalizeSiteSettingsValue({
+      ...baseSettings,
+      primary_cta_href: "javascript:alert(1)",
+    }).error,
+    "주요 CTA 링크는 사이트 내부 경로 또는 https URL만 사용할 수 있습니다"
+  );
+
+  assert.equal(
+    validateAndNormalizeSiteSettingsValue({
+      ...baseSettings,
+      instagram_url: "http://example.com",
+    }).error,
+    "인스타그램 URL은 https URL만 사용할 수 있습니다"
   );
 });

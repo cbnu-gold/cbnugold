@@ -12,6 +12,7 @@ import {
   type AdminProfilePatch,
   type AdminSafetyProfile,
 } from "@/lib/admin-safety";
+import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
 import type { AdminRole } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -62,6 +63,12 @@ function sanitizePayload(
 }
 
 function validatePayload(resource: Resource, payload: CmsPayload) {
+  if (resource === "settings" && "value" in payload) {
+    const result = validateAndNormalizeSiteSettingsValue(payload.value);
+    if (result.error) return result.error;
+    payload.value = result.value;
+  }
+
   if (
     "status" in payload &&
     typeof payload.status === "string" &&
