@@ -1,12 +1,20 @@
 import { CalendarDays, CheckCircle2 } from "lucide-react";
 import { JoinForm } from "@/components/recruiting/JoinForm";
-import { formatKoreanDateTime, getPublicCmsData, isRecruitmentOpen } from "@/lib/cms-public";
+import {
+  formatKoreanDateTime,
+  getPublicCmsData,
+  getRecruitmentPhase,
+  getRecruitmentPhaseLabel,
+  isRecruitmentOpen,
+} from "@/lib/cms-public";
 
 export const revalidate = 60;
 
 export default async function JoinPage() {
   const data = await getPublicCmsData();
   const open = isRecruitmentOpen(data.recruitment);
+  const phase = getRecruitmentPhase(data.recruitment);
+  const phaseLabel = getRecruitmentPhaseLabel(phase);
 
   const steps = [
     ["서류 접수", `${formatKoreanDateTime(data.recruitment.start_at)} ~ ${formatKoreanDateTime(data.recruitment.end_at)}`],
@@ -20,11 +28,11 @@ export default async function JoinPage() {
       <section className="border-b border-ink/10 bg-white py-16 md:py-24">
         <div className="mx-auto max-w-[1100px] px-6 text-center">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${open ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
-            {open ? "모집중" : "모집 준비중"}
+            {phaseLabel}
           </span>
           <h1 className="mt-5 text-4xl font-bold tracking-normal sm:text-5xl">{data.recruitment.title}</h1>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
-            지원 자격, 일정, 지원서 다운로드, 온라인 제출까지 한 흐름으로 확인할 수 있습니다.
+            모집 일정, 지원 자격, 제출 서류를 확인하세요.
           </p>
         </div>
       </section>
@@ -64,7 +72,7 @@ export default async function JoinPage() {
       </section>
 
       <section className="mx-auto max-w-[1100px] px-6 pb-20 md:pb-28">
-        <JoinForm recruitment={data.recruitment} faqs={data.faqs} isOpen={open} />
+        <JoinForm recruitment={data.recruitment} faqs={data.faqs} isOpen={open} phase={phase} />
       </section>
     </div>
   );

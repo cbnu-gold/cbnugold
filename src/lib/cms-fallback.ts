@@ -2,7 +2,6 @@ import { activities as baseActivities } from "@/data/activities";
 import { placements, awards } from "@/data/achievements";
 import { history as baseHistory } from "@/data/history";
 import { faqs as baseFaqs } from "@/data/faqs";
-import { wikiCategories } from "@/data/wiki";
 import type {
   ActivityItem,
   AchievementItem,
@@ -12,7 +11,6 @@ import type {
   PublicCmsData,
   RecruitmentCycle,
   SiteSettingsValue,
-  WikiArticle,
 } from "@/types";
 
 export const fallbackSettings: SiteSettingsValue = {
@@ -20,7 +18,7 @@ export const fallbackSettings: SiteSettingsValue = {
   club_name: "충북대학교 금융권 취업 동아리 금은동",
   hero_title: "충북대 금융권 취업 동아리, 금은동",
   hero_subtitle:
-    "시장 읽기, 리포트 분석, 직무 준비, 현직자 멘토링을 한 흐름으로 연결합니다.",
+    "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
   primary_cta_label: "지원 안내 보기",
   primary_cta_href: "/join",
   secondary_cta_label: "활동 살펴보기",
@@ -71,10 +69,10 @@ export const fallbackBlocks: ContentBlock[] = [
   {
     page_slug: "home",
     block_key: "proof",
-    title: "성과로 검증되는 커리큘럼",
-    subtitle: "취업·인턴·수상 실적",
-    body: "금은동은 활동 기록과 선배 네트워크를 축적해 후배의 지원 전략으로 전환합니다.",
-    cta_label: "성과 보기",
+    title: "2025년 성과",
+    subtitle: "취업·인턴·수상",
+    body: "2025년 취업, 인턴, 수상 기록입니다.",
+    cta_label: "소개 보기",
     cta_href: "/about",
     media_url: null,
     status: "published",
@@ -132,20 +130,6 @@ export const fallbackFaqs: FAQItem[] = baseFaqs.map((faq, index) => ({
   sort_order: index + 1,
 }));
 
-export const fallbackWikiArticles: WikiArticle[] = wikiCategories.map(
-  (category, index) => ({
-    slug: category.slug,
-    category: category.slug,
-    title: category.title,
-    title_en: category.titleEn,
-    summary: category.description,
-    body: category.description,
-    source_note: "기존 정적 위키 카테고리에서 이전",
-    status: "published",
-    sort_order: index + 1,
-  })
-);
-
 export const fallbackCmsData: PublicCmsData = {
   settings: fallbackSettings,
   blocks: fallbackBlocks,
@@ -154,5 +138,4 @@ export const fallbackCmsData: PublicCmsData = {
   achievements: fallbackAchievements,
   history: fallbackHistory,
   faqs: fallbackFaqs,
-  wikiArticles: fallbackWikiArticles,
 };

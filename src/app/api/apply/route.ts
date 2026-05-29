@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getResendClient, buildAdminEmail } from "@/lib/resend";
+import { checkRateLimit } from "@/lib/rate-limit";
 import { validationRules, fileRules } from "@/lib/validations";
 import type { RecruitmentCycle } from "@/types";
 
@@ -20,8 +21,30 @@ function getStorageTroubleshootingHint(message?: string) {
   return "Storage 버킷/권한/환경변수를 다시 확인해주세요.";
 }
 
+function publicError(message: string, status = 500, details?: string) {
+  const body: Record<string, string> = { error: message };
+  if (process.env.NODE_ENV !== "production" && details) {
+    body.details = details;
+    body.hint = getStorageTroubleshootingHint(details);
+  }
+  return NextResponse.json(body, { status });
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      request.headers.get("x-real-ip") ??
+      "unknown";
+    const rateLimit = checkRateLimit(`apply:${ip}`, 5, 10 * 60 * 1000);
+
+    if (!rateLimit.ok) {
+      return NextResponse.json(
+        { error: "짧은 시간 안에 제출 시도가 많습니다. 잠시 후 다시 시도해주세요." },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
 
     const name = formData.get("name") as string;
@@ -93,13 +116,10 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       console.error("Storage upload error:", uploadError);
       const detailedMessage = uploadError.message || "unknown error";
-      return NextResponse.json(
-        {
-          error: "파일 업로드에 실패했습니다. Supabase Storage 버킷(applications)과 권한 설정을 확인해주세요.",
-          details: detailedMessage,
-          hint: getStorageTroubleshootingHint(detailedMessage),
-        },
-        { status: 500 }
+      return publicError(
+        "파일 업로드에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
+        500,
+        detailedMessage
       );
     }
 
@@ -118,9 +138,10 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("DB insert error:", insertError);
       await supabase.storage.from("applications").remove([filePath]);
-      return NextResponse.json(
-        { error: "지원자 DB 저장에 실패했습니다. 테이블 및 RLS 정책을 확인해주세요." },
-        { status: 500 }
+      return publicError(
+        "지원서 저장에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
+        500,
+        insertError.message
       );
     }
 
@@ -148,22 +169,13 @@ export async function POST(request: NextRequest) {
     const detailedMessage = error instanceof Error ? error.message : "unknown error";
 
     if (detailedMessage.includes("Supabase server environment variables are not configured")) {
-      return NextResponse.json(
-        {
-          error: "서버 환경변수 설정이 누락되어 파일 업로드를 진행할 수 없습니다.",
-          details: detailedMessage,
-          hint: "Vercel 환경변수에 NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY를 추가 후 재배포해주세요.",
-        },
-        { status: 500 }
+      return publicError(
+        "지원 접수 시스템 설정을 확인하는 중입니다. 운영진에게 문의해주세요.",
+        500,
+        detailedMessage
       );
     }
 
-    return NextResponse.json(
-      {
-        error: "서버 오류가 발생했습니다. 다시 시도해주세요.",
-        details: detailedMessage,
-      },
-      { status: 500 }
-    );
+    return publicError("서버 오류가 발생했습니다. 다시 시도해주세요.", 500, detailedMessage);
   }
 }

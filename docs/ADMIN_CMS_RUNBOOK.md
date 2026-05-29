@@ -40,7 +40,7 @@
 - `npm run lint`
 - `npm run test`
 - `npm run build`
-- `/`, `/join`, `/activity`, `/wiki`, `/admin/login` 화면 확인
+- `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
 - 비로그인 상태에서 `/api/admin/*`가 401/403을 반환하는지 확인
 - 일반 Supabase 인증 사용자가 `admin_profiles`에 없을 때 관리자 API 접근이 차단되는지 확인
 - 지원서 파일 URL이 공개 Supabase public URL로 노출되지 않는지 확인

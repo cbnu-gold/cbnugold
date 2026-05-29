@@ -2,15 +2,16 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  BarChart3,
-  BookOpen,
-  BriefcaseBusiness,
   CalendarDays,
-  CheckCircle2,
   FileText,
   Users,
 } from "lucide-react";
-import { getPublicCmsData, isRecruitmentOpen } from "@/lib/cms-public";
+import {
+  getPublicCmsData,
+  getRecruitmentPhase,
+  getRecruitmentPhaseLabel,
+  isRecruitmentOpen,
+} from "@/lib/cms-public";
 
 export const revalidate = 60;
 
@@ -19,9 +20,11 @@ export default async function Home() {
   const hero =
     data.blocks.find((block) => block.page_slug === "home" && block.block_key === "hero") ??
     data.blocks[0];
-  const placements = data.achievements.filter((item) => item.kind === "placement");
-  const awards = data.achievements.filter((item) => item.kind === "award");
+  const achievements2025 = data.achievements.filter((item) => item.year === 2025);
+  const displayAchievements = achievements2025.length ? achievements2025 : data.achievements;
   const recruitmentOpen = isRecruitmentOpen(data.recruitment);
+  const recruitmentPhase = getRecruitmentPhase(data.recruitment);
+  const recruitmentLabel = getRecruitmentPhaseLabel(recruitmentPhase);
 
   return (
     <div className="bg-white text-ink">
@@ -30,7 +33,9 @@ export default async function Home() {
         <div className="relative mx-auto grid min-h-[640px] max-w-[1400px] items-center gap-12 px-6 pb-16 sm:px-8 lg:grid-cols-[1.08fr_0.92fr] lg:px-16">
           <div>
             <p className="mb-5 text-sm font-semibold text-gold-dark">
-              {recruitmentOpen ? `${data.recruitment.generation}기 모집 진행 중` : "공식 홈페이지 운영 중"}
+              {recruitmentOpen
+                ? `${data.recruitment.generation}기 모집 진행 중`
+                : "충북대학교 금융권 취업 동아리"}
             </p>
             <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-normal text-ink sm:text-5xl lg:text-6xl">
               {hero?.title ?? data.settings.hero_title}
@@ -54,9 +59,9 @@ export default async function Home() {
               </Link>
             </div>
             <div className="mt-10 grid grid-cols-3 gap-3 border-y border-ink/10 py-5">
-              <Metric value={`${data.history.length}+`} label="축적 연혁" />
-              <Metric value={`${placements.length}+`} label="취업·인턴 기록" />
-              <Metric value={`${awards.length}+`} label="수상 실적" />
+              <Metric value="2021" label="활동 시작" />
+              <Metric value={data.recruitment.meeting_time?.split(" ")[1] ?? "화요일"} label="정기모임" />
+              <Metric value={`${data.recruitment.generation}기`} label="모집 기수" />
             </div>
           </div>
 
@@ -64,14 +69,14 @@ export default async function Home() {
             <div className="flex items-center justify-between border-b border-ink/10 pb-4">
               <div>
                 <p className="text-sm font-semibold text-slate-900">{data.recruitment.title}</p>
-                <p className="mt-1 text-xs text-slate-500">지원 일정과 제출 현황은 관리자 대시보드에서 관리됩니다.</p>
+                <p className="mt-1 text-xs text-slate-500">모집 일정과 제출 안내를 확인하세요.</p>
               </div>
               <span
                 className={`rounded-full px-3 py-1 text-xs font-semibold ${
                   recruitmentOpen ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
                 }`}
               >
-                {recruitmentOpen ? "모집중" : "준비중"}
+                {recruitmentLabel}
               </span>
             </div>
             <div className="grid gap-3 py-5">
@@ -84,7 +89,7 @@ export default async function Home() {
               href="/join"
               className="flex items-center justify-between rounded-lg bg-marble-light px-4 py-3 text-sm font-semibold text-ink transition hover:bg-gold/10"
             >
-              모집 상세와 지원서 제출
+              {recruitmentOpen ? "모집 상세와 지원서 제출" : "모집 안내 확인"}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -94,9 +99,9 @@ export default async function Home() {
       <section className="bg-marble-light py-20 md:py-28">
         <div className="mx-auto max-w-[1400px] px-6 sm:px-8 lg:px-16">
           <div className="mb-10 max-w-3xl">
-            <h2 className="text-3xl font-bold tracking-normal sm:text-4xl">지원자가 바로 이해하는 활동 구조</h2>
+            <h2 className="text-3xl font-bold tracking-normal sm:text-4xl">주요 활동</h2>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              금은동은 금융권 채용에 필요한 시장 이해, 직무 이해, 말하기 역량을 반복 가능한 활동으로 설계합니다.
+              신문 스크랩, 리포트 분석, 금융상품 세일즈 페어, 멘토링을 중심으로 활동합니다.
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -120,27 +125,27 @@ export default async function Home() {
       </section>
 
       <section className="bg-white py-20 md:py-28">
-        <div className="mx-auto grid max-w-[1400px] gap-10 px-6 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:px-16">
-          <div>
-            <h2 className="text-3xl font-bold tracking-normal sm:text-4xl">성과와 기록을 숨기지 않습니다</h2>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              취업·인턴·수상 기록은 지원자가 동아리의 실질성을 판단하는 핵심 근거입니다.
-            </p>
-            <div className="mt-8 grid gap-3">
-              <ProofItem icon={BriefcaseBusiness} label="취업·인턴" value={`${placements.length}건`} />
-              <ProofItem icon={BarChart3} label="외부 성과" value={`${awards.length}건`} />
-              <ProofItem icon={BookOpen} label="위키 콘텐츠" value={`${data.wikiArticles.length}개`} />
+        <div className="mx-auto max-w-[1400px] px-6 sm:px-8 lg:px-16">
+          <div className="mb-8 flex flex-col justify-between gap-3 border-b border-ink/10 pb-5 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-sm font-semibold text-gold-dark">2025</p>
+              <h2 className="mt-2 text-3xl font-bold tracking-normal sm:text-4xl">2025년 성과</h2>
             </div>
           </div>
-          <div className="rounded-xl border border-ink/10">
-            {data.achievements.slice(0, 8).map((item, index) => (
-              <div key={item.id ?? `${item.title}-${index}`} className="grid grid-cols-[56px_1fr_auto] gap-4 border-b border-ink/10 px-5 py-4 last:border-b-0">
+          <div className="grid gap-3 md:grid-cols-2">
+            {displayAchievements.map((item, index) => (
+              <div
+                key={item.id ?? `${item.title}-${index}`}
+                className="grid grid-cols-[44px_1fr] gap-4 rounded-lg border border-ink/10 bg-white px-4 py-4"
+              >
                 <span className="font-mono text-sm text-slate-400">{String(index + 1).padStart(2, "0")}</span>
-                <div>
-                  <p className="font-semibold">{item.title}</p>
-                  {item.organization && <p className="mt-1 text-xs text-slate-500">{item.organization}</p>}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <p className="font-semibold text-ink">{item.title}</p>
+                    {item.organization && <span className="text-xs text-slate-500">{item.organization}</span>}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">{item.result}</p>
                 </div>
-                <p className="text-right text-sm font-medium text-slate-700">{item.result}</p>
               </div>
             ))}
           </div>
@@ -150,8 +155,8 @@ export default async function Home() {
       <section className="bg-ink py-16 text-white">
         <div className="mx-auto flex max-w-[1400px] flex-col items-start justify-between gap-6 px-6 sm:px-8 md:flex-row md:items-center lg:px-16">
           <div>
-            <h2 className="text-2xl font-bold">지원자에게 필요한 정보는 한 페이지에서 끝나야 합니다.</h2>
-            <p className="mt-2 text-sm leading-6 text-white/65">모집 일정, 지원서, FAQ, 제출 확인까지 `/join`에서 확인할 수 있습니다.</p>
+            <h2 className="text-2xl font-bold">지원 일정과 제출 안내</h2>
+            <p className="mt-2 text-sm leading-6 text-white/65">모집 일정, 지원서 양식, FAQ, 접수 확인을 제공합니다.</p>
           </div>
           <Link href="/join" className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-ink">
             지원 안내 보기
@@ -162,7 +167,6 @@ export default async function Home() {
     </div>
   );
 }
-
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <div>
@@ -188,26 +192,6 @@ function ProcessRow({
         <p className="text-xs font-medium text-slate-500">{label}</p>
         <p className="mt-0.5 text-sm font-semibold text-slate-900">{value}</p>
       </div>
-    </div>
-  );
-}
-
-function ProofItem({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof CheckCircle2;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border border-ink/10 px-4 py-3">
-      <span className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
-        <Icon className="h-4 w-4 text-gold-dark" />
-        {label}
-      </span>
-      <span className="font-mono text-sm font-bold">{value}</span>
     </div>
   );
 }

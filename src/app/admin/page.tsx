@@ -16,7 +16,6 @@ import type {
   MediaAsset,
   RecruitmentCycle,
   SiteSettingsValue,
-  WikiArticle,
 } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -47,7 +46,6 @@ type Tab =
   | "achievements"
   | "history"
   | "faqs"
-  | "wiki"
   | "media"
   | "audit";
 
@@ -60,7 +58,6 @@ type ResourceState = {
   achievements: AchievementItem[];
   history: HistoryItem[];
   faqs: FAQItem[];
-  wiki: WikiArticle[];
   media: MediaAsset[];
   audit: AuditLog[];
 };
@@ -69,7 +66,7 @@ const defaultSettings: SiteSettingsValue = {
   site_title: "금은동",
   club_name: "충북대학교 금융권 취업 동아리 금은동",
   hero_title: "충북대 금융권 취업 동아리, 금은동",
-  hero_subtitle: "시장 읽기, 리포트 분석, 직무 준비, 현직자 멘토링을 한 흐름으로 연결합니다.",
+  hero_subtitle: "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
   primary_cta_label: "지원 안내 보기",
   primary_cta_href: "/join",
   secondary_cta_label: "활동 살펴보기",
@@ -90,7 +87,6 @@ const initialState: ResourceState = {
   achievements: [],
   history: [],
   faqs: [],
-  wiki: [],
   media: [],
   audit: [],
 };
@@ -104,7 +100,6 @@ const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "achievements", label: "성과", icon: BarChart3 },
   { key: "history", label: "연혁", icon: Database },
   { key: "faqs", label: "FAQ", icon: BookOpen },
-  { key: "wiki", label: "위키", icon: BookOpen },
   { key: "media", label: "미디어", icon: ImageUp },
   { key: "audit", label: "감사 로그", icon: ShieldCheck },
 ];
@@ -255,7 +250,7 @@ export default function AdminPage() {
       return data;
     };
 
-    const [me, applicants, settings, recruitment, blocks, activities, achievements, history, faqs, wiki, media, audit] =
+    const [me, applicants, settings, recruitment, blocks, activities, achievements, history, faqs, media, audit] =
       await Promise.all([
         fetchWithToken("/api/admin/me"),
         fetchWithToken("/api/admin/applicants"),
@@ -266,7 +261,6 @@ export default function AdminPage() {
         fetchWithToken("/api/admin/cms/achievements"),
         fetchWithToken("/api/admin/cms/history"),
         fetchWithToken("/api/admin/cms/faqs"),
-        fetchWithToken("/api/admin/cms/wiki"),
         fetchWithToken("/api/admin/cms/media"),
         fetchWithToken("/api/admin/cms/audit"),
       ]);
@@ -281,7 +275,6 @@ export default function AdminPage() {
       achievements: achievements.items ?? [],
       history: history.items ?? [],
       faqs: faqs.items ?? [],
-      wiki: wiki.items ?? [],
       media: media.items ?? [],
       audit: audit.items ?? [],
     });
@@ -465,7 +458,7 @@ export default function AdminPage() {
                 ["전체 지원자", state.applicants.length],
                 ["대기", applicantCounts.pending ?? 0],
                 ["면접", applicantCounts.interview ?? 0],
-                ["게시 콘텐츠", state.blocks.length + state.activities.length + state.wiki.length],
+                ["게시 콘텐츠", state.blocks.length + state.activities.length],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <p className="text-sm text-slate-500">{label}</p>
@@ -768,28 +761,6 @@ export default function AdminPage() {
                   <Field label="질문" value={item.question} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, question: value } : x))} />
                   <TextField label="답변" value={item.answer} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, answer: value } : x))} />
                   <ItemActions save={() => saveItem("faqs", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("faqs", item.id)} />
-                </>
-              )}
-            />
-          )}
-
-          {tab === "wiki" && (
-            <SimpleResourceEditor
-              title="위키 CMS"
-              items={state.wiki}
-              addLabel="위키 추가"
-              onAdd={() => updateList("wiki", [{ slug: "new-article", category: "jobs", title: "", title_en: "", summary: "", body: "", source_note: "", status: "draft", sort_order: state.wiki.length + 1 }, ...state.wiki])}
-              render={(item, index) => (
-                <>
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <Field label="슬러그" value={item.slug} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, slug: value } : x))} />
-                    <Field label="카테고리" value={item.category} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, category: value } : x))} />
-                    <Field label="상태" value={item.status} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, status: value as WikiArticle["status"] } : x))} />
-                  </div>
-                  <Field label="제목" value={item.title} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, title: value } : x))} />
-                  <TextField label="요약" value={item.summary} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, summary: value } : x))} />
-                  <TextField label="본문" rows={8} value={item.body} onChange={(value) => updateList("wiki", state.wiki.map((x, i) => i === index ? { ...x, body: value } : x))} />
-                  <ItemActions save={() => saveItem("wiki", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("wiki", item.id)} />
                 </>
               )}
             />
