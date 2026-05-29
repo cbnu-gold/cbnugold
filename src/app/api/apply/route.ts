@@ -46,7 +46,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "지원서 제출 형식이 올바르지 않습니다." },
+        { status: 400 }
+      );
+    }
 
     const name = String(formData.get("name") ?? "").trim();
     const studentId = String(formData.get("studentId") ?? "").replace(/\D/g, "");
