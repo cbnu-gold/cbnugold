@@ -121,6 +121,14 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
           <p className="font-semibold text-slate-800">개인정보 보유 기간</p>
           <p>{recruitment.privacy_retention}</p>
         </div>
+        <div className="mt-4 rounded-lg border border-ink/10 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">제출 전 확인</p>
+          <ul className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
+            <li>· 지원서 파일 형식은 hwp, docx, pdf 중 하나여야 합니다.</li>
+            <li>· 파일명은 이름_지원서 형식을 권장합니다.</li>
+            <li>· 제출 후 지원 확인 페이지에서 접수 여부를 확인할 수 있습니다.</li>
+          </ul>
+        </div>
       </aside>
 
       <section className="scroll-mt-24 rounded-xl border border-ink/10 bg-white p-5 md:p-6">

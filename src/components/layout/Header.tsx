@@ -18,7 +18,6 @@ const navItems = [
 
 export function Header({ settings }: { settings: SiteSettingsValue }) {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -27,8 +26,38 @@ export function Header({ settings }: { settings: SiteSettingsValue }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const toggle = document.getElementById("mobile-nav-toggle") as HTMLInputElement | null;
+    if (!toggle) return undefined;
+
+    const syncScrollLock = () => {
+      document.body.style.overflow = toggle.checked ? "hidden" : "";
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        toggle.checked = false;
+        syncScrollLock();
+      }
+    };
+
+    toggle.addEventListener("change", syncScrollLock);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      toggle.removeEventListener("change", syncScrollLock);
+      window.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  useEffect(() => {
+    const toggle = document.getElementById("mobile-nav-toggle") as HTMLInputElement | null;
+    if (toggle) toggle.checked = false;
+    document.body.style.overflow = "";
+  }, [pathname]);
+
   return (
     <>
+      <input id="mobile-nav-toggle" type="checkbox" className="peer sr-only" aria-hidden="true" tabIndex={-1} />
       <header
         className={`fixed top-0 left-0 right-0 z-50 h-16 transition-all duration-300 ${
           scrolled
@@ -115,20 +144,19 @@ export function Header({ settings }: { settings: SiteSettingsValue }) {
           </div>
 
           {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileOpen(true)}
+          <label
+            htmlFor="mobile-nav-toggle"
             className="md:hidden h-10 w-10 inline-flex items-center justify-center -mr-2 text-ink/70 hover:text-ink transition-colors"
             aria-label="메뉴 열기"
+            role="button"
           >
             <Menu size={22} strokeWidth={1.5} />
-          </button>
+          </label>
         </div>
       </header>
 
       {/* Mobile Nav */}
       <MobileNav
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
         items={navItems}
         pathname={pathname}
         settings={settings}

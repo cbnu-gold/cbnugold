@@ -63,7 +63,7 @@ export default async function Home() {
     <div className="bg-white text-ink">
       <section className="relative overflow-hidden border-b border-ink/10 bg-white pt-20">
         <div className="absolute inset-0 gold-grid opacity-40" />
-        <div className="relative mx-auto grid max-w-[1400px] items-center gap-7 px-5 pb-10 pt-8 sm:px-8 md:gap-10 md:pb-14 md:pt-12 lg:min-h-[620px] lg:grid-cols-[1.08fr_0.92fr] lg:gap-14 lg:px-16">
+        <div className="relative mx-auto grid max-w-[1400px] items-start gap-7 px-5 pb-10 pt-8 sm:px-8 md:gap-10 md:pb-14 md:pt-12 lg:min-h-[560px] lg:grid-cols-[1.08fr_0.92fr] lg:gap-14 lg:px-16">
           <div>
             <div className="mb-5 flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold-dark">
