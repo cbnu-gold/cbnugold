@@ -41,10 +41,11 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="pt-24 min-h-screen flex items-center justify-center">
+    <div className="pt-24 min-h-screen flex items-center justify-center bg-slate-50">
       <div className="max-w-sm w-full mx-auto px-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-50 mb-2">
+          <h1 className="text-2xl font-bold text-slate-950 mb-2">
             관리자 로그인
           </h1>
           <p className="text-sm text-slate-400">
@@ -89,6 +90,7 @@ export default function AdminLoginPage() {
             )}
           </Button>
         </form>
+        </div>
       </div>
     </div>
   );

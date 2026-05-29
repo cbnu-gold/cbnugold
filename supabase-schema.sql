@@ -1,9 +1,219 @@
--- 금은동 웹사이트 Supabase 스키마
--- Supabase SQL Editor에서 실행하세요
+-- CBNU GOLD website CMS, recruitment, and admin schema
+-- Apply in Supabase SQL Editor. Designed to be idempotent for existing installs.
 
--- 지원자 테이블
-CREATE TABLE applicants (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS admin_profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT,
+  role TEXT NOT NULL DEFAULT 'editor',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT admin_profiles_role_check CHECK (role IN ('owner', 'admin', 'editor', 'viewer'))
+);
+
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM admin_profiles
+    WHERE id = auth.uid()
+      AND is_active = true
+      AND role IN ('owner', 'admin', 'editor')
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_admin_viewer()
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM admin_profiles
+    WHERE id = auth.uid()
+      AND is_active = true
+      AND role IN ('owner', 'admin', 'editor', 'viewer')
+  );
+$$;
+
+CREATE TABLE IF NOT EXISTS site_settings (
+  key TEXT PRIMARY KEY,
+  value JSONB NOT NULL,
+  status TEXT NOT NULL DEFAULT 'published',
+  updated_by UUID REFERENCES auth.users(id),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT site_settings_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS content_pages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT content_pages_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS content_blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  page_slug TEXT NOT NULL,
+  block_key TEXT NOT NULL,
+  title TEXT,
+  subtitle TEXT,
+  body TEXT,
+  cta_label TEXT,
+  cta_href TEXT,
+  media_url TEXT,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(page_slug, block_key),
+  CONSTRAINT content_blocks_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS recruitment_cycles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  generation INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  is_open BOOLEAN NOT NULL DEFAULT false,
+  start_at TIMESTAMPTZ,
+  end_at TIMESTAMPTZ,
+  document_result_at TIMESTAMPTZ,
+  interview_at TIMESTAMPTZ,
+  final_result_at TIMESTAMPTZ,
+  meeting_time TEXT,
+  requirements TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  fee_note TEXT,
+  docx_url TEXT,
+  hwp_url TEXT,
+  privacy_retention TEXT NOT NULL DEFAULT '지원 결과 발표일로부터 6개월 후 파기',
+  status TEXT NOT NULL DEFAULT 'published',
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT recruitment_cycles_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS activity_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL DEFAULT 'regular',
+  tags TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT activity_items_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS achievement_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  organization TEXT,
+  result TEXT NOT NULL,
+  kind TEXT NOT NULL DEFAULT 'placement',
+  year INTEGER,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT achievement_items_kind_check CHECK (kind IN ('placement', 'award', 'metric')),
+  CONSTRAINT achievement_items_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS history_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  year INTEGER NOT NULL,
+  generation INTEGER,
+  president TEXT,
+  milestones TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  is_current BOOLEAN NOT NULL DEFAULT false,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT history_entries_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS faq_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  question TEXT NOT NULL,
+  answer TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT faq_items_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS wiki_articles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  title_en TEXT,
+  summary TEXT NOT NULL,
+  body TEXT NOT NULL DEFAULT '',
+  source_note TEXT,
+  status TEXT NOT NULL DEFAULT 'published',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT wiki_articles_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS media_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bucket TEXT NOT NULL DEFAULT 'cms-media',
+  path TEXT NOT NULL,
+  public_url TEXT,
+  alt TEXT,
+  kind TEXT NOT NULL DEFAULT 'image',
+  status TEXT NOT NULL DEFAULT 'published',
+  updated_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(bucket, path),
+  CONSTRAINT media_assets_status_check CHECK (status IN ('draft', 'published', 'archived'))
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_id UUID REFERENCES auth.users(id),
+  actor_email TEXT,
+  action TEXT NOT NULL,
+  target_table TEXT,
+  target_id TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS applicants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   student_id TEXT NOT NULL,
   email TEXT NOT NULL,
@@ -14,57 +224,320 @@ CREATE TABLE applicants (
   status TEXT NOT NULL DEFAULT 'pending',
   applied_at TIMESTAMPTZ DEFAULT NOW(),
   notes TEXT,
-
   CONSTRAINT valid_name CHECK (name ~ '^[가-힣]{2,10}$' OR name ~ '^[a-zA-Z ]{2,30}$'),
   CONSTRAINT valid_student_id CHECK (student_id ~ '^\d{8,10}$'),
   CONSTRAINT valid_email CHECK (email ~ '^[^@]+@[^@]+\.[^@]+$'),
-  CONSTRAINT valid_phone CHECK (phone ~ '^01[016789]\d{7,8}$')
+  CONSTRAINT valid_phone CHECK (phone ~ '^01[016789]\d{7,8}$'),
+  CONSTRAINT valid_applicant_status CHECK (status IN ('pending', 'reviewed', 'interview', 'accepted', 'rejected'))
 );
 
--- 사이트 설정 테이블
-CREATE TABLE settings (
-  key TEXT PRIMARY KEY,
-  value JSONB NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+ALTER TABLE applicants
+  ADD COLUMN IF NOT EXISTS recruitment_cycle_id UUID REFERENCES recruitment_cycles(id),
+  ADD COLUMN IF NOT EXISTS admin_note TEXT,
+  ADD COLUMN IF NOT EXISTS review_score INTEGER,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
--- 초기 데이터: 모집 설정
-INSERT INTO settings (key, value) VALUES
-('recruitment', '{
-  "is_open": true,
-  "generation": 9,
-  "start_date": "2026-02-19",
-  "end_date": "2026-03-01",
-  "end_time": "18:00",
-  "document_result_date": "2026-03-03",
-  "interview_date": "2026-03-06",
-  "final_result_date": "2026-03-07"
-}'::jsonb);
+ALTER TABLE applicants DROP CONSTRAINT IF EXISTS applicants_review_score_check;
+ALTER TABLE applicants
+  ADD CONSTRAINT applicants_review_score_check
+  CHECK (review_score IS NULL OR (review_score >= 0 AND review_score <= 100));
 
--- RLS 정책
+CREATE INDEX IF NOT EXISTS idx_applicants_generation ON applicants(generation);
+CREATE INDEX IF NOT EXISTS idx_applicants_status ON applicants(status);
+CREATE INDEX IF NOT EXISTS idx_content_blocks_page ON content_blocks(page_slug, status, sort_order);
+CREATE INDEX IF NOT EXISTS idx_recruitment_open ON recruitment_cycles(status, is_open, generation DESC);
+CREATE INDEX IF NOT EXISTS idx_wiki_articles_category ON wiki_articles(category, status, sort_order);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_activity_items_category_title ON activity_items(category, title);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_achievement_items_kind_title_result ON achievement_items(kind, title, result);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_history_entries_year ON history_entries(year);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_faq_items_question ON faq_items(question);
+
+CREATE OR REPLACE FUNCTION public.touch_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+  table_name TEXT;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY[
+    'admin_profiles',
+    'site_settings',
+    'content_pages',
+    'content_blocks',
+    'recruitment_cycles',
+    'activity_items',
+    'achievement_items',
+    'history_entries',
+    'faq_items',
+    'wiki_articles',
+    'media_assets',
+    'applicants'
+  ]
+  LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS touch_%I_updated_at ON %I', table_name, table_name);
+    EXECUTE format(
+      'CREATE TRIGGER touch_%I_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at()',
+      table_name,
+      table_name
+    );
+  END LOOP;
+END $$;
+
+ALTER TABLE admin_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE content_pages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE content_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE recruitment_cycles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE activity_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE achievement_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE history_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE faq_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE wiki_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE media_assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applicants ENABLE ROW LEVEL SECURITY;
 
--- 누구나 INSERT 가능 (지원)
+DROP POLICY IF EXISTS "Anyone can apply" ON applicants;
+DROP POLICY IF EXISTS "Admins can view applicants" ON applicants;
+DROP POLICY IF EXISTS "Admins can update applicants" ON applicants;
+DROP POLICY IF EXISTS "Anyone can read settings" ON site_settings;
+DROP POLICY IF EXISTS "Admins can update settings" ON site_settings;
+
+CREATE POLICY "Admins can read admin profiles"
+  ON admin_profiles FOR SELECT
+  USING (public.is_admin_viewer());
+
+CREATE POLICY "Owners can manage admin profiles"
+  ON admin_profiles FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM admin_profiles ap
+      WHERE ap.id = auth.uid() AND ap.is_active = true AND ap.role = 'owner'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM admin_profiles ap
+      WHERE ap.id = auth.uid() AND ap.is_active = true AND ap.role = 'owner'
+    )
+  );
+
+CREATE POLICY "Public can read published settings"
+  ON site_settings FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage settings"
+  ON site_settings FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published pages"
+  ON content_pages FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage pages"
+  ON content_pages FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published blocks"
+  ON content_blocks FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage blocks"
+  ON content_blocks FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published recruitment"
+  ON recruitment_cycles FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage recruitment"
+  ON recruitment_cycles FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published activities"
+  ON activity_items FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage activities"
+  ON activity_items FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published achievements"
+  ON achievement_items FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage achievements"
+  ON achievement_items FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published history"
+  ON history_entries FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage history"
+  ON history_entries FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published faqs"
+  ON faq_items FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage faqs"
+  ON faq_items FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published wiki"
+  ON wiki_articles FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage wiki"
+  ON wiki_articles FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Public can read published media"
+  ON media_assets FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Admins can manage media"
+  ON media_assets FOR ALL
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
+CREATE POLICY "Admins can read audit logs"
+  ON audit_logs FOR SELECT
+  USING (public.is_admin_viewer());
+
+CREATE POLICY "Admins can insert audit logs"
+  ON audit_logs FOR INSERT
+  WITH CHECK (public.is_admin());
+
 CREATE POLICY "Anyone can apply"
   ON applicants FOR INSERT
   WITH CHECK (true);
 
--- 인증된 관리자만 SELECT/UPDATE 가능
 CREATE POLICY "Admins can view applicants"
   ON applicants FOR SELECT
-  USING (auth.role() = 'authenticated');
+  USING (public.is_admin_viewer());
 
 CREATE POLICY "Admins can update applicants"
   ON applicants FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
--- settings는 누구나 읽기 가능
-ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
+INSERT INTO site_settings (key, value, status) VALUES
+('site', '{
+  "site_title": "금은동",
+  "club_name": "충북대학교 금융권 취업 동아리 금은동",
+  "hero_title": "충북대 금융권 취업 동아리, 금은동",
+  "hero_subtitle": "시장 읽기, 리포트 분석, 직무 준비, 현직자 멘토링을 한 흐름으로 연결합니다.",
+  "primary_cta_label": "지원 안내 보기",
+  "primary_cta_href": "/join",
+  "secondary_cta_label": "활동 살펴보기",
+  "secondary_cta_href": "/activity",
+  "contact_name": "6대 회장 이승현",
+  "contact_phone": "010-2623-2004",
+  "contact_email": "cni351237@naver.com",
+  "instagram_url": "https://www.instagram.com/cbnu_gold/",
+  "naver_cafe_url": "https://cafe.naver.com/cufaclub"
+}'::jsonb, 'published')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, status = EXCLUDED.status;
 
-CREATE POLICY "Anyone can read settings"
-  ON settings FOR SELECT
-  USING (true);
+INSERT INTO recruitment_cycles (
+  generation, title, is_open, start_at, end_at, document_result_at,
+  interview_at, final_result_at, meeting_time, requirements, fee_note,
+  docx_url, hwp_url, status
+) VALUES (
+  9,
+  '금은동 9기 신입부원 모집',
+  true,
+  '2026-02-19 00:00:00+09',
+  '2026-03-01 18:00:00+09',
+  '2026-03-03 18:00:00+09',
+  '2026-03-06 19:00:00+09',
+  '2026-03-07 18:00:00+09',
+  '매주 화요일 19:00 정기모임',
+  ARRAY[
+    '충북대학교 재학생',
+    '매주 화요일 19:00 정기모임 참석 가능',
+    '연속 2학기 이상 활동 가능',
+    'OT 참석 가능'
+  ],
+  '학기 10,000원, 조건 충족 시 환급',
+  '/9기_금은동_지원서.docx',
+  '/9기_금은동_지원서.hwp',
+  'published'
+)
+ON CONFLICT DO NOTHING;
 
-CREATE POLICY "Admins can update settings"
-  ON settings FOR UPDATE
-  USING (auth.role() = 'authenticated');
+INSERT INTO content_pages (slug, title, description, status, sort_order) VALUES
+('home', '홈', '금은동 공식 홈페이지 메인', 'published', 1),
+('join', '지원', '신입부원 모집 안내와 지원 폼', 'published', 2),
+('about', '소개', '금은동 소개와 운영 구조', 'published', 3),
+('activity', '활동', '정규 및 특별 활동', 'published', 4),
+('wiki', '위키', '금융권 백과', 'published', 5)
+ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.description, status = EXCLUDED.status;
+
+INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_label, cta_href, status, sort_order) VALUES
+('home', 'hero', '충북대 금융권 취업 동아리, 금은동', '금융권 취업을 실전으로 준비합니다', '신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 통해 금융권 직무 이해와 실전 역량을 함께 쌓습니다.', '지원 안내 보기', '/join', 'published', 1),
+('home', 'proof', '성과로 검증되는 커리큘럼', '취업·인턴·수상 실적', '금은동은 활동 기록과 선배 네트워크를 축적해 후배의 지원 전략으로 전환합니다.', '성과 보기', '/about', 'published', 2)
+ON CONFLICT (page_slug, block_key) DO UPDATE
+SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, status = EXCLUDED.status;
+
+INSERT INTO activity_items (title, subtitle, description, category, tags, status, sort_order) VALUES
+('신문 스크랩', '금융 시사 분석', '매주 금융 신문을 스크랩하고 조별 토의를 통해 시장 흐름을 읽는 훈련을 진행합니다.', 'regular', ARRAY['시사', '발표', '토의'], 'published', 1),
+('리포트 분석', '리서치 보고서 심층분석', '증권사와 전문기관 리포트를 읽고 산업·기업·직무 관점에서 핵심 논리를 정리합니다.', 'regular', ARRAY['리서치', '직무', '분석'], 'published', 2),
+('금융상품 세일즈 페어', '실전 영업 체험', '실제 금융상품을 이해하고 고객 관점에서 설명하는 세일즈 실습과 상호평가를 진행합니다.', 'regular', ARRAY['PB', 'WM', '세일즈'], 'published', 3)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO achievement_items (title, organization, result, kind, year, status, sort_order) VALUES
+('IBK 기업은행', '은행', '상반기 신입사원', 'placement', 2025, 'published', 1),
+('IBK 기업은행', '은행', '하반기 신입사원', 'placement', 2025, 'published', 2),
+('NH 농협은행', '은행', '하반기 6급 신입사원', 'placement', 2025, 'published', 3),
+('한국투자증권', '증권', '신입사원', 'placement', 2025, 'published', 4),
+('국민건강보험공단', '공기업', '신입사원', 'placement', 2025, 'published', 5),
+('흥국생명', '보험', '채용연계 인턴', 'placement', 2025, 'published', 6),
+('IBK 기업은행', '은행', '동계 청년 인턴', 'placement', 2025, 'published', 7),
+('예금보험공사', '공기업', '청년 인턴', 'placement', 2025, 'published', 8),
+('직무분석경진대회', NULL, '최우수상', 'award', 2025, 'published', 1),
+('성과보고회', NULL, '최우수상', 'award', 2025, 'published', 2),
+('미래내일 일경험사업', NULL, '고용노동부 장관상', 'award', 2025, 'published', 3)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO history_entries (year, generation, president, milestones, is_current, status, sort_order) VALUES
+(2021, 1, '김정훈', ARRAY['신문스크랩 동아리로 출범', '1기 8명 창단'], false, 'published', 1),
+(2022, 2, '조아상', ARRAY['직무분석경진대회 최우수상', '산업/기업분석 도입'], false, 'published', 2),
+(2023, 3, '김민중', ARRAY['정규/유닛활동 체제 도입', '현직자 멘토링 시작'], false, 'published', 3),
+(2024, 4, '윤지노', ARRAY['DBGAPS 투자대회 도입', 'CUFA 물적 분할'], false, 'published', 4),
+(2025, 5, '전윤철', ARRAY['충남대 3F MOU 체결', '고용노동부 장관상', '글로컬 연수'], false, 'published', 5),
+(2026, 6, '이승현', ARRAY['웹사이트 리뉴얼', '금은동 9기 모집'], true, 'published', 6)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO faq_items (question, answer, status, sort_order) VALUES
+('전공 제한이 있나요?', '없습니다. 금융에 관심 있는 충북대학교 재학생이면 누구나 지원 가능합니다.', 'published', 1),
+('다른 동아리와 겸할 수 있나요?', '타 중앙동아리와는 중복가입이 가능합니다. 다만 진로취업부 소속 직무잡아드림 동아리와는 중복가입이 제한될 수 있습니다.', 'published', 2),
+('면접은 어떤 형식인가요?', '제출한 지원서를 바탕으로 기본 질문과 추가 질문을 함께 진행합니다.', 'published', 3),
+('회비는 얼마인가요?', '학기당 10,000원이며 조건 충족 시 환급됩니다. 세부 조건은 OT에서 안내합니다.', 'published', 4)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO wiki_articles (slug, category, title, title_en, summary, body, source_note, status, sort_order) VALUES
+('sectors', 'sectors', '섹터', 'Sectors', '은행, 증권, 보험, 자산운용, 카드, 금융공기업, 핀테크의 구조와 비즈니스 모델을 정리합니다.', '은행·증권·보험·자산운용·카드·금융공기업·핀테크의 구조와 비즈니스 모델을 단계적으로 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 1),
+('jobs', 'jobs', '직무', 'Job Families', 'IB, S&T, 리서치, PB, 리스크, 심사, 운용 등 금융 직무별 업무와 요구 역량을 정리합니다.', '금융 직무별 업무 범위, 요구 역량, 준비 자료를 지원자 관점에서 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 2),
+('certifications', 'certifications', '자격증', 'Certifications', 'CFA, FRM, AFPK, 투자자산운용사 등 금융권 핵심 자격증의 난이도와 활용처를 정리합니다.', '금융권 준비에 필요한 자격증의 난이도, 활용처, 학습 경로를 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 3),
+('prep', 'prep', '준비 가이드', 'Preparation', '자소서, 필기, 면접, 인턴 로드맵 등 금융권 채용 프로세스를 단계별로 정리합니다.', '자기소개서, 필기, 면접, 인턴 로드맵을 단계별로 정리합니다.', '기존 정적 위키 카테고리에서 이전', 'published', 4)
+ON CONFLICT (slug) DO NOTHING;

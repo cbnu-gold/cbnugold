@@ -3,11 +3,11 @@ import Image from "next/image";
 import { Instagram } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/activity", label: "Activity" },
-  { href: "/wiki", label: "Wiki" },
-  { href: "/join", label: "Join" },
+  { href: "/", label: "홈" },
+  { href: "/about", label: "소개" },
+  { href: "/activity", label: "활동" },
+  { href: "/wiki", label: "위키" },
+  { href: "/join", label: "지원" },
 ];
 
 export function Footer() {
@@ -27,9 +27,8 @@ export function Footer() {
                 className="h-9 w-auto"
               />
             </Link>
-            <p className="font-serif italic text-base md:text-lg text-ink leading-relaxed max-w-md mb-3">
-              A student-led study of capital markets, private wealth, and credit —
-              grounded in the rigor of Chungbuk National University since 2021.
+            <p className="text-base md:text-lg font-semibold text-ink leading-relaxed max-w-md mb-3">
+              충북대학교 금융권 취업 동아리 금은동
             </p>
             <p className="text-sm text-ink/55 leading-relaxed max-w-md">
               충북대학교 금융권 취업 동아리. 실전 중심의 커리큘럼과 선배 네트워크로
@@ -40,7 +39,7 @@ export function Footer() {
           {/* Explore */}
           <div className="col-span-1 lg:col-span-2 lg:col-start-7">
             <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
-              Explore
+              바로가기
             </h4>
             <ul className="space-y-3">
               {navItems.map((item) => (
@@ -59,7 +58,7 @@ export function Footer() {
           {/* Contact */}
           <div className="col-span-1 lg:col-span-2">
             <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
-              Contact
+              연락처
             </h4>
             <p className="text-sm text-ink font-medium mb-1">6대 회장 이승현</p>
             <p className="text-sm text-ink/55 mb-2 font-mono tabular-nums">
@@ -76,7 +75,7 @@ export function Footer() {
           {/* Social */}
           <div className="col-span-2 lg:col-span-1 lg:col-start-12">
             <h4 className="font-serif italic text-xs text-ink/55 tracking-[0.18em] uppercase mb-5">
-              Follow
+              채널
             </h4>
             <div className="flex lg:flex-col items-start gap-4 lg:gap-4">
               <a

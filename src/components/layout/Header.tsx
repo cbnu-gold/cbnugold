@@ -9,10 +9,10 @@ import { MobileNav } from "./MobileNav";
 import { Menu, Instagram } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/activity", label: "Activity" },
-  { href: "/wiki", label: "Wiki" },
+  { href: "/", label: "홈" },
+  { href: "/about", label: "소개" },
+  { href: "/activity", label: "활동" },
+  { href: "/wiki", label: "위키" },
 ];
 
 export function Header() {
@@ -63,7 +63,7 @@ export function Header() {
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`relative px-3 py-2 text-[13px] uppercase tracking-[0.12em] transition-colors ${
+                    className={`relative px-3 py-2 text-sm transition-colors ${
                       isActive
                         ? "text-ink font-medium"
                         : "text-ink/55 hover:text-ink font-medium"

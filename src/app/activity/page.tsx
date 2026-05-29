@@ -1,105 +1,63 @@
-"use client";
+import { getPublicCmsData } from "@/lib/cms-public";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { Badge } from "@/components/ui/Badge";
-import { regularActivities, etcActivities } from "@/data/special-activities";
+export const revalidate = 60;
 
-type Tab = "regular" | "etc";
-
-export default function ActivityPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("regular");
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "regular", label: "정규 활동" },
-    { key: "etc", label: "기타 활동" },
-  ];
-
-  const currentActivities =
-    activeTab === "regular" ? regularActivities : etcActivities;
+export default async function ActivityPage() {
+  const data = await getPublicCmsData();
+  const regular = data.activities.filter((item) => item.category === "regular");
+  const special = data.activities.filter((item) => item.category !== "regular");
 
   return (
-    <div className="pt-24">
-      {/* Header */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <SectionLabel label="Activity" className="mb-6" />
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
-              금은동의 활동
-            </h1>
-            <p className="text-lg text-gray-500">
-              체계적인 정규 활동과 다양한 기타 활동으로 금융 역량을 키웁니다
-            </p>
-          </motion.div>
+    <div className="bg-marble-light pt-24 text-ink">
+      <section className="border-b border-ink/10 bg-white py-16 md:py-24">
+        <div className="mx-auto max-w-[1000px] px-6 text-center">
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">금은동의 활동</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+            지원자가 실제로 참여하게 될 정규 활동과 확장 활동을 한눈에 볼 수 있도록 정리했습니다.
+          </p>
         </div>
       </section>
 
-      {/* Tabs + Content */}
-      <section className="pb-24 md:pb-32 bg-marble-light">
-        <div className="max-w-6xl mx-auto px-6 pt-16">
-          {/* Tab bar */}
-          <div className="flex gap-1 mb-12 bg-white border border-gray-200 rounded-xl p-1 max-w-sm mx-auto shadow-sm">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-gold text-white"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Content */}
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {currentActivities.map((activity, i) => (
-              <motion.div
-                key={activity.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="bg-white border border-gray-200 rounded-xl p-6 hover:border-gold/30 transition-colors shadow-sm"
-              >
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                  {activity.title}
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                  {activity.description}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {activity.tags.map((tag) => (
-                    <Badge key={tag} variant="tag">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {activeTab === "etc" && (
-            <p className="text-sm text-gray-500 text-center mt-8">
-              금은동의 더 자세한 정규 및 기타 활동은 공식 인스타에서 확인해주시기 바랍니다.
-            </p>
-          )}
-        </div>
-      </section>
+      <ActivitySection title="정규 활동" description="매주 반복되며 금융권 취업 역량을 직접적으로 만드는 활동입니다." items={regular.length ? regular : data.activities} />
+      <ActivitySection title="특별 활동" description="멘토링, 연합 활동, 외부 프로젝트처럼 경험 폭을 넓히는 활동입니다." items={special} />
     </div>
+  );
+}
+
+function ActivitySection({
+  title,
+  description,
+  items,
+}: {
+  title: string;
+  description: string;
+  items: Awaited<ReturnType<typeof getPublicCmsData>>["activities"];
+}) {
+  if (!items.length) return null;
+
+  return (
+    <section className="mx-auto max-w-[1200px] px-6 py-14 md:py-20">
+      <div className="mb-8 max-w-2xl">
+        <h2 className="text-2xl font-bold tracking-normal">{title}</h2>
+        <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {items.map((item, index) => (
+          <article key={item.id ?? `${item.title}-${index}`} className="rounded-xl border border-ink/10 bg-white p-6">
+            <span className="font-mono text-sm text-gold-dark">{String(index + 1).padStart(2, "0")}</span>
+            <h3 className="mt-4 text-xl font-bold">{item.title}</h3>
+            {item.subtitle && <p className="mt-1 text-sm font-medium text-slate-500">{item.subtitle}</p>}
+            <p className="mt-4 text-sm leading-7 text-slate-600">{item.description}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {item.tags.map((tag) => (
+                <span key={tag} className="rounded-full border border-gold/20 px-2.5 py-1 text-xs text-gold-dark">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }

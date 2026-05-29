@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getResendClient, buildAdminEmail } from "@/lib/resend";
 import { validationRules, fileRules } from "@/lib/validations";
+import type { RecruitmentCycle } from "@/types";
 
 function getStorageTroubleshootingHint(message?: string) {
   if (!message) return "버킷 이름(applications), 파일 크기 제한(10MB), 그리고 Vercel 환경변수(NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)를 확인해주세요.";
@@ -53,11 +54,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일 크기는 10MB 이하여야 합니다" }, { status: 400 });
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const supabase = createServerClient();
-    const generation = 9;
+
+    const { data: cycleData } = await supabase
+      .from("recruitment_cycles")
+      .select("*")
+      .eq("status", "published")
+      .order("generation", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const activeCycle = cycleData as RecruitmentCycle | null;
+    const now = Date.now();
+    const isOpen =
+      !activeCycle ||
+      (activeCycle.is_open &&
+        (!activeCycle.end_at || now <= new Date(activeCycle.end_at).getTime()));
+
+    if (!isOpen) {
+      return NextResponse.json(
+        { error: "현재 모집 접수 기간이 아닙니다." },
+        { status: 403 }
+      );
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const generation = activeCycle?.generation ?? 9;
     const timestamp = Date.now();
-    const filePath = `${generation}/${studentId}_${timestamp}${ext}`;
+    const safeStudentId = studentId.replace(/\D/g, "");
+    const filePath = `${generation}/${safeStudentId}_${timestamp}${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("applications")
@@ -78,24 +103,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: urlData } = supabase.storage
-      .from("applications")
-      .getPublicUrl(filePath);
-    const fileUrl = urlData.publicUrl;
-
     const { error: insertError } = await supabase.from("applicants").insert({
       name,
       student_id: studentId,
       email,
       phone,
-      file_url: fileUrl,
+      file_url: `private:applications/${filePath}`,
       file_name: file.name,
       generation,
+      recruitment_cycle_id: activeCycle?.id ?? null,
       status: "pending",
     });
 
     if (insertError) {
       console.error("DB insert error:", insertError);
+      await supabase.storage.from("applications").remove([filePath]);
       return NextResponse.json(
         { error: "지원자 DB 저장에 실패했습니다. 테이블 및 RLS 정책을 확인해주세요." },
         { status: 500 }
@@ -114,7 +136,7 @@ export async function POST(request: NextRequest) {
         from: "금은동 시스템 <onboarding@resend.dev>",
         to: adminEmails,
         subject: adminEmail.subject,
-        text: adminEmail.text + `\n\n파일: ${fileUrl}`,
+        text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
       });
     } catch (emailError) {
       console.error("Email send error:", emailError);

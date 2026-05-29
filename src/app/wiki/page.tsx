@@ -1,49 +1,48 @@
 import type { Metadata } from "next";
-import { WikiHero } from "@/components/wiki/WikiHero";
-import { WikiCategoryCard } from "@/components/wiki/WikiCategoryCard";
-import { wikiCategories } from "@/data/wiki";
+import Link from "next/link";
+import { getPublicCmsData } from "@/lib/cms-public";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Wiki · 금융권 백과",
-  description:
-    "금은동이 정리하는 금융권 백과. 섹터·직무·자격증·준비 가이드와 금융사 시뮬레이션 게임까지.",
+  description: "금은동이 정리하는 금융권 섹터, 직무, 자격증, 준비 가이드.",
 };
 
-export default function WikiLandingPage() {
+export default async function WikiLandingPage() {
+  const data = await getPublicCmsData();
+  const grouped = data.wikiArticles.reduce<Record<string, typeof data.wikiArticles>>((acc, item) => {
+    acc[item.category] = [...(acc[item.category] ?? []), item];
+    return acc;
+  }, {});
+
   return (
-    <>
-      <WikiHero
-        kicker="Private Banking Research · Wiki"
-        title="금융권 백과."
-        titleEn="Wiki"
-        description="은행·증권·보험부터 공기업·핀테크까지. 금은동이 직접 정리한 섹터·직무·자격증·준비 가이드, 그리고 금융 역사를 체험하는 인터랙티브 게임."
-      />
-
-      <section className="relative bg-white">
-        <div className="w-full max-w-[1400px] mx-auto px-6 sm:px-8 lg:px-16 py-20 md:py-28">
-          <div className="max-w-3xl mx-auto text-center mb-12 md:mb-16">
-            <div className="inline-flex items-center gap-3 mb-5">
-              <span className="h-px w-8 bg-ink" />
-              <span className="font-serif italic text-ink/70 text-xs tracking-[0.22em] uppercase">
-                Categories
-              </span>
-              <span className="h-px w-8 bg-ink" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-light text-ink leading-tight tracking-tight mb-4">
-              5개 카테고리로 구성된 금융권 지도.
-            </h2>
-            <p className="text-sm sm:text-base text-ink/60 leading-relaxed">
-              산업 구조부터 채용 로드맵까지. 각 카테고리는 현직자 자문과 신입 합격자 후기를 바탕으로 단계적으로 채워집니다.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 max-w-[1200px] mx-auto">
-            {wikiCategories.map((cat, i) => (
-              <WikiCategoryCard key={cat.slug} category={cat} index={i} />
-            ))}
-          </div>
+    <div className="bg-marble-light pt-24 text-ink">
+      <section className="border-b border-ink/10 bg-white py-16 md:py-24">
+        <div className="mx-auto max-w-[1000px] px-6 text-center">
+          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">금융권 백과</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+            은행·증권·보험·공기업·핀테크까지, 금은동 운영진이 관리하는 금융권 커리어 지식베이스입니다.
+          </p>
         </div>
       </section>
-    </>
+
+      <section className="mx-auto max-w-[1200px] px-6 py-14 md:py-20">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Object.entries(grouped).map(([category, articles]) => (
+            <Link
+              key={category}
+              href={`/wiki/${category}`}
+              className="rounded-xl border border-ink/10 bg-white p-6 transition hover:border-gold/40"
+            >
+              <p className="text-sm font-semibold text-gold-dark">{category}</p>
+              <h2 className="mt-3 text-2xl font-bold">{articles[0]?.title ?? category}</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-600">{articles[0]?.summary}</p>
+              <p className="mt-6 text-xs font-semibold text-slate-500">{articles.length}개 콘텐츠</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
