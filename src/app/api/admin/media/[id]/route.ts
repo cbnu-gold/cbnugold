@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 
 const contentStatuses = new Set(["draft", "published", "archived"]);
@@ -14,7 +15,9 @@ export async function PATCH(
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
 
-  const { alt, status, kind } = await request.json();
+  const bodyResult = await readJsonObject(request, "미디어 수정 요청 형식이 올바르지 않습니다");
+  if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
+  const { alt, status, kind } = bodyResult.data ?? {};
   const update: Record<string, unknown> = { updated_by: admin.id };
 
   if (typeof alt === "string") update.alt = alt.trim().slice(0, 160);
@@ -30,6 +33,10 @@ export async function PATCH(
     }
     update.kind = kind;
   }
+  const changedFields = Object.keys(update).filter((field) => field !== "updated_by");
+  if (changedFields.length === 0) {
+    return NextResponse.json({ error: "수정할 값이 필요합니다" }, { status: 400 });
+  }
 
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -42,7 +49,7 @@ export async function PATCH(
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
   await writeAuditLog(admin, "update_media", "media_assets", id, {
-    fields: Object.keys(update).filter((field) => field !== "updated_by"),
+    fields: changedFields,
   });
   return NextResponse.json({ item: data });
 }

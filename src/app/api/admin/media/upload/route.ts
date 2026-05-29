@@ -17,7 +17,12 @@ export async function POST(request: NextRequest) {
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "미디어 업로드 요청 형식이 올바르지 않습니다" }, { status: 400 });
+  }
   const file = formData.get("file") as File | null;
   const alt = String(formData.get("alt") ?? "").trim().slice(0, 160);
 

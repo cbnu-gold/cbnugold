@@ -21,6 +21,20 @@ const checks = [
   { path: "/api/admin/cms/admins", method: "GET", expected: 401 },
   { path: "/api/admin/cms/audit", method: "GET", expected: 401 },
   {
+    path: "/api/admin/cms/settings",
+    method: "POST",
+    expected: 401,
+    headers: { "content-type": "application/json" },
+    body: "not-json",
+  },
+  {
+    path: "/api/admin/applicants",
+    method: "PATCH",
+    expected: 401,
+    headers: { "content-type": "application/json" },
+    body: "not-json",
+  },
+  {
     path: "/api/apply/check",
     method: "POST",
     expected: 400,

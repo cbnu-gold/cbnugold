@@ -15,6 +15,7 @@ import {
 import { getOptionalCmsHrefError, normalizeOptionalCmsHref } from "@/lib/cms-links";
 import { validateAndNormalizeCmsResourcePayload } from "@/lib/cms-resource-validation";
 import { validateAndNormalizeRecruitmentPayload } from "@/lib/recruitment-admin";
+import { isRecord, readJsonObject } from "@/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
 import type { AdminRole } from "@/types";
@@ -306,7 +307,9 @@ export async function POST(
     return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
 
-  const body = await request.json();
+  const bodyResult = await readJsonObject(request, "CMS 생성 요청 형식이 올바르지 않습니다");
+  if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
+  const body = bodyResult.data ?? {};
   const payload = sanitizePayload(resource as Resource, body, admin.id, "insert");
   const validationError = validatePayload(resource as Resource, payload, "insert");
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
@@ -347,28 +350,38 @@ export async function PATCH(
     return NextResponse.json({ error: "콘텐츠 수정 권한이 없습니다" }, { status: 403 });
   }
 
-  const { id, key, values } = await request.json();
-  if (!id && !key) return NextResponse.json({ error: "id 또는 key가 필요합니다" }, { status: 400 });
-  if (resource === "admins" && !id) {
+  const bodyResult = await readJsonObject(request, "CMS 수정 요청 형식이 올바르지 않습니다");
+  if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
+  const { id, key, values } = bodyResult.data ?? {};
+  const targetId = typeof id === "string" ? id : null;
+  const targetKey = typeof key === "string" ? key : null;
+  if (!targetId && !targetKey) return NextResponse.json({ error: "id 또는 key가 필요합니다" }, { status: 400 });
+  if (resource === "admins" && !targetId) {
     return NextResponse.json({ error: "관리자 수정에는 사용자 UUID가 필요합니다" }, { status: 400 });
+  }
+  if (!isRecord(values)) {
+    return NextResponse.json({ error: "수정할 값이 필요합니다" }, { status: 400 });
   }
 
   const supabase = createServerClient();
-  const payload = sanitizePayload(resource as Resource, values ?? {}, admin.id, "update");
+  const payload = sanitizePayload(resource as Resource, values, admin.id, "update");
   const validationError = validatePayload(resource as Resource, payload, "update");
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
-  if (resource === "admins" && id) {
-    const adminProfileError = await validateAdminProfileUpdate(supabase, admin, id, payload);
+  if (resource === "admins" && targetId) {
+    const adminProfileError = await validateAdminProfileUpdate(supabase, admin, targetId, payload);
     if (adminProfileError) return adminProfileError;
   }
 
   let query = supabase.from(target.table).update(payload).select("*");
-  query = key ? query.eq("key", key) : query.eq("id", id);
+  query = targetKey ? query.eq("key", targetKey) : query.eq("id", targetId);
   const { data, error } = await query.single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await writeAuditLog(admin, "update", target.table, id ?? key, { resource, values: Object.keys(values ?? {}) });
+  await writeAuditLog(admin, "update", target.table, targetId ?? targetKey ?? undefined, {
+    resource,
+    values: Object.keys(values),
+  });
   return NextResponse.json({ item: data });
 }
 

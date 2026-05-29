@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forbidden, verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
 import { canManageApplicants } from "@/lib/admin-permissions";
+import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
 
@@ -56,12 +57,17 @@ export async function PATCH(request: NextRequest) {
     return forbidden("지원자 정보 수정 권한이 없습니다");
   }
 
-  const { id, status, admin_note, review_score } = await request.json();
+  const bodyResult = await readJsonObject(request, "지원자 수정 요청 형식이 올바르지 않습니다");
+  if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
+  const { id, status, admin_note, review_score } = bodyResult.data ?? {};
   if (!id) return NextResponse.json({ error: "지원자 id가 필요합니다" }, { status: 400 });
+  if (typeof id !== "string") {
+    return NextResponse.json({ error: "지원자 id 형식이 올바르지 않습니다" }, { status: 400 });
+  }
 
   const update: Record<string, unknown> = {};
   if (status) {
-    if (!applicantStatuses.includes(status)) {
+    if (typeof status !== "string" || !applicantStatuses.includes(status as (typeof applicantStatuses)[number])) {
       return NextResponse.json({ error: "지원자 상태값이 올바르지 않습니다" }, { status: 400 });
     }
     update.status = status;

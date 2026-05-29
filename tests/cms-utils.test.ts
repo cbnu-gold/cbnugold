@@ -23,6 +23,7 @@ import {
 import { validateAndNormalizeCmsResourcePayload } from "../src/lib/cms-resource-validation";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
+import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import type { RecruitmentCycle } from "../src/types";
 
@@ -274,4 +275,36 @@ test("CMS resource validation rejects malformed repeated content", () => {
     ),
     "블록 키는 영문 소문자, 숫자, 하이픈, 밑줄만 사용할 수 있습니다"
   );
+});
+
+test("request json helper rejects malformed or non-object bodies", async () => {
+  const malformed = await readJsonObject(
+    new Request("https://example.test", { method: "POST", body: "not-json" }),
+    "잘못된 요청"
+  );
+  assert.equal(malformed.error, "잘못된 요청");
+  assert.equal(malformed.data, null);
+
+  const arrayBody = await readJsonObject(
+    new Request("https://example.test", {
+      method: "POST",
+      body: JSON.stringify([]),
+      headers: { "content-type": "application/json" },
+    }),
+    "잘못된 요청"
+  );
+  assert.equal(arrayBody.error, "잘못된 요청");
+  assert.equal(arrayBody.data, null);
+
+  const objectBody = await readJsonObject(
+    new Request("https://example.test", {
+      method: "POST",
+      body: JSON.stringify({ ok: true }),
+      headers: { "content-type": "application/json" },
+    }),
+    "잘못된 요청"
+  );
+  assert.equal(objectBody.error, null);
+  assert.equal(isRecord(objectBody.data), true);
+  assert.equal(objectBody.data?.ok, true);
 });
