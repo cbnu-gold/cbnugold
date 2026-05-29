@@ -50,6 +50,7 @@
 - `npm run lint`
 - `npm run test`
 - `npm run build`
+- `npm run check:ops -- https://배포주소`
 - `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
 - `/api/health`가 `200`과 `status: ok`를 반환하는지 확인
 - 비로그인 상태에서 `/api/admin/*`가 401/403을 반환하는지 확인
@@ -62,3 +63,5 @@
 - `/api/health`가 `503`이면 Vercel 환경변수, Supabase 프로젝트 DNS, 테이블 스키마, Storage 버킷 중 하나를 먼저 확인합니다.
 - `applications` 버킷은 private, `cms-media` 버킷은 public이어야 합니다.
 - 헬스체크는 비밀값을 반환하지 않고 항목별 통과 여부만 반환합니다.
+- Supabase 연결 장애를 알고 있는 상태에서 공개 라우트만 먼저 점검할 때는 `npm run check:ops -- https://배포주소 --allow-degraded`를 사용합니다.
+- Vercel Preview가 보호되어 모든 경로가 `401`이면 `vercel curl`로 Preview를 검증하거나 공개 Production URL에서 `check:ops`를 실행합니다.
