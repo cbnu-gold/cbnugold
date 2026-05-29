@@ -246,6 +246,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadAlt, setUploadAlt] = useState("");
   const [applicantSearch, setApplicantSearch] = useState("");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState("all");
   const router = useRouter();
@@ -441,12 +442,39 @@ export default function AdminPage() {
     if (!uploadFile) return;
     const formData = new FormData();
     formData.append("file", uploadFile);
+    formData.append("alt", uploadAlt);
     setSaving("media");
     await adminFetch("/api/admin/media/upload", { method: "POST", body: formData });
     setUploadFile(null);
+    setUploadAlt("");
     setSaving("");
     setMessage("미디어를 업로드했습니다.");
     await loadAll(token);
+  }
+
+  async function updateMedia(id: string | undefined, values: Partial<MediaAsset>) {
+    if (!id) return;
+    const data = await adminFetch(`/api/admin/media/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(values),
+    });
+    setState((prev) => ({
+      ...prev,
+      media: prev.media.map((item) => (item.id === id ? data.item : item)),
+    }));
+    setMessage("미디어 정보를 저장했습니다.");
+  }
+
+  async function deleteMedia(item: MediaAsset) {
+    if (!item.id) return;
+    const confirmed = window.confirm("스토리지 파일과 미디어 기록을 함께 삭제할까요?");
+    if (!confirmed) return;
+    await adminFetch(`/api/admin/media/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+    setState((prev) => ({
+      ...prev,
+      media: prev.media.filter((media) => media.id !== item.id),
+    }));
+    setMessage("미디어를 삭제했습니다.");
   }
 
   function updateList<K extends keyof ResourceState>(key: K, next: ResourceState[K]) {
@@ -925,9 +953,21 @@ export default function AdminPage() {
 
           {tab === "media" && (
             <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-bold">미디어 관리</h2>
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-slate-50 p-4">
-                <input type="file" onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)} />
+              <div>
+                <h2 className="text-lg font-bold">미디어 관리</h2>
+                <p className="text-sm text-slate-500">PNG, JPG, WebP, PDF만 업로드합니다. SVG는 공개 버킷 보안상 허용하지 않습니다.</p>
+              </div>
+              <div className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <label className="grid gap-1.5 text-sm">
+                  <span className="font-medium text-slate-700">파일</span>
+                  <input
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf"
+                    onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  />
+                </label>
+                <Field label="대체 텍스트/설명" value={uploadAlt} onChange={setUploadAlt} />
                 <AdminButton onClick={uploadMedia}>
                   {saving === "media" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   업로드
@@ -935,12 +975,56 @@ export default function AdminPage() {
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {state.media.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-slate-200 p-4">
-                    <p className="font-medium">{item.path}</p>
-                    <p className="mt-1 text-xs text-slate-500">{item.kind} · {item.status}</p>
-                    {item.public_url && <a className="mt-2 inline-block text-sm text-gold-dark underline" href={item.public_url} target="_blank" rel="noreferrer">열기</a>}
+                  <div key={item.id} className="grid gap-4 rounded-lg border border-slate-200 p-4">
+                    {item.kind === "image" && item.public_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={item.public_url} alt={item.alt ?? ""} className="aspect-video w-full rounded-lg border border-slate-100 object-cover" />
+                    )}
+                    <div>
+                      <p className="break-all font-medium">{item.path}</p>
+                      <p className="mt-1 text-xs text-slate-500">{item.bucket} · {item.kind}</p>
+                    </div>
+                    <Field
+                      label="대체 텍스트/설명"
+                      value={item.alt}
+                      onChange={(value) => updateList("media", state.media.map((x) => x.id === item.id ? { ...x, alt: value } : x))}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <SelectField
+                        label="상태"
+                        value={item.status}
+                        options={contentStatusOptions}
+                        onChange={(value) => updateList("media", state.media.map((x) => x.id === item.id ? { ...x, status: value as MediaAsset["status"] } : x))}
+                      />
+                      <SelectField
+                        label="분류"
+                        value={item.kind}
+                        options={[{ value: "image", label: "이미지" }, { value: "document", label: "문서" }]}
+                        onChange={(value) => updateList("media", state.media.map((x) => x.id === item.id ? { ...x, kind: value } : x))}
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <AdminButton onClick={() => updateMedia(item.id, { alt: item.alt, status: item.status, kind: item.kind })}>
+                        <Save className="h-4 w-4" />
+                        저장
+                      </AdminButton>
+                      {item.public_url && (
+                        <AdminButton variant="secondary" onClick={() => window.open(item.public_url ?? "", "_blank", "noopener,noreferrer")}>
+                          열기
+                        </AdminButton>
+                      )}
+                      <AdminButton variant="danger" onClick={() => deleteMedia(item)}>
+                        <Trash2 className="h-4 w-4" />
+                        삭제
+                      </AdminButton>
+                    </div>
                   </div>
                 ))}
+                {state.media.length === 0 && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm text-slate-500 md:col-span-2 xl:col-span-3">
+                    업로드된 미디어가 없습니다.
+                  </div>
+                )}
               </div>
             </section>
           )}

@@ -6,9 +6,11 @@ const allowedTypes = new Set([
   "image/png",
   "image/jpeg",
   "image/webp",
-  "image/svg+xml",
   "application/pdf",
 ]);
+
+const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".webp", ".pdf"]);
+const maxFileSize = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const { admin, response } = await verifyAdmin(request);
@@ -17,17 +19,22 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
-  const alt = String(formData.get("alt") ?? "");
+  const alt = String(formData.get("alt") ?? "").trim().slice(0, 160);
 
   if (!file) return NextResponse.json({ error: "파일이 필요합니다" }, { status: 400 });
   if (!allowedTypes.has(file.type)) {
-    return NextResponse.json({ error: "이미지 또는 PDF만 업로드할 수 있습니다" }, { status: 400 });
+    return NextResponse.json({ error: "PNG, JPG, WebP 이미지 또는 PDF만 업로드할 수 있습니다" }, { status: 400 });
   }
-  if (file.size > 10 * 1024 * 1024) {
+  if (file.size > maxFileSize) {
     return NextResponse.json({ error: "파일 크기는 10MB 이하여야 합니다" }, { status: 400 });
   }
 
   const safeName = file.name.replace(/[^\w.-]+/g, "-").toLowerCase();
+  const extension = safeName.includes(".") ? safeName.slice(safeName.lastIndexOf(".")) : "";
+  if (!allowedExtensions.has(extension)) {
+    return NextResponse.json({ error: "파일 확장자는 png, jpg, jpeg, webp, pdf만 허용됩니다" }, { status: 400 });
+  }
+
   const path = `${Date.now()}-${safeName}`;
   const supabase = createServerClient();
   const buffer = Buffer.from(await file.arrayBuffer());
