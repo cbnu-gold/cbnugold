@@ -160,6 +160,10 @@ function splitTags(value: string) {
     .filter(Boolean);
 }
 
+function getActionErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function Field({
   label,
   value,
@@ -375,46 +379,78 @@ export default function AdminPage() {
   async function saveSettings() {
     setSaving("settings");
     setMessage("");
-    await adminFetch("/api/admin/cms/settings", {
-      method: "PATCH",
-      body: JSON.stringify({ key: "site", values: { value: state.settings, status: "published" } }),
-    });
-    setSaving("");
-    setMessage("사이트 설정을 저장했습니다.");
+    setError("");
+    try {
+      await adminFetch("/api/admin/cms/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ key: "site", values: { value: state.settings, status: "published" } }),
+      });
+      setMessage("사이트 설정을 저장했습니다.");
+    } catch (saveError) {
+      setError(getActionErrorMessage(saveError, "사이트 설정 저장에 실패했습니다."));
+    } finally {
+      setSaving("");
+    }
   }
 
   async function saveItem(resource: string, item: Record<string, unknown>, forceCreate = false) {
     setSaving(resource);
     setMessage("");
-    const method = item.id && !forceCreate ? "PATCH" : "POST";
-    const body = method === "PATCH" ? { id: item.id, values: item } : item;
-    const data = await adminFetch(`/api/admin/cms/${resource}`, {
-      method,
-      body: JSON.stringify(body),
-    });
-    setSaving("");
-    setMessage("저장했습니다.");
-    return data.item;
+    setError("");
+    try {
+      const method = item.id && !forceCreate ? "PATCH" : "POST";
+      const body = method === "PATCH" ? { id: item.id, values: item } : item;
+      const data = await adminFetch(`/api/admin/cms/${resource}`, {
+        method,
+        body: JSON.stringify(body),
+      });
+      setMessage("저장했습니다.");
+      return data.item;
+    } catch (saveError) {
+      setError(getActionErrorMessage(saveError, "저장에 실패했습니다."));
+      return null;
+    } finally {
+      setSaving("");
+    }
+  }
+
+  async function saveItemAndReload(resource: string, item: Record<string, unknown>, forceCreate = false) {
+    const saved = await saveItem(resource, item, forceCreate);
+    if (saved) await loadAll(token);
   }
 
   async function deleteItem(resource: string, id?: string) {
     if (!id) return;
     setSaving(resource);
-    await adminFetch(`/api/admin/cms/${resource}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-    setSaving("");
-    setMessage("삭제했습니다.");
-    await loadAll(token);
+    setMessage("");
+    setError("");
+    try {
+      await adminFetch(`/api/admin/cms/${resource}?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+      setMessage("삭제했습니다.");
+      await loadAll(token);
+    } catch (deleteError) {
+      setError(getActionErrorMessage(deleteError, "삭제에 실패했습니다."));
+    } finally {
+      setSaving("");
+    }
   }
 
   async function updateApplicant(id: string, values: Partial<Applicant>) {
-    const data = await adminFetch("/api/admin/applicants", {
-      method: "PATCH",
-      body: JSON.stringify({ id, ...values }),
-    });
-    setState((prev) => ({
-      ...prev,
-      applicants: prev.applicants.map((item) => (item.id === id ? data.applicant : item)),
-    }));
+    setMessage("");
+    setError("");
+    try {
+      const data = await adminFetch("/api/admin/applicants", {
+        method: "PATCH",
+        body: JSON.stringify({ id, ...values }),
+      });
+      setState((prev) => ({
+        ...prev,
+        applicants: prev.applicants.map((item) => (item.id === id ? data.applicant : item)),
+      }));
+      setMessage("지원자 정보를 저장했습니다.");
+    } catch (updateError) {
+      setError(getActionErrorMessage(updateError, "지원자 정보 저장에 실패했습니다."));
+    }
   }
 
   function downloadApplicants() {
@@ -439,42 +475,64 @@ export default function AdminPage() {
   }
 
   async function uploadMedia() {
-    if (!uploadFile) return;
+    if (!uploadFile) {
+      setError("업로드할 파일을 선택해주세요.");
+      return;
+    }
     const formData = new FormData();
     formData.append("file", uploadFile);
     formData.append("alt", uploadAlt);
     setSaving("media");
-    await adminFetch("/api/admin/media/upload", { method: "POST", body: formData });
-    setUploadFile(null);
-    setUploadAlt("");
-    setSaving("");
-    setMessage("미디어를 업로드했습니다.");
-    await loadAll(token);
+    setMessage("");
+    setError("");
+    try {
+      await adminFetch("/api/admin/media/upload", { method: "POST", body: formData });
+      setUploadFile(null);
+      setUploadAlt("");
+      setMessage("미디어를 업로드했습니다.");
+      await loadAll(token);
+    } catch (uploadError) {
+      setError(getActionErrorMessage(uploadError, "미디어 업로드에 실패했습니다."));
+    } finally {
+      setSaving("");
+    }
   }
 
   async function updateMedia(id: string | undefined, values: Partial<MediaAsset>) {
     if (!id) return;
-    const data = await adminFetch(`/api/admin/media/${encodeURIComponent(id)}`, {
-      method: "PATCH",
-      body: JSON.stringify(values),
-    });
-    setState((prev) => ({
-      ...prev,
-      media: prev.media.map((item) => (item.id === id ? data.item : item)),
-    }));
-    setMessage("미디어 정보를 저장했습니다.");
+    setMessage("");
+    setError("");
+    try {
+      const data = await adminFetch(`/api/admin/media/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: JSON.stringify(values),
+      });
+      setState((prev) => ({
+        ...prev,
+        media: prev.media.map((item) => (item.id === id ? data.item : item)),
+      }));
+      setMessage("미디어 정보를 저장했습니다.");
+    } catch (updateError) {
+      setError(getActionErrorMessage(updateError, "미디어 정보 저장에 실패했습니다."));
+    }
   }
 
   async function deleteMedia(item: MediaAsset) {
     if (!item.id) return;
     const confirmed = window.confirm("스토리지 파일과 미디어 기록을 함께 삭제할까요?");
     if (!confirmed) return;
-    await adminFetch(`/api/admin/media/${encodeURIComponent(item.id)}`, { method: "DELETE" });
-    setState((prev) => ({
-      ...prev,
-      media: prev.media.filter((media) => media.id !== item.id),
-    }));
-    setMessage("미디어를 삭제했습니다.");
+    setMessage("");
+    setError("");
+    try {
+      await adminFetch(`/api/admin/media/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      setState((prev) => ({
+        ...prev,
+        media: prev.media.filter((media) => media.id !== item.id),
+      }));
+      setMessage("미디어를 삭제했습니다.");
+    } catch (deleteError) {
+      setError(getActionErrorMessage(deleteError, "미디어 삭제에 실패했습니다."));
+    }
   }
 
   function updateList<K extends keyof ResourceState>(key: K, next: ResourceState[K]) {
@@ -759,7 +817,7 @@ export default function AdminPage() {
                   </div>
                   <TextField label="지원 자격 · 줄바꿈 구분" value={joinList(item.requirements)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requirements: splitLines(value) } : x))} />
                   <div className="flex gap-2">
-                    <AdminButton onClick={async () => { await saveItem("recruitment", item as unknown as Record<string, unknown>); await loadAll(token); }}>
+                    <AdminButton onClick={() => saveItemAndReload("recruitment", item as unknown as Record<string, unknown>)}>
                       <Save className="h-4 w-4" />
                       저장
                     </AdminButton>
@@ -810,7 +868,7 @@ export default function AdminPage() {
                     </div>
                     <TextField label="검색/공유 설명" value={item.description} onChange={(value) => updateList("pages", state.pages.map((x, i) => i === index ? { ...x, description: value } : x))} rows={3} />
                     <div className="flex gap-2">
-                      <AdminButton onClick={async () => { await saveItem("pages", item as unknown as Record<string, unknown>); await loadAll(token); }}>
+                      <AdminButton onClick={() => saveItemAndReload("pages", item as unknown as Record<string, unknown>)}>
                         <Save className="h-4 w-4" />
                         저장
                       </AdminButton>
@@ -840,7 +898,7 @@ export default function AdminPage() {
                     <Field label="부제목" value={item.subtitle} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, subtitle: value } : x))} />
                     <TextField label="본문" value={item.body} onChange={(value) => updateList("blocks", state.blocks.map((x, i) => i === index ? { ...x, body: value } : x))} />
                     <div className="flex gap-2">
-                      <AdminButton onClick={async () => { await saveItem("blocks", item as unknown as Record<string, unknown>); await loadAll(token); }}>
+                      <AdminButton onClick={() => saveItemAndReload("blocks", item as unknown as Record<string, unknown>)}>
                         <Save className="h-4 w-4" />
                         저장
                       </AdminButton>
@@ -872,7 +930,7 @@ export default function AdminPage() {
                   </div>
                   <TextField label="설명" value={item.description} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, description: value } : x))} />
                   <Field label="태그(쉼표 구분)" value={item.tags.join(", ")} onChange={(value) => updateList("activities", state.activities.map((x, i) => i === index ? { ...x, tags: splitTags(value) } : x))} />
-                  <ItemActions save={() => saveItem("activities", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("activities", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("activities", item as unknown as Record<string, unknown>)} remove={() => deleteItem("activities", item.id)} />
                 </>
               )}
             />
@@ -897,7 +955,7 @@ export default function AdminPage() {
                     <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                   </div>
                   <Field label="결과/직무" value={item.result} onChange={(value) => updateList("achievements", state.achievements.map((x, i) => i === index ? { ...x, result: value } : x))} />
-                  <ItemActions save={() => saveItem("achievements", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("achievements", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("achievements", item as unknown as Record<string, unknown>)} remove={() => deleteItem("achievements", item.id)} />
                 </>
               )}
             />
@@ -925,7 +983,7 @@ export default function AdminPage() {
                     </label>
                   </div>
                   <TextField label="마일스톤 · 줄바꿈 구분" value={joinList(item.milestones)} onChange={(value) => updateList("history", state.history.map((x, i) => i === index ? { ...x, milestones: splitLines(value) } : x))} />
-                  <ItemActions save={() => saveItem("history", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("history", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("history", item as unknown as Record<string, unknown>)} remove={() => deleteItem("history", item.id)} />
                 </>
               )}
             />
@@ -945,7 +1003,7 @@ export default function AdminPage() {
                     <Field label="순서" type="number" value={item.sort_order} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, sort_order: Number(value) } : x))} />
                   </div>
                   <TextField label="답변" value={item.answer} onChange={(value) => updateList("faqs", state.faqs.map((x, i) => i === index ? { ...x, answer: value } : x))} />
-                  <ItemActions save={() => saveItem("faqs", item as unknown as Record<string, unknown>).then(() => loadAll(token))} remove={() => deleteItem("faqs", item.id)} />
+                  <ItemActions save={() => saveItemAndReload("faqs", item as unknown as Record<string, unknown>)} remove={() => deleteItem("faqs", item.id)} />
                 </>
               )}
             />
@@ -1058,7 +1116,7 @@ export default function AdminPage() {
                     활성 계정
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    <AdminButton onClick={() => saveItem("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew)).then(() => loadAll(token))}>
+                    <AdminButton onClick={() => saveItemAndReload("admins", item as unknown as Record<string, unknown>, Boolean((item as { __isNew?: boolean }).__isNew))}>
                       <Save className="h-4 w-4" />
                       저장
                     </AdminButton>
