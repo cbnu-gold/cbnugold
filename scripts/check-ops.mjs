@@ -55,6 +55,20 @@ const checks = [
     headers: { "content-type": "application/json" },
     body: "not-json",
   },
+  {
+    path: "/api/apply",
+    method: "POST",
+    expected: 400,
+    body: (() => {
+      const form = new FormData();
+      form.set("name", "홍길동");
+      form.set("studentId", "2021123456");
+      form.set("email", "hong@example.com");
+      form.set("phone", "01012345678");
+      form.set("file", new Blob(["not a pdf"], { type: "image/png" }), "application.pdf");
+      return form;
+    })(),
+  },
 ];
 
 async function request(check) {

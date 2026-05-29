@@ -101,7 +101,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
       <aside className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
         <h2 className="text-xl font-bold">지원서 다운로드</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명에는 이름과 연락처를 포함해주세요.
+          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명은 이름_지원서 형식을 권장합니다.
         </p>
         <div className="mt-5 grid gap-3">
           {recruitment.docx_url && (

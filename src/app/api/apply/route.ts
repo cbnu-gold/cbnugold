@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
 import { getResendClient, buildAdminEmail } from "@/lib/resend";
+import {
+  buildApplicationStoragePath,
+  getApplicationFileExtension,
+  getApplicationFileValidationError,
+  normalizeApplicationFileName,
+} from "@/lib/application-files";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isRecruitmentOpen } from "@/lib/recruitment";
-import { validationRules, fileRules } from "@/lib/validations";
+import { validationRules } from "@/lib/validations";
 import type { RecruitmentCycle } from "@/types";
 
 function getStorageTroubleshootingHint(message?: string) {
@@ -79,13 +85,12 @@ export async function POST(request: NextRequest) {
     }
 
     const file = fileValue;
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!fileRules.allowedExtensions.includes(ext)) {
-      return NextResponse.json({ error: fileRules.message }, { status: 400 });
+    const fileError = getApplicationFileValidationError(file.name, file.type, file.size);
+    if (fileError) {
+      return NextResponse.json({ error: fileError }, { status: 400 });
     }
-    if (file.size > fileRules.maxSize) {
-      return NextResponse.json({ error: "파일 크기는 10MB 이하여야 합니다" }, { status: 400 });
-    }
+    const ext = getApplicationFileExtension(file.name);
+    if (!ext) return NextResponse.json({ error: "지원서 파일 형식이 올바르지 않습니다." }, { status: 400 });
 
     const supabase = createServerClient();
 
@@ -114,8 +119,7 @@ export async function POST(request: NextRequest) {
 
     const fileBuffer = Buffer.from(await file.arrayBuffer());
     const generation = activeCycle?.generation ?? 9;
-    const timestamp = Date.now();
-    const filePath = `${generation}/${studentId}_${timestamp}${ext}`;
+    const filePath = buildApplicationStoragePath(generation, ext);
 
     const { error: uploadError } = await supabase.storage
       .from("applications")
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       file_url: `private:applications/${filePath}`,
-      file_name: file.name,
+      file_name: normalizeApplicationFileName(file.name),
       generation,
       recruitment_cycle_id: activeCycle?.id ?? null,
       status: "pending",

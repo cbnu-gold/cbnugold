@@ -3,6 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { getCmsResourceMutationBlockMessage } from "../src/lib/admin-cms-resources";
 import { cmsMediaBucket, isCmsMediaBucket } from "../src/lib/admin-media";
+import {
+  buildApplicationStoragePath,
+  getApplicationFileExtension,
+  getApplicationFileValidationError,
+  normalizeApplicationFileName,
+} from "../src/lib/application-files";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
@@ -319,4 +325,21 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.equal(getCmsResourceMutationBlockMessage("blocks"), null);
   assert.equal(isCmsMediaBucket(cmsMediaBucket), true);
   assert.equal(isCmsMediaBucket("applications"), false);
+});
+
+test("application file storage paths avoid applicant identifiers", () => {
+  assert.equal(normalizeApplicationFileName("C:\\fake\\홍길동_지원서.pdf"), "홍길동_지원서.pdf");
+  assert.equal(getApplicationFileExtension("홍길동_지원서.PDF"), ".pdf");
+  assert.equal(
+    getApplicationFileValidationError("홍길동_지원서.pdf", "application/pdf", 1024),
+    null
+  );
+  assert.equal(
+    getApplicationFileValidationError("홍길동_지원서.pdf", "image/png", 1024),
+    "파일 형식이 확장자와 일치하지 않습니다. .hwp, .docx, .pdf 파일만 제출해주세요."
+  );
+
+  const storagePath = buildApplicationStoragePath(9, ".pdf", "fixed-file-id");
+  assert.equal(storagePath, "9/fixed-file-id.pdf");
+  assert.equal(storagePath.includes("2021123456"), false);
 });
