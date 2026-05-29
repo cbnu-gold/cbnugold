@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { MobileNav } from "./MobileNav";
 import { Menu, Instagram } from "lucide-react";
+import type { SiteSettingsValue } from "@/types";
 
 const navItems = [
   { href: "/", label: "홈" },
@@ -14,7 +15,7 @@ const navItems = [
   { href: "/activity", label: "활동" },
 ];
 
-export function Header() {
+export function Header({ settings }: { settings: SiteSettingsValue }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -39,7 +40,7 @@ export function Header() {
           <Link href="/" className="flex items-center gap-3 group">
             <Image
               src="/images/logo.png"
-              alt="금은동"
+              alt={settings.site_title}
               width={120}
               height={37}
               className="h-8 w-auto"
@@ -80,28 +81,32 @@ export function Header() {
             <div className="h-4 w-px bg-ink/15" />
 
             <div className="flex items-center gap-4">
-              <a
-                href="https://www.instagram.com/cbnu_gold/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative text-ink/40 hover:text-ink transition-colors"
-                aria-label="Instagram"
-                title="@cbnu_gold"
-              >
-                <Instagram size={17} strokeWidth={1.5} />
-                <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 rounded bg-ink px-2 py-1 text-[10px] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100 whitespace-nowrap">
-                  @cbnu_gold
-                </span>
-              </a>
-              <a
-                href="https://cafe.naver.com/cufaclub"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-ink/40 hover:text-ink transition-colors text-sm font-bold"
-                aria-label="Naver Cafe"
-              >
-                N
-              </a>
+              {settings.instagram_url && (
+                <a
+                  href={settings.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative text-ink/40 hover:text-ink transition-colors"
+                  aria-label="Instagram"
+                  title="Instagram"
+                >
+                  <Instagram size={17} strokeWidth={1.5} />
+                  <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap rounded bg-ink px-2 py-1 text-[10px] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                    Instagram
+                  </span>
+                </a>
+              )}
+              {settings.naver_cafe_url && (
+                <a
+                  href={settings.naver_cafe_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-bold text-ink/40 transition-colors hover:text-ink"
+                  aria-label="Naver Cafe"
+                >
+                  N
+                </a>
+              )}
               <Link href="/join">
                 <Button size="sm">지원하기</Button>
               </Link>
@@ -125,6 +130,7 @@ export function Header() {
         onClose={() => setMobileOpen(false)}
         items={navItems}
         pathname={pathname}
+        settings={settings}
       />
     </>
   );

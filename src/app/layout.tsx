@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { getPublicCmsData } from "@/lib/cms-public";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -81,11 +82,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { settings } = await getPublicCmsData();
+
   return (
     <html lang="ko" className={`${inter.variable} ${jetBrainsMono.variable} ${fraunces.variable}`}>
       <head>
@@ -99,9 +102,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased marble-texture">
         <JsonLd />
-        <Header />
+        <Header settings={settings} />
         <main className="min-h-screen">{children}</main>
-        <Footer />
+        <Footer settings={settings} />
       </body>
     </html>
   );

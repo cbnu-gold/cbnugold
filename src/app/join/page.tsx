@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Instagram, Mail, Phone } from "lucide-react";
 import { JoinForm } from "@/components/recruiting/JoinForm";
 import {
   formatKoreanDateTime,
@@ -52,7 +52,7 @@ export default async function JoinPage() {
           ))}
         </div>
 
-        <div className="mt-5 grid gap-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:grid-cols-2 md:p-6">
+        <div className="mt-5 grid gap-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:grid-cols-3 md:p-6">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold">
               <CheckCircle2 className="h-5 w-5 text-gold-dark" />
@@ -71,6 +71,35 @@ export default async function JoinPage() {
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">{data.recruitment.meeting_time}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{data.recruitment.fee_note}</p>
+          </div>
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <Mail className="h-5 w-5 text-gold-dark" />
+              문의 채널
+            </h2>
+            <div className="mt-4 grid gap-2 text-sm leading-6 text-slate-600">
+              <p className="font-medium text-slate-800">{data.settings.contact_name}</p>
+              <a href={`tel:${data.settings.contact_phone.replace(/-/g, "")}`} className="inline-flex items-center gap-2 hover:text-ink">
+                <Phone className="h-4 w-4 text-slate-400" />
+                {data.settings.contact_phone}
+              </a>
+              <a href={`mailto:${data.settings.contact_email}`} className="inline-flex items-center gap-2 break-all hover:text-ink">
+                <Mail className="h-4 w-4 text-slate-400" />
+                {data.settings.contact_email}
+              </a>
+              {data.settings.instagram_url && (
+                <a href={data.settings.instagram_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-ink">
+                  <Instagram className="h-4 w-4 text-slate-400" />
+                  Instagram
+                </a>
+              )}
+              {data.settings.naver_cafe_url && (
+                <a href={data.settings.naver_cafe_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-ink">
+                  <span className="w-4 text-center text-sm font-bold text-slate-400">N</span>
+                  Naver Cafe
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </section>

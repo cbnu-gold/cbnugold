@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { cache } from "react";
 import {
   fallbackCmsData,
   fallbackRecruitment,
@@ -37,7 +38,7 @@ function chooseFallback<T>(value: T[] | null | undefined, fallback: T[]) {
   return value && value.length > 0 ? value : fallback;
 }
 
-export async function getPublicCmsData(): Promise<PublicCmsData> {
+export const getPublicCmsData = cache(async function getPublicCmsData(): Promise<PublicCmsData> {
   const supabase = getPublicSupabase();
   if (!supabase) return fallbackCmsData;
 
@@ -130,7 +131,7 @@ export async function getPublicCmsData(): Promise<PublicCmsData> {
     console.error("CMS fallback activated:", error);
     return fallbackCmsData;
   }
-}
+});
 
 export async function getPublicPage(slug: string) {
   const data = await getPublicCmsData();

@@ -4,15 +4,17 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { X, Instagram } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import type { SiteSettingsValue } from "@/types";
 
 interface MobileNavProps {
   isOpen: boolean;
   onClose: () => void;
   items: { href: string; label: string }[];
   pathname: string;
+  settings: SiteSettingsValue;
 }
 
-export function MobileNav({ isOpen, onClose, items, pathname }: MobileNavProps) {
+export function MobileNav({ isOpen, onClose, items, pathname, settings }: MobileNavProps) {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -73,24 +75,28 @@ export function MobileNav({ isOpen, onClose, items, pathname }: MobileNavProps) 
 
         {/* Social */}
         <div className="flex items-center gap-5">
-          <a
-            href="https://www.instagram.com/cbnu_gold/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-400 hover:text-gold transition-colors"
-            aria-label="Instagram"
-          >
-            <Instagram size={22} />
-          </a>
-          <a
-            href="https://cafe.naver.com/cufaclub"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-400 hover:text-gold transition-colors text-base font-bold"
-            aria-label="Naver Cafe"
-          >
-            N
-          </a>
+          {settings.instagram_url && (
+            <a
+              href={settings.instagram_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 transition-colors hover:text-gold"
+              aria-label="Instagram"
+            >
+              <Instagram size={22} />
+            </a>
+          )}
+          {settings.naver_cafe_url && (
+            <a
+              href={settings.naver_cafe_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-base font-bold text-gray-400 transition-colors hover:text-gold"
+              aria-label="Naver Cafe"
+            >
+              N
+            </a>
+          )}
         </div>
 
         {/* CTA */}

@@ -12,6 +12,7 @@ import {
   getPublicPage,
   getRecruitmentPhase,
   getRecruitmentPhaseLabel,
+  formatKoreanDateTime,
   isRecruitmentOpen,
 } from "@/lib/cms-public";
 
@@ -47,6 +48,16 @@ export default async function Home() {
   const recruitmentOpen = isRecruitmentOpen(data.recruitment);
   const recruitmentPhase = getRecruitmentPhase(data.recruitment);
   const recruitmentLabel = getRecruitmentPhaseLabel(recruitmentPhase);
+  const receiptPeriod =
+    data.recruitment.start_at && data.recruitment.end_at
+      ? `${formatKoreanDateTime(data.recruitment.start_at)} - ${formatKoreanDateTime(data.recruitment.end_at)}`
+      : "일정 별도 안내";
+  const scheduleItems = [
+    ["서류 접수", receiptPeriod],
+    ["서류 발표", formatKoreanDateTime(data.recruitment.document_result_at)],
+    ["면접", formatKoreanDateTime(data.recruitment.interview_at)],
+    ["최종 발표", formatKoreanDateTime(data.recruitment.final_result_at)],
+  ];
 
   return (
     <div className="bg-white text-ink">
@@ -106,6 +117,17 @@ export default async function Home() {
               <ProcessRow icon={FileText} label="정규 활동" value={data.recruitment.meeting_time ?? "별도 안내"} />
               <ProcessRow icon={Users} label="지원 자격" value={data.recruitment.requirements[0] ?? "충북대학교 재학생"} />
               <ProcessRow icon={BadgeCheck} label="회비" value={data.recruitment.fee_note ?? "별도 안내"} />
+            </div>
+            <div className="border-t border-ink/10 py-4">
+              <p className="mb-3 text-xs font-semibold text-slate-500">모집 일정</p>
+              <div className="grid gap-2">
+                {scheduleItems.map(([label, value]) => (
+                  <div key={label} className="flex items-start justify-between gap-4 text-sm">
+                    <span className="shrink-0 text-slate-500">{label}</span>
+                    <span className="text-right font-medium leading-5 text-slate-900">{value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
             <Link
               href="/join"
