@@ -31,6 +31,21 @@ function getOrigin(request: NextRequest) {
   );
 }
 
+function wantsDeepCheck(request: NextRequest) {
+  return request.nextUrl.searchParams.get("deep") === "1";
+}
+
+function isDeepCheckAuthorized(request: NextRequest) {
+  const configuredToken = process.env.HEALTHCHECK_TOKEN;
+  if (!configuredToken) return false;
+
+  const token =
+    request.headers.get("x-healthcheck-token") ??
+    request.nextUrl.searchParams.get("token");
+
+  return token === configuredToken;
+}
+
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 4500) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,6 +54,35 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 4500
     return await fetch(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+async function checkSupabaseReachability(
+  supabaseUrl: string,
+  anonKey: string
+): Promise<HealthCheck> {
+  try {
+    const response = await fetchWithTimeout(
+      `${supabaseUrl}/rest/v1/site_settings?select=key&limit=1`,
+      {
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+      }
+    );
+
+    return {
+      name: "supabase:public_read",
+      ok: response.ok,
+      message: response.ok ? undefined : `HTTP ${response.status}`,
+    };
+  } catch (error) {
+    return {
+      name: "supabase:public_read",
+      ok: false,
+      message: sanitizeHealthError(error),
+    };
   }
 }
 
@@ -137,23 +181,55 @@ export async function GET(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const deep = wantsDeepCheck(request);
+  const deepAuthorized = isDeepCheckAuthorized(request);
+
+  if (deep && !deepAuthorized) {
+    return NextResponse.json(
+      {
+        status: "degraded",
+        checkedAt: new Date().toISOString(),
+        checks: [
+          {
+            name: "deep_check_authorized",
+            ok: false,
+            message: "심층 점검 권한이 필요합니다",
+          },
+        ],
+      },
+      {
+        status: 401,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
 
   const checks: HealthCheck[] = [
     {
-      name: "env:NEXT_PUBLIC_SUPABASE_URL",
+      name: "env:supabase_url",
       ok: Boolean(supabaseUrl),
     },
     {
-      name: "env:NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      name: "env:supabase_anon_key",
       ok: Boolean(anonKey),
-    },
-    {
-      name: "env:SUPABASE_SERVICE_ROLE_KEY",
-      ok: Boolean(serviceKey),
     },
   ];
 
-  if (supabaseUrl && serviceKey) {
+  if (supabaseUrl && anonKey) {
+    const normalizedUrl = supabaseUrl.replace(/\/$/, "");
+    checks.push(await checkSupabaseReachability(normalizedUrl, anonKey));
+  }
+
+  if (deep) {
+    checks.push({
+      name: "env:supabase_service_role_key",
+      ok: Boolean(serviceKey),
+    });
+  }
+
+  if (deep && supabaseUrl && serviceKey) {
     const normalizedUrl = supabaseUrl.replace(/\/$/, "");
     checks.push(
       ...(await Promise.all(

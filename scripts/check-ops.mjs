@@ -2,6 +2,9 @@
 
 const rawArgs = process.argv.slice(2);
 const allowDegraded = rawArgs.includes("--allow-degraded");
+const deep = rawArgs.includes("--deep");
+const tokenArg = rawArgs.find((arg) => arg.startsWith("--token="));
+const healthcheckToken = tokenArg?.slice("--token=".length) ?? process.env.HEALTHCHECK_TOKEN;
 const targetArg = rawArgs.find((arg) => !arg.startsWith("--"));
 const baseUrl = (targetArg ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 
@@ -39,12 +42,16 @@ async function request(check) {
 }
 
 async function requestHealth() {
-  const response = await fetch(`${baseUrl}/api/health`, { cache: "no-store" });
+  const healthPath = deep ? "/api/health?deep=1" : "/api/health";
+  const response = await fetch(`${baseUrl}${healthPath}`, {
+    cache: "no-store",
+    headers: healthcheckToken ? { "x-healthcheck-token": healthcheckToken } : undefined,
+  });
   const body = await response.json().catch(() => null);
   const status = body?.status ?? "unknown";
 
   return {
-    path: "/api/health",
+    path: healthPath,
     expected: allowDegraded ? "200 or 503" : 200,
     actual: response.status,
     ok: allowDegraded ? [200, 503].includes(response.status) : response.status === 200,
@@ -79,6 +86,11 @@ if (failed.length > 0) {
   if (protectedDeployment) {
     console.error(
       "All checks returned 401. This deployment is likely protected by Vercel. Use a public production URL, disable preview protection for this check, or verify previews with `vercel curl`."
+    );
+  }
+  if (deep && results.some((result) => result.path === "/api/health?deep=1" && result.actual === 401)) {
+    console.error(
+      "Deep health check returned 401. Set HEALTHCHECK_TOKEN in Vercel and pass it with `--token=<value>` or the local HEALTHCHECK_TOKEN environment variable."
     );
   }
   console.error(`Operational check failed: ${failed.length}/${results.length}`);
