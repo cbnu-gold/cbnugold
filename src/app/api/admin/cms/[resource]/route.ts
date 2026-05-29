@@ -13,6 +13,7 @@ import {
   type AdminSafetyProfile,
 } from "@/lib/admin-safety";
 import { getOptionalCmsHrefError, normalizeOptionalCmsHref } from "@/lib/cms-links";
+import { validateAndNormalizeCmsResourcePayload } from "@/lib/cms-resource-validation";
 import { validateAndNormalizeRecruitmentPayload } from "@/lib/recruitment-admin";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
@@ -64,12 +65,15 @@ function sanitizePayload(
   return payload;
 }
 
-function validatePayload(resource: Resource, payload: CmsPayload) {
+function validatePayload(resource: Resource, payload: CmsPayload, mode: "insert" | "update") {
   if (resource === "settings" && "value" in payload) {
     const result = validateAndNormalizeSiteSettingsValue(payload.value);
     if (result.error) return result.error;
     payload.value = result.value;
   }
+
+  const resourceError = validateAndNormalizeCmsResourcePayload(resource, payload, mode);
+  if (resourceError) return resourceError;
 
   if (resource === "blocks") {
     const ctaError = getOptionalCmsHrefError(payload.cta_href, "블록 CTA 링크");
@@ -304,7 +308,7 @@ export async function POST(
 
   const body = await request.json();
   const payload = sanitizePayload(resource as Resource, body, admin.id, "insert");
-  const validationError = validatePayload(resource as Resource, payload);
+  const validationError = validatePayload(resource as Resource, payload, "insert");
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
   if (resource === "admins" && typeof payload.id !== "string") {
     return NextResponse.json({ error: "관리자 사용자 UUID가 필요합니다" }, { status: 400 });
@@ -351,7 +355,7 @@ export async function PATCH(
 
   const supabase = createServerClient();
   const payload = sanitizePayload(resource as Resource, values ?? {}, admin.id, "update");
-  const validationError = validatePayload(resource as Resource, payload);
+  const validationError = validatePayload(resource as Resource, payload, "update");
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
   if (resource === "admins" && id) {
     const adminProfileError = await validateAdminProfileUpdate(supabase, admin, id, payload);

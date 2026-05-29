@@ -59,6 +59,61 @@ function getSafeRecruitment(recruitment: RecruitmentCycle) {
   };
 }
 
+function getStringArray(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+}
+
+function getSafeActivities(items: ActivityItem[]) {
+  return items
+    .filter((item) => typeof item.title === "string" && typeof item.description === "string")
+    .map((item) => ({
+      ...item,
+      title: item.title.trim(),
+      subtitle: typeof item.subtitle === "string" && item.subtitle.trim() ? item.subtitle.trim() : null,
+      description: item.description.trim(),
+      category: typeof item.category === "string" && item.category.trim() ? item.category.trim() : "regular",
+      tags: getStringArray(item.tags),
+    }))
+    .filter((item) => item.title && item.description);
+}
+
+function getSafeAchievements(items: AchievementItem[]) {
+  return items
+    .filter((item) => typeof item.title === "string" && typeof item.result === "string")
+    .map((item) => ({
+      ...item,
+      title: item.title.trim(),
+      organization: typeof item.organization === "string" && item.organization.trim() ? item.organization.trim() : null,
+      result: item.result.trim(),
+      year: Number.isInteger(item.year) ? item.year : null,
+    }))
+    .filter((item) => item.title && item.result);
+}
+
+function getSafeHistory(items: HistoryItem[]) {
+  return items
+    .filter((item) => Number.isInteger(item.year))
+    .map((item) => ({
+      ...item,
+      generation: Number.isInteger(item.generation) ? item.generation : null,
+      president: typeof item.president === "string" && item.president.trim() ? item.president.trim() : null,
+      milestones: getStringArray(item.milestones),
+      is_current: Boolean(item.is_current),
+    }));
+}
+
+function getSafeFaqs(items: FAQItem[]) {
+  return items
+    .filter((item) => typeof item.question === "string" && typeof item.answer === "string")
+    .map((item) => ({
+      ...item,
+      question: item.question.trim(),
+      answer: item.answer.trim(),
+    }))
+    .filter((item) => item.question && item.answer);
+}
+
 export const getPublicCmsData = cache(async function getPublicCmsData(): Promise<PublicCmsData> {
   const supabase = getPublicSupabase();
   if (!supabase) return fallbackCmsData;
@@ -136,18 +191,18 @@ export const getPublicCmsData = cache(async function getPublicCmsData(): Promise
       blocks: getSafeBlocks(blocks),
       recruitment: getSafeRecruitment(recruitment),
       activities: chooseFallback(
-        activitiesResult.data as ActivityItem[] | null,
+        getSafeActivities((activitiesResult.data as ActivityItem[] | null) ?? []),
         fallbackCmsData.activities
       ),
       achievements: chooseFallback(
-        achievementsResult.data as AchievementItem[] | null,
+        getSafeAchievements((achievementsResult.data as AchievementItem[] | null) ?? []),
         fallbackCmsData.achievements
       ),
       history: chooseFallback(
-        historyResult.data as HistoryItem[] | null,
+        getSafeHistory((historyResult.data as HistoryItem[] | null) ?? []),
         fallbackCmsData.history
       ),
-      faqs: chooseFallback(faqsResult.data as FAQItem[] | null, fallbackCmsData.faqs),
+      faqs: chooseFallback(getSafeFaqs((faqsResult.data as FAQItem[] | null) ?? []), fallbackCmsData.faqs),
     };
   } catch (error) {
     console.error("CMS fallback activated:", error);

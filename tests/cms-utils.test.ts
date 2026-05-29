@@ -20,6 +20,7 @@ import {
   isSafeCmsHref,
   normalizeOptionalCmsHref,
 } from "../src/lib/cms-links";
+import { validateAndNormalizeCmsResourcePayload } from "../src/lib/cms-resource-validation";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
@@ -236,5 +237,41 @@ test("recruitment admin validation rejects invalid schedule order", () => {
   assert.equal(
     validateAndNormalizeRecruitmentPayload(payload),
     "모집 마감 일시는 모집 시작 이후여야 합니다"
+  );
+});
+
+test("CMS resource validation normalizes repeated content records", () => {
+  const activity: Record<string, unknown> = {
+    title: "  신문 스크랩  ",
+    subtitle: "",
+    description: "  금융시장 뉴스를 정리합니다.  ",
+    category: "regular",
+    tags: [" 뉴스 ", "", "리서치"],
+    sort_order: "2",
+  };
+
+  assert.equal(validateAndNormalizeCmsResourcePayload("activities", activity, "insert"), null);
+  assert.equal(activity.title, "신문 스크랩");
+  assert.equal(activity.subtitle, null);
+  assert.deepEqual(activity.tags, ["뉴스", "리서치"]);
+  assert.equal(activity.sort_order, 2);
+});
+
+test("CMS resource validation rejects malformed repeated content", () => {
+  assert.equal(
+    validateAndNormalizeCmsResourcePayload(
+      "faqs",
+      { question: "", answer: "답변", sort_order: 1 },
+      "insert"
+    ),
+    "FAQ 질문 값이 필요합니다"
+  );
+  assert.equal(
+    validateAndNormalizeCmsResourcePayload(
+      "blocks",
+      { page_slug: "home", block_key: "Hero Key", sort_order: 1 },
+      "insert"
+    ),
+    "블록 키는 영문 소문자, 숫자, 하이픈, 밑줄만 사용할 수 있습니다"
   );
 });
