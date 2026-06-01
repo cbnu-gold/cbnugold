@@ -62,6 +62,7 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 - Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
 - CMS media accepts PNG, JPG, WebP, PDF, DOCX, and HWP files. SVG upload is intentionally blocked for public-bucket safety.
 - `home/hero` can use a CMS media URL for the first-screen key visual; the default image is `public/images/gold-recruiting-board.png`.
+- Open Graph and Twitter preview cards use the same recruiting key visual for consistent sharing.
 - The application API requires a published open recruitment cycle before accepting submissions and blocks duplicate submissions by recruitment scope and student ID.
 - `/api/health` exposes a shallow public check; deep DB/storage checks require `HEALTHCHECK_TOKEN`.
 

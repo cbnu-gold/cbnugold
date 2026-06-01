@@ -43,6 +43,7 @@ import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-a
 import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import { fallbackBlocks } from "../src/lib/cms-fallback";
+import { defaultSeoDescription, recruitingShareImage } from "../src/lib/seo";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -199,6 +200,19 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(philosophy?.body ?? "", /읽고 정리합니다/);
   assert.match(philosophy?.body ?? "", /말하고 검증합니다/);
   assert.match(philosophy?.body ?? "", /연결하고 준비합니다/);
+});
+
+test("SEO metadata uses the recruiting visual and Korean description", () => {
+  const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  const home = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+
+  assert.equal(recruitingShareImage.url, "/images/gold-recruiting-board.png");
+  assert.equal(recruitingShareImage.width, 1600);
+  assert.equal(recruitingShareImage.height, 900);
+  assert.match(defaultSeoDescription, /신문 스크랩/);
+  assert.equal(defaultSeoDescription.includes(["Invest", "in", "yourself"].join(" ")), false);
+  assert.match(layout, /recruitingShareImage/);
+  assert.match(home, /recruitingShareImage/);
 });
 
 test("health status reports degraded when any check fails", () => {

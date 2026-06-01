@@ -15,6 +15,7 @@ import {
   formatKoreanDateTime,
   isRecruitmentOpen,
 } from "@/lib/cms-public";
+import { recruitingShareImage, siteUrl } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -30,10 +31,16 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${title} | 금은동`,
       description,
-      url: "https://cbnugold.vercel.app",
+      url: siteUrl,
+      images: [recruitingShareImage],
+    },
+    twitter: {
+      title: `${title} | 금은동`,
+      description,
+      images: [recruitingShareImage.url],
     },
     alternates: {
-      canonical: "https://cbnugold.vercel.app",
+      canonical: siteUrl,
     },
   };
 }

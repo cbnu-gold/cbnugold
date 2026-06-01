@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getPublicPage } from "@/lib/cms-public";
+import { recruitingShareImage, siteUrl } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const page = await getPublicPage("join");
@@ -13,10 +14,16 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${title} | 금은동`,
       description,
-      url: "https://cbnugold.vercel.app/join",
+      url: `${siteUrl}/join`,
+      images: [recruitingShareImage],
+    },
+    twitter: {
+      title: `${title} | 금은동`,
+      description,
+      images: [recruitingShareImage.url],
     },
     alternates: {
-      canonical: "https://cbnugold.vercel.app/join",
+      canonical: `${siteUrl}/join`,
     },
   };
 }

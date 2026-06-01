@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getPublicCmsData } from "@/lib/cms-public";
+import { defaultSeoDescription, recruitingShareImage, siteUrl } from "@/lib/seo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -25,13 +26,12 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cbnugold.vercel.app"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "금은동 | 충북대학교 금융권 취업 동아리",
     template: "%s | 금은동",
   },
-  description:
-    "충북대학교 금융권 취업 동아리 금은동입니다. 신문 스크랩, 리포트 분석, 현직자 멘토링, 직무분석 경진대회 등 실전 금융 커리어를 준비합니다.",
+  description: defaultSeoDescription,
   keywords: [
     "충북대",
     "금융 동아리",
@@ -44,27 +44,18 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "금은동 | 충북대학교 금융권 취업 동아리",
-    description:
-      "충북대학교 금융권 취업 동아리 금은동. Invest in yourself. Since 2021.",
-    url: "https://cbnugold.vercel.app",
+    description: defaultSeoDescription,
+    url: siteUrl,
     siteName: "금은동",
     locale: "ko_KR",
     type: "website",
-    images: [
-      {
-        url: "/images/logo.png",
-        width: 256,
-        height: 256,
-        alt: "금은동 - 충북대학교 금융권 취업 동아리",
-      },
-    ],
+    images: [recruitingShareImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "금은동 | 충북대학교 금융권 취업 동아리",
-    description:
-      "충북대학교 금융권 취업 동아리 금은동. Invest in yourself. Since 2021.",
-    images: ["/images/logo.png"],
+    description: defaultSeoDescription,
+    images: [recruitingShareImage.url],
   },
   robots: { index: true, follow: true },
   icons: {
@@ -72,7 +63,7 @@ export const metadata: Metadata = {
     apple: "/images/logo.png",
   },
   alternates: {
-    canonical: "https://cbnugold.vercel.app",
+    canonical: siteUrl,
   },
   verification: {
     google: "PBjLy42PMYDwpa4eoGQ-2TbsgOYJmzy4IfD19eoPBRo",
