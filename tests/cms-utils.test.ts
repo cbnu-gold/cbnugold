@@ -44,7 +44,7 @@ import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-a
 import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import { fallbackBlocks } from "../src/lib/cms-fallback";
-import { defaultSeoDescription, recruitingShareImage } from "../src/lib/seo";
+import { defaultSeoDescription, recruitingShareImage, siteUrl } from "../src/lib/seo";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -206,7 +206,11 @@ test("fallback home content includes editable visual and philosophy blocks", () 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
   const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
   const home = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
+  const robots = readFileSync(new URL("../src/app/robots.ts", import.meta.url), "utf8");
+  const sitemap = readFileSync(new URL("../src/app/sitemap.ts", import.meta.url), "utf8");
 
+  assert.ok(siteUrl.length > 0);
+  assert.doesNotMatch(siteUrl, /\/$/);
   assert.equal(recruitingShareImage.url, "/images/gold-recruiting-board.png");
   assert.equal(recruitingShareImage.width, 1600);
   assert.equal(recruitingShareImage.height, 900);
@@ -214,6 +218,25 @@ test("SEO metadata uses the recruiting visual and Korean description", () => {
   assert.equal(defaultSeoDescription.includes(["Invest", "in", "yourself"].join(" ")), false);
   assert.match(layout, /recruitingShareImage/);
   assert.match(home, /recruitingShareImage/);
+  assert.match(robots, /siteUrl/);
+  assert.match(sitemap, /siteUrl/);
+});
+
+test("Next config applies baseline security headers and admin no-store cache", () => {
+  const config = readFileSync(new URL("../next.config.ts", import.meta.url), "utf8");
+  const proxy = readFileSync(new URL("../src/proxy.ts", import.meta.url), "utf8");
+
+  assert.match(config, /X-Content-Type-Options/);
+  assert.match(config, /X-Frame-Options/);
+  assert.match(config, /Referrer-Policy/);
+  assert.match(config, /Permissions-Policy/);
+  assert.match(config, /frame-ancestors 'none'/);
+  assert.match(proxy, /export function proxy/);
+  assert.match(proxy, /pathname\.startsWith\("\/admin"\)/);
+  assert.match(proxy, /pathname\.startsWith\("\/api\/admin"\)/);
+  assert.match(proxy, /matcher: \["\/admin\/:path\*", "\/api\/admin\/:path\*"\]/);
+  assert.match(config, /no-store, max-age=0/);
+  assert.match(proxy, /no-store, max-age=0/);
 });
 
 test("health status reports degraded when any check fails", () => {

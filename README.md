@@ -50,10 +50,12 @@ See [`docs/ADMIN_CMS_RUNBOOK.md`](docs/ADMIN_CMS_RUNBOOK.md) for the operating c
 
 ```bash
 npm run verify
+npm run test:e2e
 npm run check:ops -- https://your-deployment.example.com
 ```
 
 Use `--allow-degraded` only when the Supabase connection outage is already known. Use `--deep --token=<HEALTHCHECK_TOKEN>` for table and storage diagnostics.
+`test:e2e` checks public routes, mobile navigation, rejected copy, image loading, and horizontal overflow across mobile, tablet, and desktop Chromium viewports.
 
 ## Admin Operations
 
@@ -64,8 +66,10 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 - CMS media accepts PNG, JPG, WebP, PDF, DOCX, and HWP files. SVG upload is intentionally blocked for public-bucket safety.
 - `home/hero` can use a CMS media URL for the first-screen key visual; the default image is `public/images/gold-recruiting-board.png`.
 - Open Graph and Twitter preview cards use the same recruiting key visual for consistent sharing.
+- Public copy should stay factual: activity, schedule, support process, and verified outcomes. Do not add self-ranking claims or encyclopedia-style content.
 - The application API requires a published open recruitment cycle before accepting submissions and blocks duplicate submissions by recruitment scope and student ID.
 - `/api/health` exposes a shallow public check; deep DB/storage checks require `HEALTHCHECK_TOKEN`.
+- `next.config.ts` applies baseline security headers. `src/proxy.ts` enforces `no-store` caching on admin surfaces in production/runtime checks.
 
 ## Project Structure
 

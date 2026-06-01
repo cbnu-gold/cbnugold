@@ -46,6 +46,9 @@
 - `home/hero`의 미디어 URL은 홈 첫 화면 키비주얼에 연결됩니다. 기본값은 `/images/gold-recruiting-board.png`이며, 공식 사진이 준비되면 미디어 탭에 업로드한 URL로 교체합니다.
 - `home/philosophy` 본문은 `제목: 설명` 형식으로 줄바꿈해 최대 3개의 운영 철학 항목으로 노출됩니다.
 - 공유 카드 이미지는 기본 키비주얼을 사용합니다. 공식 홍보 이미지로 바꿀 때는 화면용 이미지와 함께 SEO 메타 이미지도 같은 톤으로 교체합니다.
+- 공개 문구는 활동, 일정, 지원 절차, 확인된 성과만 적습니다. 대표성, 우수성, 유일성처럼 동아리가 스스로 평가하는 문장은 사용하지 않습니다.
+- 사전형 콘텐츠는 공개 정보 구조에서 제외합니다. FAQ는 지원자가 실제로 확인해야 하는 질문만 유지합니다.
+- 성과 영역은 설명 문단 없이 2025년 확인 기록을 목록으로만 노출합니다.
 - `about/intro`, `about/partners`, `activity/intro` 블록은 소개·활동 페이지 상단 문구와 협력 정보에 연결됩니다.
 - 미디어 탭에서는 PNG, JPG, WebP, PDF, DOCX, HWP를 업로드합니다.
 - 모집 양식 파일은 미디어 탭의 `URL 복사`로 주소를 복사한 뒤 모집 탭의 DOCX/HWP URL에 입력합니다.
@@ -75,7 +78,9 @@
 - `npm run lint`
 - `npm run test`
 - `npm run build`
+- `npm run test:e2e`
 - `npm run check:ops -- https://배포주소`
+- 로컬 보안 헤더까지 확인할 때는 `npm run build` 후 `npm run start`로 실행한 주소에서 `check:ops`를 돌립니다.
 - `/`, `/about`, `/activity`, `/join`, `/admin/login` 화면 확인
 - `/api/health`가 `200`과 `status: ok`를 반환하는지 확인
 - 심층 DB/Storage 점검이 필요하면 `HEALTHCHECK_TOKEN` 설정 후 `npm run check:ops -- https://배포주소 --deep --token=토큰`을 실행합니다.
@@ -91,5 +96,6 @@
 - `applications` 버킷은 private, `cms-media` 버킷은 public이어야 합니다.
 - 기본 헬스체크는 공개 경로이므로 Supabase 공개 읽기 연결만 확인합니다. 테이블·스토리지 항목별 심층 점검은 `HEALTHCHECK_TOKEN`이 있을 때만 실행합니다.
 - 헬스체크는 비밀값을 반환하지 않고 항목별 통과 여부만 반환합니다.
+- 운영 점검은 기본 보안 헤더와 관리자 화면/API의 `no-store` 캐시 정책도 함께 확인합니다.
 - Supabase 연결 장애를 알고 있는 상태에서 공개 라우트만 먼저 점검할 때는 `npm run check:ops -- https://배포주소 --allow-degraded`를 사용합니다.
 - Vercel Preview가 보호되어 모든 경로가 `401`이면 `vercel curl`로 Preview를 검증하거나 공개 Production URL에서 `check:ops`를 실행합니다.

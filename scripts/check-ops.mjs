@@ -15,6 +15,8 @@ const checks = [
   { path: "/join", method: "GET", expected: 200 },
   { path: "/join/check", method: "GET", expected: 200 },
   { path: "/admin/login", method: "GET", expected: 200 },
+  { path: "/robots.txt", method: "GET", expected: 200 },
+  { path: "/sitemap.xml", method: "GET", expected: 200 },
   { path: "/wiki", method: "GET", expected: 404 },
   { path: "/api/admin/cms/settings", method: "GET", expected: 401 },
   { path: "/api/admin/applicants", method: "GET", expected: 401 },
@@ -71,6 +73,35 @@ const checks = [
   },
 ];
 
+const headerChecks = [
+  {
+    path: "/",
+    method: "GET",
+    expected: "security headers",
+    headers: [
+      ["x-content-type-options", "nosniff"],
+      ["x-frame-options", "DENY"],
+      ["referrer-policy", "strict-origin-when-cross-origin"],
+      ["cross-origin-opener-policy", "same-origin"],
+      ["x-permitted-cross-domain-policies", "none"],
+      ["permissions-policy", "camera=()"],
+      ["content-security-policy", "frame-ancestors 'none'"],
+    ],
+  },
+  {
+    path: "/admin/login",
+    method: "GET",
+    expected: "admin no-store",
+    headers: [["cache-control", "no-store"]],
+  },
+  {
+    path: "/api/admin/applicants",
+    method: "GET",
+    expected: "admin API no-store",
+    headers: [["cache-control", "no-store"]],
+  },
+];
+
 async function request(check) {
   const response = await fetch(`${baseUrl}${check.path}`, {
     method: check.method,
@@ -107,9 +138,32 @@ async function requestHealth() {
   };
 }
 
+async function requestHeaders(check) {
+  const response = await fetch(`${baseUrl}${check.path}`, {
+    method: check.method,
+    cache: "no-store",
+  });
+
+  const missing = check.headers.filter(([name, expected]) => {
+    const value = response.headers.get(name) ?? "";
+    return !value.toLowerCase().includes(expected.toLowerCase());
+  });
+
+  return {
+    path: check.path,
+    expected: check.expected,
+    actual: response.status,
+    ok: missing.length === 0,
+    missingHeaders: missing.map(([name]) => name),
+  };
+}
+
 const results = [];
 for (const check of checks) {
   results.push(await request(check));
+}
+for (const check of headerChecks) {
+  results.push(await requestHeaders(check));
 }
 results.push(await requestHealth());
 
@@ -119,8 +173,10 @@ const protectedDeployment =
 
 for (const result of results) {
   const extra =
-    result.path === "/api/health"
+    result.path === "/api/health" || result.path === "/api/health?deep=1"
       ? ` status=${result.healthStatus} failedChecks=${result.failedChecks ?? "-"}`
+      : result.missingHeaders?.length
+        ? ` missingHeaders=${result.missingHeaders.join(",")}`
       : "";
   console.log(
     `${result.ok ? "ok" : "fail"} ${result.path} expected=${result.expected} actual=${result.actual}${extra}`
