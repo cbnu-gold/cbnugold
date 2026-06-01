@@ -23,6 +23,7 @@ const statusLabels: Record<string, string> = {
 interface CheckResult {
   found: boolean;
   appliedAt?: string;
+  generation?: number;
   status?: string;
 }
 
@@ -125,7 +126,7 @@ export default function CheckPage() {
               id="check-name"
               label="이름"
               value={name}
-              placeholder="홍길동"
+              placeholder="이름 입력"
               error={errors.name}
               onChange={(value) => {
                 setName(value);
@@ -136,7 +137,7 @@ export default function CheckPage() {
               id="check-student-id"
               label="학번"
               value={studentId}
-              placeholder="2021123456"
+              placeholder="학번 입력"
               error={errors.studentId}
               onChange={(value) => {
                 setStudentId(value);
@@ -147,7 +148,7 @@ export default function CheckPage() {
               id="check-phone"
               label="연락처"
               value={phone}
-              placeholder="010-1234-5678"
+              placeholder="연락처 입력"
               error={errors.phone}
               onChange={(value) => {
                 setPhone(formatPhone(value));
@@ -200,6 +201,7 @@ export default function CheckPage() {
                   지원서가 접수되었습니다
                 </h2>
                 <div className="mt-3 grid gap-1 text-sm text-emerald-800">
+                  {result.generation && <p>모집 기수: {result.generation}기</p>}
                   {result.appliedAt && <p>접수 일시: {formatDate(result.appliedAt)}</p>}
                   {result.status && (
                     <p>현재 상태: {statusLabels[result.status] || result.status}</p>

@@ -9,6 +9,7 @@ import {
   getApplicationFileValidationError,
   normalizeApplicationFileName,
 } from "../src/lib/application-files";
+import { buildApplicantCheckScopes } from "../src/lib/application-check";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import {
   buildAdminEmail,
@@ -191,6 +192,17 @@ test("applicant schema prevents duplicate submissions per recruitment scope", ()
     schema,
     /CREATE UNIQUE INDEX IF NOT EXISTS uniq_applicants_generation_student_id_without_cycle[\s\S]*ON applicants\(generation, student_id\)[\s\S]*WHERE recruitment_cycle_id IS NULL;/
   );
+});
+
+test("applicant check scopes stay within the active recruitment generation", () => {
+  assert.deepEqual(buildApplicantCheckScopes(null), []);
+  assert.deepEqual(buildApplicantCheckScopes({ generation: 9 }), [
+    { kind: "legacy", recruitmentCycleId: null, generation: 9 },
+  ]);
+  assert.deepEqual(buildApplicantCheckScopes({ id: "cycle-9", generation: 9 }), [
+    { kind: "cycle", recruitmentCycleId: "cycle-9", generation: 9 },
+    { kind: "legacy", recruitmentCycleId: null, generation: 9 },
+  ]);
 });
 
 test("fallback home content includes editable visual and philosophy blocks", () => {
