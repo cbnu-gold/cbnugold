@@ -208,11 +208,16 @@ test("applicant check scopes stay within the active recruitment generation", () 
 test("fallback home content includes editable visual and philosophy blocks", () => {
   const hero = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "hero");
   const philosophy = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "philosophy");
+  const firstSemester = fallbackBlocks.find(
+    (block) => block.page_slug === "join" && block.block_key === "first-semester"
+  );
 
   assert.equal(hero?.media_url, "/images/gold-recruiting-board.png");
   assert.match(philosophy?.body ?? "", /읽고 정리합니다/);
   assert.match(philosophy?.body ?? "", /말하고 검증합니다/);
   assert.match(philosophy?.body ?? "", /연결하고 준비합니다/);
+  assert.match(firstSemester?.title ?? "", /첫 학기 흐름/);
+  assert.match(firstSemester?.body ?? "", /신문 스크랩/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {

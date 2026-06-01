@@ -1,4 +1,14 @@
-import { ArrowRight, CalendarDays, CheckCircle2, Instagram, Mail, Phone } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  Instagram,
+  Mail,
+  MessageSquareText,
+  Phone,
+  Users,
+} from "lucide-react";
 import { JoinForm } from "@/components/recruiting/JoinForm";
 import {
   formatKoreanDateTime,
@@ -15,6 +25,10 @@ export default async function JoinPage() {
   const open = isRecruitmentOpen(data.recruitment);
   const phase = getRecruitmentPhase(data.recruitment);
   const phaseLabel = getRecruitmentPhaseLabel(phase);
+  const firstSemesterBlock = data.blocks.find(
+    (block) => block.page_slug === "join" && block.block_key === "first-semester"
+  );
+  const firstSemesterItems = getFirstSemesterItems(firstSemesterBlock?.body);
 
   const steps = [
     ["서류 접수", `${formatKoreanDateTime(data.recruitment.start_at)} ~ ${formatKoreanDateTime(data.recruitment.end_at)}`],
@@ -102,6 +116,36 @@ export default async function JoinPage() {
             </div>
           </div>
         </div>
+
+        <div className="mt-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:p-6">
+          <div className="flex flex-col gap-2 border-b border-ink/10 pb-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">
+                {firstSemesterBlock?.title ?? "합류 후 첫 학기 흐름"}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {firstSemesterBlock?.subtitle ?? "지원 전 확인할 활동 순서"}
+              </p>
+            </div>
+            <a
+              href="#apply-section"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/30"
+            >
+              지원 폼으로 이동
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
+            {firstSemesterItems.map((item, index) => (
+              <ActivityFlowCard
+                key={item.title}
+                index={index}
+                title={item.title}
+                description={item.description}
+              />
+            ))}
+          </div>
+        </div>
       </section>
 
       <section id="apply-section" className="mx-auto max-w-[1100px] px-5 pb-12 sm:px-6 md:pb-24">
@@ -118,5 +162,70 @@ export default async function JoinPage() {
         </a>
       </div>
     </div>
+  );
+}
+
+const defaultFirstSemesterItems = [
+  {
+    title: "첫 모임",
+    description: "오리엔테이션에서 활동 방식과 제출 기준을 안내합니다.",
+  },
+  {
+    title: "정기 활동",
+    description: "신문 스크랩과 리포트 분석으로 금융권 이슈를 정리합니다.",
+  },
+  {
+    title: "심화 활동",
+    description: "세일즈 페어와 멘토링에서 발표와 직무 준비를 점검합니다.",
+  },
+];
+
+function getFirstSemesterItems(value: string | null | undefined) {
+  const lines =
+    value
+      ?.split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 3) ?? [];
+
+  if (!lines.length) return defaultFirstSemesterItems;
+
+  return lines.map((line, index) => {
+    const [title, ...descriptionParts] = line.split(":");
+    return {
+      title: title.trim() || defaultFirstSemesterItems[index]?.title || "활동",
+      description:
+        descriptionParts.join(":").trim() ||
+        defaultFirstSemesterItems[index]?.description ||
+        "금은동 정규 활동을 진행합니다.",
+    };
+  });
+}
+
+function ActivityFlowCard({
+  index,
+  title,
+  description,
+}: {
+  index: number;
+  title: string;
+  description: string;
+}) {
+  const icons = [Users, FileText, MessageSquareText];
+  const Icon = icons[index] ?? CheckCircle2;
+
+  return (
+    <article className="rounded-lg bg-marble-light p-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-sm text-gold-dark">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/25 bg-white text-gold-dark">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <h3 className="mt-4 font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+    </article>
   );
 }

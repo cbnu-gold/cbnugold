@@ -131,6 +131,22 @@ export const fallbackBlocks: ContentBlock[] = [
     status: "published",
     sort_order: 5,
   },
+  {
+    page_slug: "join",
+    block_key: "first-semester",
+    title: "합류 후 첫 학기 흐름",
+    subtitle: "지원 전 확인할 활동 순서",
+    body: [
+      "첫 모임: 오리엔테이션에서 활동 방식과 제출 기준을 안내합니다.",
+      "정기 활동: 신문 스크랩과 리포트 분석으로 금융권 이슈를 정리합니다.",
+      "심화 활동: 세일즈 페어와 멘토링에서 발표와 직무 준비를 점검합니다.",
+    ].join("\n"),
+    cta_label: null,
+    cta_href: null,
+    media_url: null,
+    status: "published",
+    sort_order: 6,
+  },
 ];
 
 export const fallbackPages: ContentPage[] = [
