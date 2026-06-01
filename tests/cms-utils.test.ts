@@ -13,6 +13,7 @@ import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import {
   buildAdminEmail,
   getAdminEmailRecipients,
+  getResendFromEmail,
 } from "../src/lib/resend";
 import { checkRateLimit } from "../src/lib/rate-limit";
 import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
@@ -424,22 +425,21 @@ test("application file storage paths avoid applicant identifiers", () => {
   assert.equal(storagePath.includes("2021123456"), false);
 });
 
-test("admin email notification avoids implicit recipients and subject PII", () => {
+test("admin email notification avoids implicit recipients and applicant PII", () => {
   assert.deepEqual(getAdminEmailRecipients("admin@example.com, bad-email, ADMIN@example.com"), [
     "admin@example.com",
   ]);
   assert.deepEqual(getAdminEmailRecipients(""), []);
+  assert.equal(getResendFromEmail("금은동 <notice@example.com>"), "금은동 <notice@example.com>");
+  assert.equal(getResendFromEmail(""), null);
 
-  const email = buildAdminEmail({
-    name: "홍길동",
-    studentId: "2021123456",
-    email: "hong@example.com",
-    phone: "01012345678",
-  });
+  const email = buildAdminEmail({ generation: 9 });
 
   assert.equal(email.subject, "[금은동] 새로운 지원서 접수");
   assert.equal(email.subject.includes("홍길동"), false);
   assert.equal(email.subject.includes("2021123456"), false);
-  assert.equal(email.text.includes("홍길동"), true);
-  assert.equal(email.text.includes("2021123456"), true);
+  assert.equal(email.text.includes("홍길동"), false);
+  assert.equal(email.text.includes("2021123456"), false);
+  assert.equal(email.text.includes("01012345678"), false);
+  assert.match(email.text, /9기/);
 });

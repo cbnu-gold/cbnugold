@@ -59,6 +59,7 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 
 - `/admin` manages applicants, recruitment cycles, page content, activities, achievements, history, FAQ, media, admin profiles, and audit logs.
 - Application files are stored in the private `applications` bucket and opened through short-lived signed URLs.
+- Application notification email does not include applicant name, student ID, phone number, or file links; admins review details only in `/admin`.
 - Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
 - CMS media accepts PNG, JPG, WebP, PDF, DOCX, and HWP files. SVG upload is intentionally blocked for public-bucket safety.
 - `home/hero` can use a CMS media URL for the first-screen key visual; the default image is `public/images/gold-recruiting-board.png`.

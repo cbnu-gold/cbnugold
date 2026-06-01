@@ -208,18 +208,19 @@ export async function POST(request: NextRequest) {
 
     try {
       const adminEmails = getAdminEmailRecipients();
-      if (adminEmails.length > 0) {
+      const fromEmail = getResendFromEmail();
+      if (adminEmails.length > 0 && fromEmail) {
         const resend = getResendClient();
-        const adminEmail = buildAdminEmail({ name, studentId, email, phone });
+        const adminEmail = buildAdminEmail({ generation });
 
         await resend.emails.send({
-          from: getResendFromEmail(),
+          from: fromEmail,
           to: adminEmails,
           subject: adminEmail.subject,
           text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
         });
       } else {
-        console.warn("Admin application notification skipped: ADMIN_EMAILS is not configured");
+        console.warn("Admin application notification skipped: ADMIN_EMAILS or RESEND_FROM_EMAIL is not configured");
       }
     } catch (emailError) {
       console.error("Email send error:", emailError);
