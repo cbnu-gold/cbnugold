@@ -206,6 +206,7 @@ test("applicant check scopes stay within the active recruitment generation", () 
 });
 
 test("fallback home content includes editable visual and philosophy blocks", () => {
+  const schema = readFileSync(new URL("../supabase-schema.sql", import.meta.url), "utf8");
   const hero = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "hero");
   const philosophy = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "philosophy");
   const firstSemester = fallbackBlocks.find(
@@ -218,6 +219,7 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(philosophy?.body ?? "", /연결하고 준비합니다/);
   assert.match(firstSemester?.title ?? "", /첫 학기 흐름/);
   assert.match(firstSemester?.body ?? "", /신문 스크랩/);
+  assert.match(schema, /'join', 'first-semester'/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {

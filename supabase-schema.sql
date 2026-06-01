@@ -550,7 +550,10 @@ INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_lab
 ('home', 'proof', '2025년 성과', '취업·인턴·수상', '2025년 취업, 인턴, 수상 기록입니다.', '소개 보기', '/about', NULL, 'published', 3),
 ('about', 'intro', '충북대학교 금융권 취업 동아리', '금은동 소개', '금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을 준비하는 충북대학교 동아리입니다. 직무잡아드림 소속으로 신문 스크랩, 리포트 분석, 멘토링, 직무별 활동을 진행합니다.', NULL, NULL, NULL, 'published', 4),
 ('about', 'partners', '소속 및 협력', '직무잡아드림 · 충남대 3F MOU', '공식 소속과 협력 정보는 운영진 확인 후 공개합니다.', NULL, NULL, NULL, 'published', 5),
-('activity', 'intro', '금은동의 활동', '정기 활동과 특별 활동', '정기 활동과 특별 활동을 구분해 안내합니다.', NULL, NULL, NULL, 'published', 6)
+('activity', 'intro', '금은동의 활동', '정기 활동과 특별 활동', '정기 활동과 특별 활동을 구분해 안내합니다.', NULL, NULL, NULL, 'published', 6),
+('join', 'first-semester', '합류 후 첫 학기 흐름', '지원 전 확인할 활동 순서', '첫 모임: 오리엔테이션에서 활동 방식과 제출 기준을 안내합니다.
+정기 활동: 신문 스크랩과 리포트 분석으로 금융권 이슈를 정리합니다.
+심화 활동: 세일즈 페어와 멘토링에서 발표와 직무 준비를 점검합니다.', NULL, NULL, NULL, 'published', 7)
 ON CONFLICT (page_slug, block_key) DO UPDATE
 SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, media_url = COALESCE(content_blocks.media_url, EXCLUDED.media_url), status = EXCLUDED.status;
 
