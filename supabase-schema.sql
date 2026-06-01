@@ -290,6 +290,12 @@ ALTER TABLE applicants
 
 CREATE INDEX IF NOT EXISTS idx_applicants_generation ON applicants(generation);
 CREATE INDEX IF NOT EXISTS idx_applicants_status ON applicants(status);
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_applicants_cycle_student_id
+  ON applicants(recruitment_cycle_id, student_id)
+  WHERE recruitment_cycle_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_applicants_generation_student_id_without_cycle
+  ON applicants(generation, student_id)
+  WHERE recruitment_cycle_id IS NULL;
 CREATE INDEX IF NOT EXISTS idx_content_blocks_page ON content_blocks(page_slug, status, sort_order);
 CREATE INDEX IF NOT EXISTS idx_recruitment_open ON recruitment_cycles(status, is_open, generation DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS uniq_activity_items_category_title ON activity_items(category, title);
@@ -536,14 +542,17 @@ ON CONFLICT (slug) DO UPDATE SET title = EXCLUDED.title, description = EXCLUDED.
 
 DELETE FROM content_pages WHERE slug = 'wiki';
 
-INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_label, cta_href, status, sort_order) VALUES
-('home', 'hero', '충북대 금융권 취업 동아리, 금은동', '금융권 취업을 실전으로 준비합니다', '신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.', '지원 안내 보기', '/join', 'published', 1),
-('home', 'proof', '2025년 성과', '취업·인턴·수상', '2025년 취업, 인턴, 수상 기록입니다.', '소개 보기', '/about', 'published', 2),
-('about', 'intro', '충북대학교 금융권 취업 동아리', '금은동 소개', '금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을 준비하는 충북대학교 동아리입니다. 직무잡아드림 소속으로 신문 스크랩, 리포트 분석, 멘토링, 직무별 활동을 진행합니다.', NULL, NULL, 'published', 3),
-('about', 'partners', '소속 및 협력', '직무잡아드림 · 충남대 3F MOU', '공식 소속과 협력 정보는 운영진 확인 후 공개합니다.', NULL, NULL, 'published', 4),
-('activity', 'intro', '금은동의 활동', '정기 활동과 특별 활동', '정기 활동과 특별 활동을 구분해 안내합니다.', NULL, NULL, 'published', 5)
+INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_label, cta_href, media_url, status, sort_order) VALUES
+('home', 'hero', '충북대 금융권 취업 동아리, 금은동', '금융권 취업을 실전으로 준비합니다', '신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.', '지원 안내 보기', '/join', '/images/gold-recruiting-board.png', 'published', 1),
+('home', 'philosophy', '읽고, 말하고, 연결합니다', '금융권 직무 준비를 활동 단위로 쌓습니다', '읽고 정리합니다: 금융 뉴스와 리포트를 같은 기준으로 읽고 핵심을 남깁니다.
+말하고 검증합니다: 발표와 세일즈 페어에서 논리, 전달력, 질문 대응을 점검합니다.
+연결하고 준비합니다: 멘토링과 직무별 활동을 다음 지원 행동으로 연결합니다.', NULL, NULL, NULL, 'published', 2),
+('home', 'proof', '2025년 성과', '취업·인턴·수상', '2025년 취업, 인턴, 수상 기록입니다.', '소개 보기', '/about', NULL, 'published', 3),
+('about', 'intro', '충북대학교 금융권 취업 동아리', '금은동 소개', '금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을 준비하는 충북대학교 동아리입니다. 직무잡아드림 소속으로 신문 스크랩, 리포트 분석, 멘토링, 직무별 활동을 진행합니다.', NULL, NULL, NULL, 'published', 4),
+('about', 'partners', '소속 및 협력', '직무잡아드림 · 충남대 3F MOU', '공식 소속과 협력 정보는 운영진 확인 후 공개합니다.', NULL, NULL, NULL, 'published', 5),
+('activity', 'intro', '금은동의 활동', '정기 활동과 특별 활동', '정기 활동과 특별 활동을 구분해 안내합니다.', NULL, NULL, NULL, 'published', 6)
 ON CONFLICT (page_slug, block_key) DO UPDATE
-SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, status = EXCLUDED.status;
+SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, media_url = COALESCE(content_blocks.media_url, EXCLUDED.media_url), status = EXCLUDED.status;
 
 INSERT INTO activity_items (title, subtitle, description, category, tags, status, sort_order) VALUES
 ('신문 스크랩', '금융 시사 분석', '매주 금융 신문을 스크랩하고 조별 토의를 통해 시장 흐름을 읽는 훈련을 진행합니다.', 'regular', ARRAY['시사', '발표', '토의'], 'published', 1),

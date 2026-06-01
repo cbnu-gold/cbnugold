@@ -42,6 +42,7 @@ import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
 import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
 import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
+import { fallbackBlocks } from "../src/lib/cms-fallback";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -175,6 +176,29 @@ test("Supabase RLS policies match sensitive admin role boundaries", () => {
   for (const policyName of createPolicyNames) {
     assert.equal(dropPolicyNames.has(policyName), true, `${policyName} must be dropped before re-create`);
   }
+});
+
+test("applicant schema prevents duplicate submissions per recruitment scope", () => {
+  const schema = readFileSync(new URL("../supabase-schema.sql", import.meta.url), "utf8");
+
+  assert.match(
+    schema,
+    /CREATE UNIQUE INDEX IF NOT EXISTS uniq_applicants_cycle_student_id[\s\S]*ON applicants\(recruitment_cycle_id, student_id\)[\s\S]*WHERE recruitment_cycle_id IS NOT NULL;/
+  );
+  assert.match(
+    schema,
+    /CREATE UNIQUE INDEX IF NOT EXISTS uniq_applicants_generation_student_id_without_cycle[\s\S]*ON applicants\(generation, student_id\)[\s\S]*WHERE recruitment_cycle_id IS NULL;/
+  );
+});
+
+test("fallback home content includes editable visual and philosophy blocks", () => {
+  const hero = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "hero");
+  const philosophy = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "philosophy");
+
+  assert.equal(hero?.media_url, "/images/gold-recruiting-board.png");
+  assert.match(philosophy?.body ?? "", /읽고 정리합니다/);
+  assert.match(philosophy?.body ?? "", /말하고 검증합니다/);
+  assert.match(philosophy?.body ?? "", /연결하고 준비합니다/);
 });
 
 test("health status reports degraded when any check fails", () => {

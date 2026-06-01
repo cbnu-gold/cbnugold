@@ -42,6 +42,9 @@ function publicError(message: string, status = 500, details?: string) {
   return NextResponse.json(body, { status });
 }
 
+const duplicateApplicantMessage =
+  "이미 접수된 지원서가 있습니다. 접수 여부는 지원 확인 페이지에서 확인해주세요.";
+
 export async function POST(request: NextRequest) {
   try {
     const ip =
@@ -122,8 +125,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const generation = activeCycle?.generation ?? 9;
+    const duplicateChecks = [
+      supabase
+        .from("applicants")
+        .select("id")
+        .is("recruitment_cycle_id", null)
+        .eq("generation", generation)
+        .eq("student_id", studentId)
+        .limit(1),
+    ];
+
+    if (activeCycle.id) {
+      duplicateChecks.push(
+        supabase
+          .from("applicants")
+          .select("id")
+          .eq("recruitment_cycle_id", activeCycle.id)
+          .eq("student_id", studentId)
+          .limit(1)
+      );
+    }
+
+    const duplicateResults = await Promise.all(duplicateChecks);
+    const duplicateCheckError = duplicateResults.find((result) => result.error)?.error;
+    if (duplicateCheckError) {
+      console.error("Duplicate applicant check error:", duplicateCheckError);
+      return publicError(
+        "지원서 접수 여부를 확인하지 못했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
+        500,
+        duplicateCheckError.message
+      );
+    }
+
+    if (duplicateResults.some((result) => result.data && result.data.length > 0)) {
+      return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const filePath = buildApplicationStoragePath(generation, ext);
 
     const { error: uploadError } = await supabase.storage
@@ -157,6 +196,9 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("DB insert error:", insertError);
       await supabase.storage.from("applications").remove([filePath]);
+      if (insertError.code === "23505") {
+        return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
+      }
       return publicError(
         "지원서 저장에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
         500,

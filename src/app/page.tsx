@@ -43,6 +43,11 @@ export default async function Home() {
   const hero =
     data.blocks.find((block) => block.page_slug === "home" && block.block_key === "hero") ??
     data.blocks[0];
+  const philosophy = data.blocks.find(
+    (block) => block.page_slug === "home" && block.block_key === "philosophy"
+  );
+  const philosophyItems = getPhilosophyItems(philosophy?.body);
+  const heroMediaUrl = hero?.media_url ?? "/images/gold-recruiting-board.png";
   const achievements2025 = data.achievements.filter((item) => item.year === 2025);
   const displayAchievements = achievements2025.length ? achievements2025 : data.achievements;
   const recruitmentOpen = isRecruitmentOpen(data.recruitment);
@@ -98,52 +103,55 @@ export default async function Home() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-ink/10 bg-white p-4 shadow-[0_24px_70px_-45px_rgba(14,20,32,0.45)] sm:p-5">
-            <div className="flex items-center justify-between border-b border-ink/10 pb-4">
-              <div>
-                <p className="text-sm font-semibold text-slate-900">{data.recruitment.title}</p>
-                <p className="mt-1 text-xs text-slate-500">모집 일정과 제출 안내를 확인하세요.</p>
+          <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-[0_24px_70px_-45px_rgba(14,20,32,0.45)]">
+            <HeroVisual src={heroMediaUrl} />
+            <div className="p-4 sm:p-5">
+              <div className="flex items-center justify-between border-b border-ink/10 pb-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">{data.recruitment.title}</p>
+                  <p className="mt-1 text-xs text-slate-500">모집 일정과 제출 안내를 확인하세요.</p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    recruitmentOpen ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {recruitmentLabel}
+                </span>
               </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                  recruitmentOpen ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"
-                }`}
-              >
-                {recruitmentLabel}
-              </span>
-            </div>
-            <div className="grid gap-3 py-5">
-              <ProcessRow icon={CalendarDays} label="모집 기수" value={`${data.recruitment.generation}기`} />
-              <ProcessRow icon={FileText} label="정규 활동" value={data.recruitment.meeting_time ?? "별도 안내"} />
-              <ProcessRow icon={Users} label="지원 자격" value={data.recruitment.requirements[0] ?? "충북대학교 재학생"} />
-              <ProcessRow icon={BadgeCheck} label="회비" value={data.recruitment.fee_note ?? "별도 안내"} />
-            </div>
-            <div className="border-t border-ink/10 py-4">
-              <p className="mb-3 text-xs font-semibold text-slate-500">모집 일정</p>
-              <div className="grid gap-2">
-                {scheduleItems.map(([label, value]) => (
-                  <div key={label} className="flex items-start justify-between gap-4 text-sm">
-                    <span className="shrink-0 text-slate-500">{label}</span>
-                    <span className="text-right font-medium leading-5 text-slate-900">{value}</span>
-                  </div>
-                ))}
+              <div className="grid gap-3 py-5">
+                <ProcessRow icon={CalendarDays} label="모집 기수" value={`${data.recruitment.generation}기`} />
+                <ProcessRow icon={FileText} label="정규 활동" value={data.recruitment.meeting_time ?? "별도 안내"} />
+                <ProcessRow icon={Users} label="지원 자격" value={data.recruitment.requirements[0] ?? "충북대학교 재학생"} />
+                <ProcessRow icon={BadgeCheck} label="회비" value={data.recruitment.fee_note ?? "별도 안내"} />
               </div>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Link
-                href="/join"
-                className="flex items-center justify-between rounded-lg bg-marble-light px-4 py-3 text-sm font-semibold text-ink transition hover:bg-gold/10"
-              >
-                {recruitmentOpen ? "모집 상세와 지원서 제출" : "모집 안내 확인"}
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link
-                href="/join/check"
-                className="flex items-center justify-between rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-gold/30 hover:text-ink"
-              >
-                접수 여부 확인
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              <div className="border-t border-ink/10 py-4">
+                <p className="mb-3 text-xs font-semibold text-slate-500">모집 일정</p>
+                <div className="grid gap-2">
+                  {scheduleItems.map(([label, value]) => (
+                    <div key={label} className="flex items-start justify-between gap-4 text-sm">
+                      <span className="shrink-0 text-slate-500">{label}</span>
+                      <span className="text-right font-medium leading-5 text-slate-900">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Link
+                  href="/join"
+                  className="flex items-center justify-between rounded-lg bg-marble-light px-4 py-3 text-sm font-semibold text-ink transition hover:bg-gold/10"
+                >
+                  {recruitmentOpen ? "모집 상세와 지원서 제출" : "모집 안내 확인"}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/join/check"
+                  className="flex items-center justify-between rounded-lg border border-ink/10 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-gold/30 hover:text-ink"
+                >
+                  접수 여부 확인
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -178,6 +186,25 @@ export default async function Home() {
                   ))}
                 </div>
               </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white py-14 md:py-20">
+        <div className="mx-auto grid max-w-[1400px] gap-8 px-5 sm:px-8 md:grid-cols-[0.9fr_1.1fr] md:items-start lg:px-16">
+          <div>
+            <p className="text-sm font-semibold text-gold-dark">운영 철학</p>
+            <h2 className="mt-2 text-2xl font-bold tracking-normal sm:text-4xl">
+              {philosophy?.title ?? "읽고, 말하고, 연결합니다"}
+            </h2>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
+              {philosophy?.subtitle ?? "금융권 직무 준비를 활동 단위로 쌓습니다"}
+            </p>
+          </div>
+          <div className="grid gap-3">
+            {philosophyItems.map((item, index) => (
+              <PrincipleRow key={item.title} index={index} title={item.title} description={item.description} />
             ))}
           </div>
         </div>
@@ -226,11 +253,87 @@ export default async function Home() {
     </div>
   );
 }
+
+const fallbackPhilosophyItems = [
+  {
+    title: "읽고 정리합니다",
+    description: "금융 뉴스와 리포트를 같은 기준으로 읽고 핵심을 남깁니다.",
+  },
+  {
+    title: "말하고 검증합니다",
+    description: "발표와 세일즈 페어에서 논리, 전달력, 질문 대응을 점검합니다.",
+  },
+  {
+    title: "연결하고 준비합니다",
+    description: "멘토링과 직무별 활동을 다음 지원 행동으로 연결합니다.",
+  },
+];
+
+function getPhilosophyItems(value: string | null | undefined) {
+  const lines =
+    value
+      ?.split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 3) ?? [];
+
+  if (!lines.length) return fallbackPhilosophyItems;
+
+  return lines.map((line, index) => {
+    const [title, ...descriptionParts] = line.split(":");
+    return {
+      title: title.trim() || fallbackPhilosophyItems[index]?.title || "운영 원칙",
+      description:
+        descriptionParts.join(":").trim() ||
+        fallbackPhilosophyItems[index]?.description ||
+        "활동 기준을 명확히 정하고 실행합니다.",
+    };
+  });
+}
+
+function HeroVisual({ src }: { src: string }) {
+  return (
+    <div
+      role="img"
+      aria-label="금은동 금융권 리크루팅 키비주얼"
+      className="relative aspect-[16/9] border-b border-ink/10 bg-cover bg-center"
+      style={{
+        backgroundImage: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(14,20,32,0.06)), url("${src}")`,
+      }}
+    />
+  );
+}
+
 function Metric({ value, label }: { value: string; label: string }) {
   return (
     <div className="rounded-lg bg-white/70 px-3 py-2 sm:bg-transparent sm:px-0 sm:py-0">
       <p className="font-mono text-xl font-bold tabular-nums text-ink sm:text-2xl">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function PrincipleRow({
+  index,
+  title,
+  description,
+}: {
+  index: number;
+  title: string;
+  description: string;
+}) {
+  const icons = [FileText, BadgeCheck, Users];
+  const Icon = icons[index] ?? BadgeCheck;
+
+  return (
+    <div className="grid grid-cols-[2.75rem_1fr] gap-3 rounded-lg border border-ink/10 bg-marble-light px-4 py-4 sm:grid-cols-[3rem_1fr]">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full border border-gold/25 bg-white text-gold-dark">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className="font-semibold text-ink">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+      </div>
     </div>
   );
 }
