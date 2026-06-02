@@ -226,6 +226,8 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(schema, /\/images\/semester-flow-board\.webp/);
   assert.match(adminPage, /핵심 블록 매핑/);
   assert.match(adminPage, /first-semester/);
+  assert.match(adminPage, /운영 상태/);
+  assert.match(adminPage, /\/api\/health/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {

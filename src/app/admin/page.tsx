@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
@@ -38,6 +38,7 @@ import {
   Loader2,
   LogOut,
   Megaphone,
+  RefreshCw,
   Save,
   Search,
   ShieldCheck,
@@ -73,6 +74,16 @@ type ResourceState = {
   media: MediaAsset[];
   admins: AdminProfile[];
   audit: AuditLog[];
+};
+
+type HealthSnapshot = {
+  status: "ok" | "degraded" | string;
+  checkedAt?: string;
+  checks?: {
+    name: string;
+    ok: boolean;
+    message?: string;
+  }[];
 };
 
 const defaultSettings: SiteSettingsValue = {
@@ -302,6 +313,9 @@ export default function AdminPage() {
   const [uploadAlt, setUploadAlt] = useState("");
   const [applicantSearch, setApplicantSearch] = useState("");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState("all");
+  const [health, setHealth] = useState<HealthSnapshot | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState("");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
 
@@ -324,6 +338,23 @@ export default function AdminPage() {
     if (!response.ok) throw new Error(data.error ?? "요청 처리에 실패했습니다");
     return data;
   }
+
+  const loadHealth = useCallback(async () => {
+    setHealthLoading(true);
+    setHealthError("");
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const data = (await response.json().catch(() => null)) as HealthSnapshot | null;
+      if (!data || ![200, 503].includes(response.status)) {
+        throw new Error("운영 상태를 불러오지 못했습니다.");
+      }
+      setHealth(data);
+    } catch (loadError) {
+      setHealthError(loadError instanceof Error ? loadError.message : "운영 상태를 불러오지 못했습니다.");
+    } finally {
+      setHealthLoading(false);
+    }
+  }, []);
 
   async function loadAll(activeToken: string) {
     setLoading(true);
@@ -399,6 +430,10 @@ export default function AdminPage() {
     init();
   }, [router]);
 
+  useEffect(() => {
+    loadHealth();
+  }, [loadHealth]);
+
   const applicantCounts = useMemo(() => {
     return state.applicants.reduce<Record<string, number>>((acc, applicant) => {
       acc[applicant.status] = (acc[applicant.status] ?? 0) + 1;
@@ -430,6 +465,7 @@ export default function AdminPage() {
   const canHandleApplicants = roleCanManageApplicants(role);
   const canManageAdminAccounts = roleCanManageAdmins(role);
   const canReadAudit = roleCanViewAudit(role);
+  const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const visibleTabs = useMemo(
     () =>
       tabs.filter((item) => {
@@ -735,6 +771,77 @@ export default function AdminPage() {
                   </p>
                 </div>
               ))}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold">운영 상태</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                      배포 환경, Supabase 공개 연결, 주요 자산 상태를 확인합니다.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        health?.status === "ok"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : health
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {health?.status === "ok" ? "정상" : health ? "점검 필요" : "확인 전"}
+                    </span>
+                    <AdminButton variant="secondary" onClick={loadHealth} disabled={healthLoading}>
+                      {healthLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      새로고침
+                    </AdminButton>
+                  </div>
+                </div>
+
+                {healthError && (
+                  <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    {healthError}
+                  </p>
+                )}
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {[
+                    ["헬스체크", health?.status === "ok" ? "정상" : health ? "점검 필요" : "확인 중"],
+                    ["실패 항목", failedHealthChecks.length],
+                    [
+                      "마지막 확인",
+                      health?.checkedAt ? new Date(health.checkedAt).toLocaleString("ko-KR") : "-",
+                    ],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-lg bg-slate-50 p-4">
+                      <p className="text-xs font-semibold text-slate-500">{label}</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-950">{value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-2 md:grid-cols-2">
+                  {(health?.checks ?? []).map((check) => (
+                    <div
+                      key={check.name}
+                      className={`rounded-lg border p-3 text-sm ${
+                        check.ok ? "border-emerald-100 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-mono text-xs">{check.name}</span>
+                        <span className="shrink-0 text-xs font-semibold">{check.ok ? "OK" : "확인 필요"}</span>
+                      </div>
+                      {check.message && <p className="mt-2 leading-6">{check.message}</p>}
+                    </div>
+                  ))}
+                  {!health?.checks?.length && (
+                    <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-500 md:col-span-2">
+                      운영 상태를 불러오는 중입니다.
+                    </p>
+                  )}
+                </div>
+              </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
                 <h2 className="text-lg font-bold">운영 체크포인트</h2>
                 <div className="mt-4 grid gap-3 md:grid-cols-3">
