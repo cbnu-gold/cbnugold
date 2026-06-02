@@ -13,7 +13,7 @@ export const validationRules = {
   },
   phone: {
     pattern: /^01[016789]\d{7,8}$/,
-    message: "올바른 전화번호를 입력해주세요 (예: 01012345678)",
+    message: "올바른 전화번호를 입력해주세요. 하이픈 없이 숫자만 입력할 수 있습니다.",
   },
 };
 

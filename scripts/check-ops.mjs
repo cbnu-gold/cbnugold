@@ -8,6 +8,16 @@ const healthcheckToken = tokenArg?.slice("--token=".length) ?? process.env.HEALT
 const targetArg = rawArgs.find((arg) => !arg.startsWith("--"));
 const baseUrl = (targetArg ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 
+function buildInvalidApplicationForm() {
+  const form = new FormData();
+  form.set("name", ["운영", "점검"].join(""));
+  form.set("studentId", ["2099", "000000"].join(""));
+  form.set("email", "ops-check@example.invalid");
+  form.set("phone", ["010", "0000", "0000"].join(""));
+  form.set("file", new Blob(["not a pdf"], { type: "image/png" }), "application.pdf");
+  return form;
+}
+
 const checks = [
   { path: "/", method: "GET", expected: 200 },
   { path: "/about", method: "GET", expected: 200 },
@@ -61,16 +71,14 @@ const checks = [
     path: "/api/apply",
     method: "POST",
     expected: 400,
-    body: (() => {
-      const form = new FormData();
-      form.set("name", "홍길동");
-      form.set("studentId", "2021123456");
-      form.set("email", "hong@example.com");
-      form.set("phone", "01012345678");
-      form.set("file", new Blob(["not a pdf"], { type: "image/png" }), "application.pdf");
-      return form;
-    })(),
+    body: buildInvalidApplicationForm(),
   },
+];
+
+const assetChecks = [
+  { path: "/images/logo.png", contentType: "image/png", minBytes: 1000 },
+  { path: "/images/gold-recruiting-board.png", contentType: "image/png", minBytes: 1000 },
+  { path: "/images/semester-flow-board.webp", contentType: "image/webp", minBytes: 1000 },
 ];
 
 const headerChecks = [
@@ -158,12 +166,37 @@ async function requestHeaders(check) {
   };
 }
 
+async function requestAsset(check) {
+  const response = await fetch(`${baseUrl}${check.path}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+  const contentType = response.headers.get("content-type") ?? "";
+  const body = await response.arrayBuffer().catch(() => new ArrayBuffer(0));
+  const bytes = body.byteLength;
+
+  return {
+    path: check.path,
+    expected: `${check.contentType} >=${check.minBytes}B`,
+    actual: response.status,
+    ok:
+      response.status === 200 &&
+      contentType.toLowerCase().includes(check.contentType.toLowerCase()) &&
+      bytes >= check.minBytes,
+    contentType,
+    bytes,
+  };
+}
+
 const results = [];
 for (const check of checks) {
   results.push(await request(check));
 }
 for (const check of headerChecks) {
   results.push(await requestHeaders(check));
+}
+for (const check of assetChecks) {
+  results.push(await requestAsset(check));
 }
 results.push(await requestHealth());
 
@@ -175,6 +208,8 @@ for (const result of results) {
   const extra =
     result.path === "/api/health" || result.path === "/api/health?deep=1"
       ? ` status=${result.healthStatus} failedChecks=${result.failedChecks ?? "-"}`
+      : result.contentType
+        ? ` contentType=${result.contentType} bytes=${result.bytes}`
       : result.missingHeaders?.length
         ? ` missingHeaders=${result.missingHeaders.join(",")}`
       : "";

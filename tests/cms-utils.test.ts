@@ -487,12 +487,13 @@ test("admin email notification avoids implicit recipients and applicant PII", ()
   const email = buildAdminEmail({ generation: 9 });
   const testName = ["홍", "길동"].join("");
   const testStudentId = ["2021", "123456"].join("");
+  const testPhone = ["010", "1234", "5678"].join("");
 
   assert.equal(email.subject, "[금은동] 새로운 지원서 접수");
   assert.equal(email.subject.includes(testName), false);
   assert.equal(email.subject.includes(testStudentId), false);
   assert.equal(email.text.includes(testName), false);
   assert.equal(email.text.includes(testStudentId), false);
-  assert.equal(email.text.includes("01012345678"), false);
+  assert.equal(email.text.includes(testPhone), false);
   assert.match(email.text, /9기/);
 });
