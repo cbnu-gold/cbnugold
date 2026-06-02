@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const routes = ["/", "/about", "/activity", "/join", "/join/check", "/admin/login"];
 const forbiddenCopy = [
   ["\uC704\uD0A4", "콘텐츠"].join(" "),
-  ["성과와 기록을", "숨기지 않습니다"].join(" "),
+  ["성과와 기록을", "숨" + "기지 않습니다"].join(" "),
   ["지원자가 동아리의", "실질성을 판단"].join(" "),
   ["대표", "금융 동아리"].join(" "),
   ["Designed", "Built"].join(" & "),

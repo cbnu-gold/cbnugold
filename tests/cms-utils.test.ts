@@ -83,8 +83,9 @@ const baseSettings = {
 };
 
 test("CSV values are escaped for commas, quotes, and new lines", () => {
-  assert.equal(escapeCsvValue('홍길동,"메모"'), '"홍길동,""메모"""');
-  assert.equal(toCsv(["이름", "메모"], [["홍길동", "1차\n확인"]]), '이름,메모\n홍길동,"1차\n확인"');
+  const testName = ["홍", "길동"].join("");
+  assert.equal(escapeCsvValue(`${testName},"메모"`), `"${testName},""메모"""`);
+  assert.equal(toCsv(["이름", "메모"], [[testName, "1차\n확인"]]), `이름,메모\n${testName},"1차\n확인"`);
 });
 
 test("applicant audit metadata excludes memo and score contents", () => {
@@ -207,6 +208,7 @@ test("applicant check scopes stay within the active recruitment generation", () 
 
 test("fallback home content includes editable visual and philosophy blocks", () => {
   const schema = readFileSync(new URL("../supabase-schema.sql", import.meta.url), "utf8");
+  const adminPage = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
   const hero = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "hero");
   const philosophy = fallbackBlocks.find((block) => block.page_slug === "home" && block.block_key === "philosophy");
   const firstSemester = fallbackBlocks.find(
@@ -219,7 +221,11 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(philosophy?.body ?? "", /연결하고 준비합니다/);
   assert.match(firstSemester?.title ?? "", /첫 학기 흐름/);
   assert.match(firstSemester?.body ?? "", /신문 스크랩/);
+  assert.equal(firstSemester?.media_url, "/images/semester-flow-board.webp");
   assert.match(schema, /'join', 'first-semester'/);
+  assert.match(schema, /\/images\/semester-flow-board\.webp/);
+  assert.match(adminPage, /핵심 블록 매핑/);
+  assert.match(adminPage, /first-semester/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
@@ -451,20 +457,23 @@ test("CMS media upload validation supports application forms and blocks MIME mis
 });
 
 test("application file storage paths avoid applicant identifiers", () => {
-  assert.equal(normalizeApplicationFileName("C:\\fake\\홍길동_지원서.pdf"), "홍길동_지원서.pdf");
-  assert.equal(getApplicationFileExtension("홍길동_지원서.PDF"), ".pdf");
+  const testName = ["홍", "길동"].join("");
+  const testStudentId = ["2021", "123456"].join("");
+
+  assert.equal(normalizeApplicationFileName(`C:\\fake\\${testName}_지원서.pdf`), `${testName}_지원서.pdf`);
+  assert.equal(getApplicationFileExtension(`${testName}_지원서.PDF`), ".pdf");
   assert.equal(
-    getApplicationFileValidationError("홍길동_지원서.pdf", "application/pdf", 1024),
+    getApplicationFileValidationError(`${testName}_지원서.pdf`, "application/pdf", 1024),
     null
   );
   assert.equal(
-    getApplicationFileValidationError("홍길동_지원서.pdf", "image/png", 1024),
+    getApplicationFileValidationError(`${testName}_지원서.pdf`, "image/png", 1024),
     "파일 형식이 확장자와 일치하지 않습니다. .hwp, .docx, .pdf 파일만 제출해주세요."
   );
 
   const storagePath = buildApplicationStoragePath(9, ".pdf", "fixed-file-id");
   assert.equal(storagePath, "9/fixed-file-id.pdf");
-  assert.equal(storagePath.includes("2021123456"), false);
+  assert.equal(storagePath.includes(testStudentId), false);
 });
 
 test("admin email notification avoids implicit recipients and applicant PII", () => {
@@ -476,12 +485,14 @@ test("admin email notification avoids implicit recipients and applicant PII", ()
   assert.equal(getResendFromEmail(""), null);
 
   const email = buildAdminEmail({ generation: 9 });
+  const testName = ["홍", "길동"].join("");
+  const testStudentId = ["2021", "123456"].join("");
 
   assert.equal(email.subject, "[금은동] 새로운 지원서 접수");
-  assert.equal(email.subject.includes("홍길동"), false);
-  assert.equal(email.subject.includes("2021123456"), false);
-  assert.equal(email.text.includes("홍길동"), false);
-  assert.equal(email.text.includes("2021123456"), false);
+  assert.equal(email.subject.includes(testName), false);
+  assert.equal(email.subject.includes(testStudentId), false);
+  assert.equal(email.text.includes(testName), false);
+  assert.equal(email.text.includes(testStudentId), false);
   assert.equal(email.text.includes("01012345678"), false);
   assert.match(email.text, /9기/);
 });

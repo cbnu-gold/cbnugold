@@ -29,6 +29,7 @@ export default async function JoinPage() {
     (block) => block.page_slug === "join" && block.block_key === "first-semester"
   );
   const firstSemesterItems = getFirstSemesterItems(firstSemesterBlock?.body);
+  const firstSemesterMediaUrl = firstSemesterBlock?.media_url ?? "/images/semester-flow-board.webp";
 
   const steps = [
     ["서류 접수", `${formatKoreanDateTime(data.recruitment.start_at)} ~ ${formatKoreanDateTime(data.recruitment.end_at)}`],
@@ -135,15 +136,23 @@ export default async function JoinPage() {
               <ArrowRight className="h-4 w-4" />
             </a>
           </div>
-          <div className="mt-5 grid gap-3 md:grid-cols-3">
-            {firstSemesterItems.map((item, index) => (
-              <ActivityFlowCard
-                key={item.title}
-                index={index}
-                title={item.title}
-                description={item.description}
-              />
-            ))}
+          <div className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
+            <div
+              aria-label="금은동 첫 학기 활동 흐름 보드"
+              className="min-h-64 rounded-lg border border-ink/10 bg-marble-light bg-cover bg-center shadow-[0_18px_45px_-34px_rgba(14,20,32,0.45)] sm:min-h-80 lg:min-h-full"
+              role="img"
+              style={{ backgroundImage: `url(${JSON.stringify(firstSemesterMediaUrl)})` }}
+            />
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {firstSemesterItems.map((item, index) => (
+                <ActivityFlowCard
+                  key={item.title}
+                  index={index}
+                  title={item.title}
+                  description={item.description}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -164,7 +173,6 @@ export default async function JoinPage() {
     </div>
   );
 }
-
 const defaultFirstSemesterItems = [
   {
     title: "첫 모임",

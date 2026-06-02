@@ -149,6 +149,16 @@ const adminRoleOptions = [
   { value: "viewer", label: "조회자" },
 ];
 
+const blockGuideItems = [
+  { page: "home", key: "hero", label: "홈 첫 화면", note: "제목, 설명, CTA, 키비주얼" },
+  { page: "home", key: "philosophy", label: "홈 운영 철학", note: "제목: 설명 형식, 최대 3줄" },
+  { page: "home", key: "proof", label: "홈 2025년 성과", note: "성과 목록 섹션 안내" },
+  { page: "join", key: "first-semester", label: "지원 첫 학기 흐름", note: "합류 후 활동 순서 3단계" },
+  { page: "about", key: "intro", label: "소개 상단 문구", note: "동아리 소개 첫 문단" },
+  { page: "about", key: "partners", label: "소개 협력 정보", note: "소속 및 협력 안내" },
+  { page: "activity", key: "intro", label: "활동 상단 문구", note: "정기·특별 활동 소개" },
+];
+
 function joinList(value: string[] | null | undefined) {
   return (value ?? []).join("\n");
 }
@@ -967,6 +977,51 @@ export default function AdminPage() {
 
           {tab === "content" && (
             <section className="grid gap-5">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 className="text-lg font-bold">핵심 블록 매핑</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  공개 화면에 연결된 주요 콘텐츠 블록입니다. 누락이면 `supabase-schema.sql`을 재적용하거나 블록을 추가하세요.
+                </p>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {blockGuideItems.map((guide) => {
+                    const block = state.blocks.find(
+                      (item) => item.page_slug === guide.page && item.block_key === guide.key
+                    );
+                    const statusLabel = block
+                      ? contentStatusOptions.find((option) => option.value === block.status)?.label ?? block.status
+                      : "누락";
+
+                    return (
+                      <div
+                        key={`${guide.page}/${guide.key}`}
+                        className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-slate-950">{guide.label}</p>
+                            <p className="mt-1 font-mono text-xs text-slate-500">
+                              {guide.page}/{guide.key}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              block?.status === "published"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : block
+                                  ? "bg-amber-50 text-amber-700"
+                                  : "bg-red-50 text-red-700"
+                            }`}
+                          >
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">{guide.note}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-bold">사이트 기본 설정</h2>
                 <p className="mt-1 text-sm text-slate-500">헤더, 푸터, 홈 CTA, 지원 페이지 문의 채널에 공통 적용됩니다.</p>

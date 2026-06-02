@@ -557,6 +557,10 @@ INSERT INTO content_blocks (page_slug, block_key, title, subtitle, body, cta_lab
 ON CONFLICT (page_slug, block_key) DO UPDATE
 SET title = EXCLUDED.title, subtitle = EXCLUDED.subtitle, body = EXCLUDED.body, cta_label = EXCLUDED.cta_label, cta_href = EXCLUDED.cta_href, media_url = COALESCE(content_blocks.media_url, EXCLUDED.media_url), status = EXCLUDED.status;
 
+UPDATE content_blocks
+SET media_url = COALESCE(media_url, '/images/semester-flow-board.webp')
+WHERE page_slug = 'join' AND block_key = 'first-semester';
+
 INSERT INTO activity_items (title, subtitle, description, category, tags, status, sort_order) VALUES
 ('신문 스크랩', '금융 시사 분석', '매주 금융 신문을 스크랩하고 조별 토의를 통해 시장 흐름을 읽는 훈련을 진행합니다.', 'regular', ARRAY['시사', '발표', '토의'], 'published', 1),
 ('리포트 분석', '리서치 보고서 심층분석', '증권사와 전문기관 리포트를 읽고 산업·기업·직무 관점에서 핵심 논리를 정리합니다.', 'regular', ARRAY['리서치', '직무', '분석'], 'published', 2),

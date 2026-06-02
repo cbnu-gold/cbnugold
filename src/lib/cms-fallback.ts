@@ -143,7 +143,7 @@ export const fallbackBlocks: ContentBlock[] = [
     ].join("\n"),
     cta_label: null,
     cta_href: null,
-    media_url: null,
+    media_url: "/images/semester-flow-board.webp",
     status: "published",
     sort_order: 6,
   },
