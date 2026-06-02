@@ -12,7 +12,7 @@ const forbiddenCopy = [
 ];
 
 for (const route of routes) {
-  test(`${route} renders without overflow or rejected copy`, async ({ page }, testInfo) => {
+  test(`${route} renders without overflow or rejected copy`, async ({ page, request }, testInfo) => {
     const consoleMessages: string[] = [];
     page.on("console", (message) => {
       if (["error", "warning"].includes(message.type())) {
@@ -36,6 +36,20 @@ for (const route of routes) {
         width: img.naturalWidth,
         height: img.naturalHeight,
       })),
+      backgroundImages: Array.from(document.querySelectorAll("*")).reduce<string[]>((urls, element) => {
+        const image = getComputedStyle(element).backgroundImage;
+        for (const match of image.matchAll(/url\(["']?([^"')]+)["']?\)/g)) {
+          const rawUrl = match[1];
+          if (rawUrl.startsWith("#") || rawUrl.startsWith("data:")) continue;
+          if (!/\.(png|jpe?g|webp|gif|svg|avif)(\?|#|$)/i.test(rawUrl)) continue;
+          try {
+            urls.push(new URL(rawUrl, location.href).href);
+          } catch {
+            // Ignore non-URL CSS fragments.
+          }
+        }
+        return urls;
+      }, []),
     }));
 
     expect(metrics.h1.length, `${route} h1`).toBeGreaterThan(0);
@@ -47,6 +61,19 @@ for (const route of routes) {
 
     for (const image of metrics.images) {
       expect(image.width, `${route} image ${image.alt}`).toBeGreaterThan(0);
+    }
+
+    const sameOriginBackgrounds = Array.from(new Set(metrics.backgroundImages)).filter(
+      (imageUrl) => new URL(imageUrl).origin === new URL(page.url()).origin
+    );
+    if (route === "/" || route === "/join") {
+      expect(sameOriginBackgrounds.length, `${route} background images`).toBeGreaterThan(0);
+    }
+
+    for (const imageUrl of sameOriginBackgrounds) {
+      const imageResponse = await request.get(imageUrl);
+      expect(imageResponse.status(), `${route} background image ${imageUrl}`).toBeLessThan(400);
+      expect((await imageResponse.body()).byteLength, `${route} background image ${imageUrl}`).toBeGreaterThan(0);
     }
 
     const relevantConsole = consoleMessages.filter((entry) => !entry.includes("Supabase에 연결할 수 없습니다"));
