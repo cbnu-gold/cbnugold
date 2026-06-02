@@ -305,7 +305,7 @@ function HeroVisual({ src }: { src: string }) {
       aria-label="금은동 금융권 리크루팅 키비주얼"
       className="relative aspect-[16/9] border-b border-ink/10 bg-cover bg-center"
       style={{
-        backgroundImage: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(14,20,32,0.06)), url("${src}")`,
+        backgroundImage: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(14,20,32,0.06)), url(${JSON.stringify(src)})`,
       }}
     />
   );
