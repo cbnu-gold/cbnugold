@@ -1,0 +1,67 @@
+# 단체형 CMS 홈페이지 확장 Blueprint
+
+이 문서는 현재 금은동 홈페이지를 다른 동아리, 학회, 연구회, 소모임, 프로젝트 팀, 비영리 단체 홈페이지로 확장할 때의 기준입니다.
+
+## 1. 제품 기준
+
+- 공개 페이지는 단체의 정체성, 활동, 일정, 성과, 지원 또는 문의 흐름을 빠르게 이해시키는 데 집중합니다.
+- 운영자는 코드 수정 없이 반복 콘텐츠, 모집 상태, 지원자, 파일, FAQ, 성과, 공지성 문구를 웹에서 관리합니다.
+- 지원서, 개인정보, 감사 로그, 관리자 계정은 공개 콘텐츠와 권한 경계를 분리합니다.
+- 새 단체를 만들 때는 데이터와 브랜드 설정을 바꾸고, 핵심 기능은 유지하는 방식을 기본으로 합니다.
+
+## 2. 재사용 모듈
+
+| 모듈 | 관리 대상 | 현재 구현 |
+| --- | --- | --- |
+| 정체성/브랜드 | 사이트명, 단체명, 홈 문구, 로고, 공유 이미지 | `site_settings`, `content_pages`, `media_assets` |
+| 공개 콘텐츠 | 소개, 활동, 성과, 이력, FAQ | `content_blocks`, `activity_items`, `achievement_items`, `history_entries`, `faq_items` |
+| 모집/신청 | 모집 기수, 일정, 지원 자격, 지원서 양식, 접수 확인 | `recruitment_cycles`, `applicants`, `/api/apply`, `/join` |
+| 운영 통제 | 관리자 권한, 감사 로그, 헬스체크, 파일 보호 | `admin_profiles`, `audit_logs`, `/api/health`, RLS |
+| 미디어 관리 | 이미지, 문서, 지원서 양식 | `cms-media` public bucket, `applications` private bucket |
+
+## 3. 확장 원칙
+
+- 단체별로 달라지는 값은 DB seed, CMS 설정, 이미지 자산으로 분리합니다.
+- 공개 페이지 문구는 확인 가능한 사실과 절차만 사용합니다.
+- 지원/신청 기능이 없는 단체는 `recruitment_cycles`와 `applicants`를 숨기고, 문의 CTA만 사용합니다.
+- 성과가 없는 단체는 성과 영역을 비우거나 활동 이력 중심으로 대체합니다.
+- 공식 사진이 없으면 공식 사진처럼 보이는 이미지를 생성하지 않습니다.
+- DB 마이그레이션은 기존 금은동 데이터 보존을 전제로 additive 변경을 우선합니다.
+
+## 4. 다른 단체로 복제할 때 바꿀 값
+
+1. `site_settings.value`
+   - `site_title`
+   - `club_name`
+   - `hero_title`
+   - `hero_subtitle`
+   - CTA와 연락처
+2. `content_pages`
+   - 페이지 제목과 설명
+3. `content_blocks`
+   - `home/hero`, `home/philosophy`, `about/intro`, `activity/intro`
+4. 반복 콘텐츠
+   - 활동, 성과, 이력, FAQ
+5. 모집 구조
+   - 모집 기수, 일정, 지원 자격, 지원서 양식, 개인정보 보유 기간
+6. 브랜드 자산
+   - 로고, 공유 이미지, 홈 키비주얼, 지원 안내 이미지
+
+## 5. 다음 단계 후보
+
+- 단체 유형 프리셋: 동아리, 학회, 연구회, 행사, 포트폴리오 팀.
+- 테마 토큰 확장: 기존 `marble / gold / ink` 외에 단체별 색상 세트를 안전하게 교체.
+- 관리자 데이터 내보내기/가져오기: 설정과 콘텐츠를 JSON으로 백업하고 신규 단체에 적용.
+- 콘텐츠 변경 미리보기: `draft` 상태 콘텐츠를 관리자만 preview.
+- 폼 빌더: 지원서 항목을 단체별로 조정하되 개인정보 처리와 파일 보호 정책은 유지.
+
+## 6. 품질 게이트
+
+- `npm run verify`
+- `npm run test:e2e`
+- `npm run check:ops -- <deployment-url>`
+- `/wiki` 404 유지 여부
+- 관리자 API 비인증 401 여부
+- 지원서 파일 public URL 미노출 여부
+- 미디어 삭제 시 사용 중인 공개 콘텐츠 참조 차단 여부
+- 자평 문구, 허위 성과, 출처 없는 사진 미사용 여부

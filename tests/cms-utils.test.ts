@@ -44,6 +44,7 @@ import {
   collectCmsMediaReferences,
   isCmsMediaReferenceValue,
 } from "../src/lib/media-references";
+import { organizationSiteModules, organizationSiteQualityGates } from "../src/lib/organization-site-model";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -544,6 +545,23 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.match(adminPage, /whitespace-pre-line/);
   assert.match(mediaDeleteRoute, /collectCmsMediaReferences/);
   assert.match(mediaDeleteRoute, /status: 409/);
+});
+
+test("organization site blueprint keeps reusable CMS operating modules explicit", () => {
+  const adminPage = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
+  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const blueprint = readFileSync(new URL("../docs/ORG_SITE_PLATFORM_BLUEPRINT.md", import.meta.url), "utf8");
+
+  assert.deepEqual(
+    organizationSiteModules.map((item) => item.key),
+    ["identity", "content", "recruiting", "operations"]
+  );
+  assert.equal(organizationSiteQualityGates.length >= 5, true);
+  assert.match(adminPage, /organizationSiteModules/);
+  assert.match(adminPage, /단체형 홈페이지 운영 모델/);
+  assert.match(readme, /ORG_SITE_PLATFORM_BLUEPRINT/);
+  assert.match(blueprint, /단체형 CMS 홈페이지 확장 Blueprint/);
+  assert.match(blueprint, /지원서 파일 public URL 미노출/);
 });
 
 test("CMS media delete guard detects public content references", () => {

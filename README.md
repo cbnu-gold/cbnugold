@@ -45,6 +45,7 @@ Required storage buckets created by the schema:
 
 Admin accounts must exist in both Supabase Auth and the `admin_profiles` table.
 See [`docs/ADMIN_CMS_RUNBOOK.md`](docs/ADMIN_CMS_RUNBOOK.md) for the operating checklist.
+See [`docs/ORG_SITE_PLATFORM_BLUEPRINT.md`](docs/ORG_SITE_PLATFORM_BLUEPRINT.md) for the reusable organization-site blueprint.
 
 ## Verification
 

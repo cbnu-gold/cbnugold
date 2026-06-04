@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
+import { organizationSiteModules, organizationSiteQualityGates } from "@/lib/organization-site-model";
 import {
   canManageAdmins as roleCanManageAdmins,
   canManageApplicants as roleCanManageApplicants,
@@ -899,6 +900,32 @@ export default function AdminPage() {
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">모든 주요 수정은 audit_logs에 기록됩니다.</p>
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">활성 소유자 계정은 최소 1개 이상 유지됩니다.</p>
                 </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-lg font-bold">단체형 홈페이지 운영 모델</h2>
+                  <p className="text-sm leading-6 text-slate-500">
+                    금은동에 적용된 CMS 구조를 다른 단체 홈페이지에도 재사용할 때 기준이 되는 운영 단위입니다.
+                  </p>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {organizationSiteModules.map((item) => (
+                    <article key={item.key} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-sm font-bold text-slate-950">{item.title}</p>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">{item.scope}</p>
+                      <p className="mt-3 border-t border-slate-200 pt-3 text-[11px] font-semibold text-slate-500">
+                        {item.adminSurface}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+                <ul className="mt-4 grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+                  {organizationSiteQualityGates.map((item) => (
+                    <li key={item} className="rounded-lg bg-white px-3 py-2 ring-1 ring-slate-200">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </section>
           )}
