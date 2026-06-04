@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
+import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import {
   canManageAdmins as roleCanManageAdmins,
   canManageApplicants as roleCanManageApplicants,
@@ -613,8 +614,10 @@ export default function AdminPage() {
     const link = document.createElement("a");
     link.href = url;
     link.download = `금은동_지원자_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
   async function uploadMedia() {
@@ -950,6 +953,8 @@ export default function AdminPage() {
                             type="number"
                             min={0}
                             max={100}
+                            step={1}
+                            inputMode="numeric"
                             value={applicant.review_score ?? ""}
                             disabled={!canHandleApplicants}
                             onBlur={(event) =>
@@ -974,6 +979,7 @@ export default function AdminPage() {
                           <textarea
                             value={applicant.admin_note ?? ""}
                             rows={2}
+                            maxLength={applicantAdminNoteMaxLength}
                             disabled={!canHandleApplicants}
                             onBlur={(event) => updateApplicant(applicant.id, { admin_note: event.target.value })}
                             onChange={(event) =>
@@ -986,6 +992,9 @@ export default function AdminPage() {
                             }
                             className="w-52 rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           />
+                          <p className="mt-1 text-[11px] text-slate-400">
+                            {(applicant.admin_note ?? "").length}/{applicantAdminNoteMaxLength}
+                          </p>
                         </td>
                         <td className="py-3 pr-3">
                           {applicant.signed_url ? (
@@ -1555,6 +1564,8 @@ function ApplicantMobileCard({
             type="number"
             min={0}
             max={100}
+            step={1}
+            inputMode="numeric"
             value={applicant.review_score ?? ""}
             disabled={disabled}
             onBlur={(event) =>
@@ -1576,11 +1587,15 @@ function ApplicantMobileCard({
           <textarea
             value={applicant.admin_note ?? ""}
             rows={3}
+            maxLength={applicantAdminNoteMaxLength}
             disabled={disabled}
             onBlur={(event) => onUpdate(applicant.id, { admin_note: event.target.value })}
             onChange={(event) => onLocalChange(applicant.id, { admin_note: event.target.value })}
             className="rounded-lg border border-slate-200 px-3 py-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
           />
+          <span className="text-right text-xs text-slate-400">
+            {(applicant.admin_note ?? "").length}/{applicantAdminNoteMaxLength}
+          </span>
         </label>
       </div>
     </article>

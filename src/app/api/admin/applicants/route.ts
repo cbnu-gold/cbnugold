@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { forbidden, verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
 import { canManageApplicants } from "@/lib/admin-permissions";
+import { validateAndNormalizeApplicantPatch } from "@/lib/applicant-admin";
 import { buildApplicantAuditMetadata } from "@/lib/applicant-audit";
 import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
-
-const applicantStatuses = ["pending", "reviewed", "interview", "accepted", "rejected"] as const;
 
 function extractStoragePath(fileUrl: string) {
   if (!fileUrl) return null;
@@ -60,32 +59,15 @@ export async function PATCH(request: NextRequest) {
 
   const bodyResult = await readJsonObject(request, "지원자 수정 요청 형식이 올바르지 않습니다");
   if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
-  const { id, status, admin_note, review_score } = bodyResult.data ?? {};
+  const { id, ...patchInput } = bodyResult.data ?? {};
   if (!id) return NextResponse.json({ error: "지원자 id가 필요합니다" }, { status: 400 });
   if (typeof id !== "string") {
     return NextResponse.json({ error: "지원자 id 형식이 올바르지 않습니다" }, { status: 400 });
   }
 
-  const update: Record<string, unknown> = {};
-  if (status) {
-    if (typeof status !== "string" || !applicantStatuses.includes(status as (typeof applicantStatuses)[number])) {
-      return NextResponse.json({ error: "지원자 상태값이 올바르지 않습니다" }, { status: 400 });
-    }
-    update.status = status;
-  }
-  if (typeof admin_note === "string") update.admin_note = admin_note;
-  if (review_score === null || typeof review_score === "number") {
-    if (
-      typeof review_score === "number" &&
-      (!Number.isInteger(review_score) || review_score < 0 || review_score > 100)
-    ) {
-      return NextResponse.json({ error: "점수는 0~100 사이의 정수여야 합니다" }, { status: 400 });
-    }
-    update.review_score = review_score;
-  }
-  if (Object.keys(update).length === 0) {
-    return NextResponse.json({ error: "수정할 값이 필요합니다" }, { status: 400 });
-  }
+  const result = validateAndNormalizeApplicantPatch(patchInput);
+  if (result.error !== null) return NextResponse.json({ error: result.error }, { status: 400 });
+  const update = result.update;
 
   const supabase = createServerClient();
   const { data, error } = await supabase

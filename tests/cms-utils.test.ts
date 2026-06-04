@@ -29,6 +29,10 @@ import {
   patchRemovesActiveOwner,
   wouldLeaveNoActiveOwner,
 } from "../src/lib/admin-safety";
+import {
+  applicantAdminNoteMaxLength,
+  validateAndNormalizeApplicantPatch,
+} from "../src/lib/applicant-admin";
 import { buildApplicantAuditMetadata } from "../src/lib/applicant-audit";
 import {
   getOptionalCmsHrefError,
@@ -102,6 +106,35 @@ test("applicant audit metadata excludes memo and score contents", () => {
   });
   assert.equal(JSON.stringify(metadata).includes("면접 평가"), false);
   assert.equal(JSON.stringify(metadata).includes("92"), false);
+});
+
+test("applicant admin patch validation bounds sensitive review fields", () => {
+  assert.deepEqual(
+    validateAndNormalizeApplicantPatch({
+      status: "interview",
+      admin_note: "  확인 필요  ",
+      review_score: 88,
+    }),
+    {
+      error: null,
+      update: {
+        status: "interview",
+        admin_note: "확인 필요",
+        review_score: 88,
+      },
+    }
+  );
+
+  assert.deepEqual(validateAndNormalizeApplicantPatch({ admin_note: "   " }), {
+    error: null,
+    update: { admin_note: null },
+  });
+  assert.equal(
+    validateAndNormalizeApplicantPatch({ admin_note: "a".repeat(applicantAdminNoteMaxLength + 1) }).error,
+    `관리자 메모는 ${applicantAdminNoteMaxLength}자 이하여야 합니다`
+  );
+  assert.equal(validateAndNormalizeApplicantPatch({ review_score: 101 }).error, "점수는 0~100 사이의 정수여야 합니다");
+  assert.equal(validateAndNormalizeApplicantPatch({ status: "hold" }).error, "지원자 상태값이 올바르지 않습니다");
 });
 
 test("recruitment is open only when published, enabled, and before deadline", () => {
