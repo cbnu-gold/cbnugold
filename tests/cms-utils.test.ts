@@ -40,6 +40,11 @@ import {
   normalizeOptionalCmsHref,
 } from "../src/lib/cms-links";
 import {
+  buildCmsMediaReferenceCandidates,
+  collectCmsMediaReferences,
+  isCmsMediaReferenceValue,
+} from "../src/lib/media-references";
+import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
 } from "../src/lib/cms-media-files";
@@ -523,6 +528,7 @@ test("request json helper rejects malformed or non-object bodies", async () => {
 
 test("admin media records are mutated only through dedicated media APIs", () => {
   const adminPage = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
+  const mediaDeleteRoute = readFileSync(new URL("../src/app/api/admin/media/[id]/route.ts", import.meta.url), "utf8");
 
   assert.equal(
     getCmsResourceMutationBlockMessage("media"),
@@ -534,6 +540,63 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.match(adminPage, /getCmsMediaUploadValidationError/);
   assert.match(adminPage, /파일 해제/);
   assert.match(adminPage, /application\/octet-stream/);
+  assert.match(adminPage, /getAdminApiErrorMessage/);
+  assert.match(adminPage, /whitespace-pre-line/);
+  assert.match(mediaDeleteRoute, /collectCmsMediaReferences/);
+  assert.match(mediaDeleteRoute, /status: 409/);
+});
+
+test("CMS media delete guard detects public content references", () => {
+  const target = {
+    bucket: cmsMediaBucket,
+    path: "2026-board.webp",
+    public_url: "https://project.supabase.co/storage/v1/object/public/cms-media/2026-board.webp",
+  };
+
+  assert.equal(buildCmsMediaReferenceCandidates(target).includes(target.public_url), true);
+  assert.equal(
+    isCmsMediaReferenceValue(
+      "https://project.supabase.co/storage/v1/object/public/cms-media/2026-board.webp?download=1",
+      target
+    ),
+    true
+  );
+  assert.equal(isCmsMediaReferenceValue("https://example.com/2026-board.webp", target), false);
+
+  const references = collectCmsMediaReferences(target, {
+    blocks: [
+      {
+        page_slug: "home",
+        block_key: "hero",
+        title: "Hero",
+        status: "published",
+        media_url: target.public_url,
+      },
+    ],
+    recruitment: [
+      {
+        generation: 9,
+        title: "9기 모집",
+        status: "published",
+        docx_url: target.public_url,
+        hwp_url: null,
+      },
+    ],
+    settings: [
+      {
+        key: "homepage",
+        status: "published",
+        value: {
+          shareImage: target.public_url,
+        },
+      },
+    ],
+  });
+
+  assert.deepEqual(
+    references.map((reference) => `${reference.source}:${reference.field}`),
+    ["content_blocks:media_url", "recruitment_cycles:docx_url", "site_settings:homepage.shareImage"]
+  );
 });
 
 test("CMS media upload validation supports application forms and blocks MIME mismatch", () => {

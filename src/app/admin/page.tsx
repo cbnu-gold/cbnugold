@@ -221,6 +221,28 @@ function getActionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function getAdminApiErrorMessage(data: unknown, fallback: string) {
+  if (!data || typeof data !== "object") return fallback;
+
+  const body = data as { error?: unknown; references?: unknown };
+  const message = typeof body.error === "string" && body.error.trim() ? body.error : fallback;
+  if (!Array.isArray(body.references) || body.references.length === 0) return message;
+
+  const references = body.references
+    .map((reference) => {
+      if (!reference || typeof reference !== "object") return null;
+      const item = reference as { label?: unknown; field?: unknown; status?: unknown };
+      const label = typeof item.label === "string" && item.label.trim() ? item.label.trim() : "연결 항목";
+      const field = typeof item.field === "string" && item.field.trim() ? item.field.trim() : "URL";
+      const status = typeof item.status === "string" && item.status.trim() ? `, ${item.status.trim()}` : "";
+      return `- ${label} (${field}${status})`;
+    })
+    .filter(Boolean)
+    .slice(0, 5);
+
+  return references.length > 0 ? `${message}\n${references.join("\n")}` : message;
+}
+
 function Field({
   label,
   value,
@@ -346,7 +368,7 @@ export default function AdminPage() {
     });
 
     const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error ?? "요청 처리에 실패했습니다");
+    if (!response.ok) throw new Error(getAdminApiErrorMessage(data, "요청 처리에 실패했습니다"));
     return data;
   }
 
@@ -768,7 +790,7 @@ export default function AdminPage() {
         <main className="grid gap-5">
           {(message || error) && (
             <div
-              className={`rounded-xl border px-4 py-3 text-sm ${
+              className={`whitespace-pre-line rounded-xl border px-4 py-3 text-sm ${
                 error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-700"
               }`}
             >

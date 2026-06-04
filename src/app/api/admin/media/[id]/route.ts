@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
 import { cmsMediaBucket, isCmsMediaBucket } from "@/lib/admin-media";
+import { collectCmsMediaReferences } from "@/lib/media-references";
 import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 
@@ -68,13 +69,47 @@ export async function DELETE(
   const supabase = createServerClient();
   const { data: asset, error: readError } = await supabase
     .from("media_assets")
-    .select("id,bucket,path")
+    .select("id,bucket,path,public_url")
     .eq("id", id)
     .single();
 
   if (readError) return NextResponse.json({ error: readError.message }, { status: 404 });
   if (!isCmsMediaBucket(asset.bucket)) {
     return NextResponse.json({ error: "CMS 미디어 버킷의 파일만 삭제할 수 있습니다" }, { status: 400 });
+  }
+
+  const [blocksResult, recruitmentResult, settingsResult] = await Promise.all([
+    supabase.from("content_blocks").select("page_slug,block_key,title,status,media_url"),
+    supabase.from("recruitment_cycles").select("generation,title,status,docx_url,hwp_url"),
+    supabase.from("site_settings").select("key,status,value"),
+  ]);
+
+  const referenceReadError = blocksResult.error ?? recruitmentResult.error ?? settingsResult.error;
+  if (referenceReadError) {
+    return NextResponse.json({ error: referenceReadError.message }, { status: 500 });
+  }
+
+  const references = collectCmsMediaReferences(
+    {
+      bucket: asset.bucket,
+      path: asset.path,
+      public_url: asset.public_url,
+    },
+    {
+      blocks: blocksResult.data,
+      recruitment: recruitmentResult.data,
+      settings: settingsResult.data,
+    }
+  );
+
+  if (references.length > 0) {
+    return NextResponse.json(
+      {
+        error: "공개 콘텐츠 또는 모집 설정에서 사용 중인 미디어입니다. 연결된 항목을 먼저 변경한 뒤 삭제해주세요.",
+        references: references.slice(0, 10),
+      },
+      { status: 409 }
+    );
   }
 
   const { error: storageError } = await supabase.storage
