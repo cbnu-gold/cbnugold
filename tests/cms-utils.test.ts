@@ -522,6 +522,8 @@ test("request json helper rejects malformed or non-object bodies", async () => {
 });
 
 test("admin media records are mutated only through dedicated media APIs", () => {
+  const adminPage = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
+
   assert.equal(
     getCmsResourceMutationBlockMessage("media"),
     "미디어는 전용 업로드/수정 API에서만 변경할 수 있습니다"
@@ -529,6 +531,9 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.equal(getCmsResourceMutationBlockMessage("blocks"), null);
   assert.equal(isCmsMediaBucket(cmsMediaBucket), true);
   assert.equal(isCmsMediaBucket("applications"), false);
+  assert.match(adminPage, /getCmsMediaUploadValidationError/);
+  assert.match(adminPage, /파일 해제/);
+  assert.match(adminPage, /application\/octet-stream/);
 });
 
 test("CMS media upload validation supports application forms and blocks MIME mismatch", () => {

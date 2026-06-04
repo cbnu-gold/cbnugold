@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
+import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import {
   canManageAdmins as roleCanManageAdmins,
   canManageApplicants as roleCanManageApplicants,
@@ -47,6 +48,7 @@ import {
   Upload,
   UserCog,
   Users,
+  X,
 } from "lucide-react";
 
 type Tab =
@@ -301,6 +303,12 @@ function AdminButton({
   );
 }
 
+function formatAdminFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [token, setToken] = useState("");
@@ -319,6 +327,8 @@ export default function AdminPage() {
   const [healthError, setHealthError] = useState("");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const uploadFileErrorId = useId();
 
   function getSupabase() {
     if (!supabaseRef.current) supabaseRef.current = createClient();
@@ -467,6 +477,9 @@ export default function AdminPage() {
   const canManageAdminAccounts = roleCanManageAdmins(role);
   const canReadAudit = roleCanViewAudit(role);
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
+  const uploadFileError = uploadFile
+    ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
+    : "";
   const visibleTabs = useMemo(
     () =>
       tabs.filter((item) => {
@@ -626,6 +639,11 @@ export default function AdminPage() {
       setError("업로드할 파일을 선택해주세요.");
       return;
     }
+    const fileError = getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size);
+    if (fileError) {
+      setError(fileError);
+      return;
+    }
     const formData = new FormData();
     formData.append("file", uploadFile);
     formData.append("alt", uploadAlt);
@@ -635,6 +653,7 @@ export default function AdminPage() {
     try {
       await adminFetch("/api/admin/media/upload", { method: "POST", body: formData });
       setUploadFile(null);
+      if (uploadInputRef.current) uploadInputRef.current.value = "";
       setUploadAlt("");
       setMessage("미디어를 업로드했습니다.");
       await loadAll(token);
@@ -643,6 +662,11 @@ export default function AdminPage() {
     } finally {
       setSaving("");
     }
+  }
+
+  function clearUploadFile() {
+    setUploadFile(null);
+    if (uploadInputRef.current) uploadInputRef.current.value = "";
   }
 
   async function updateMedia(id: string | undefined, values: Partial<MediaAsset>) {
@@ -1343,18 +1367,50 @@ export default function AdminPage() {
                 <label className="grid gap-1.5 text-sm">
                   <span className="font-medium text-slate-700">파일</span>
                   <input
+                    ref={uploadInputRef}
                     type="file"
-                    accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.hwp,image/png,image/jpeg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/x-hwp,application/haansofthwp"
-                    onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.hwp,image/png,image/jpeg,image/webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/x-hwp,application/haansofthwp,application/octet-stream"
+                    aria-describedby={uploadFileError ? uploadFileErrorId : undefined}
+                    onChange={(event) => {
+                      setUploadFile(event.target.files?.[0] ?? null);
+                      setMessage("");
+                      setError("");
+                    }}
+                    className={`rounded-lg border bg-white px-3 py-2 text-sm ${
+                      uploadFileError ? "border-red-300" : "border-slate-200"
+                    }`}
                   />
+                  <span className="text-xs text-slate-500">png, jpg, webp, pdf, docx, hwp · 최대 10MB</span>
                 </label>
                 <Field label="대체 텍스트/설명" value={uploadAlt} onChange={setUploadAlt} />
-                <AdminButton onClick={uploadMedia} disabled={!canWrite}>
+                <AdminButton onClick={uploadMedia} disabled={!canWrite || saving === "media" || Boolean(uploadFileError)}>
                   {saving === "media" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                   업로드
                 </AdminButton>
               </div>
+              {uploadFile && (
+                <div className="mt-3 flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-900">{uploadFile.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {formatAdminFileSize(uploadFile.size)} · {uploadFile.type || "MIME 없음"}
+                    </p>
+                    {uploadFileError && (
+                      <p id={uploadFileErrorId} className="mt-1 text-xs text-red-600" role="alert">
+                        {uploadFileError}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearUploadFile}
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:border-ink/20 hover:text-ink"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    파일 해제
+                  </button>
+                </div>
+              )}
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {state.media.map((item) => (
                   <div key={item.id} className="grid gap-4 rounded-lg border border-slate-200 p-4">
