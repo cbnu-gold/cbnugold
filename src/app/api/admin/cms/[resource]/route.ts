@@ -15,7 +15,11 @@ import {
 } from "@/lib/admin-safety";
 import { getOptionalCmsHrefError, normalizeOptionalCmsHref } from "@/lib/cms-links";
 import { validateAndNormalizeCmsResourcePayload } from "@/lib/cms-resource-validation";
-import { validateAndNormalizeRecruitmentPayload } from "@/lib/recruitment-admin";
+import {
+  recruitmentTimelineFieldKeys,
+  validateAndNormalizeRecruitmentPayload,
+  validateRecruitmentTimelinePatch,
+} from "@/lib/recruitment-admin";
 import { isRecord, readJsonObject } from "@/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import { createServerClient } from "@/lib/supabase-server";
@@ -152,6 +156,27 @@ function validatePayload(resource: Resource, payload: CmsPayload, mode: "insert"
   }
 
   return null;
+}
+
+async function validateRecruitmentTimelinePatchAgainstExisting(
+  supabase: SupabaseClient,
+  id: string | null,
+  payload: CmsPayload
+) {
+  if (!id) return null;
+
+  if (!recruitmentTimelineFieldKeys.some((field) => field in payload)) return null;
+
+  const { data, error } = await supabase
+    .from("recruitment_cycles")
+    .select(recruitmentTimelineFieldKeys.join(","))
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) return error.message;
+  if (!data) return "모집 항목을 찾을 수 없습니다";
+
+  return validateRecruitmentTimelinePatch(data as unknown as CmsPayload, payload);
 }
 
 async function getAdminProfile(
@@ -372,6 +397,10 @@ export async function PATCH(
   const payload = sanitizePayload(resource as Resource, values, admin.id, "update");
   const validationError = validatePayload(resource as Resource, payload, "update");
   if (validationError) return NextResponse.json({ error: validationError }, { status: 400 });
+  if (resource === "recruitment") {
+    const timelineError = await validateRecruitmentTimelinePatchAgainstExisting(supabase, targetId, payload);
+    if (timelineError) return NextResponse.json({ error: timelineError }, { status: 400 });
+  }
   if (resource === "admins" && targetId) {
     const adminProfileError = await validateAdminProfileUpdate(supabase, admin, targetId, payload);
     if (adminProfileError) return adminProfileError;

@@ -6,6 +6,8 @@ const dateFields = [
   { key: "final_result_at", label: "최종 발표" },
 ] as const;
 
+export const recruitmentTimelineFieldKeys = dateFields.map((field) => field.key);
+
 const textFields = [
   { key: "title", label: "모집 제목", maxLength: 120, required: true },
   { key: "meeting_time", label: "정규 활동", maxLength: 120, required: false },
@@ -94,4 +96,11 @@ export function validateAndNormalizeRecruitmentPayload(payload: RecruitmentPaylo
   }
 
   return null;
+}
+
+export function validateRecruitmentTimelinePatch(
+  existing: RecruitmentPayload,
+  patch: RecruitmentPayload
+) {
+  return validateAndNormalizeRecruitmentPayload({ ...existing, ...patch });
 }

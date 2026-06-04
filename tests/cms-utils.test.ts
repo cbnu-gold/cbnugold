@@ -45,7 +45,10 @@ import {
 } from "../src/lib/cms-media-files";
 import { validateAndNormalizeCmsResourcePayload } from "../src/lib/cms-resource-validation";
 import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
-import { validateAndNormalizeRecruitmentPayload } from "../src/lib/recruitment-admin";
+import {
+  validateAndNormalizeRecruitmentPayload,
+  validateRecruitmentTimelinePatch,
+} from "../src/lib/recruitment-admin";
 import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import { fallbackBlocks } from "../src/lib/cms-fallback";
@@ -420,6 +423,33 @@ test("recruitment admin validation rejects invalid schedule order", () => {
   assert.equal(
     validateAndNormalizeRecruitmentPayload(payload),
     "모집 마감 일시는 모집 시작 이후여야 합니다"
+  );
+});
+
+test("recruitment timeline patch validation compares against existing dates", () => {
+  assert.equal(
+    validateRecruitmentTimelinePatch(
+      {
+        start_at: "2026-02-10T00:00:00.000Z",
+        end_at: "2026-02-20T00:00:00.000Z",
+      },
+      {
+        end_at: "2026-02-01T00:00:00.000Z",
+      }
+    ),
+    "모집 마감 일시는 모집 시작 이후여야 합니다"
+  );
+  assert.equal(
+    validateRecruitmentTimelinePatch(
+      {
+        start_at: "2026-02-10T00:00:00.000Z",
+        end_at: "2026-02-20T00:00:00.000Z",
+      },
+      {
+        document_result_at: "2026-02-19T00:00:00.000Z",
+      }
+    ),
+    "서류 발표 일시는 모집 마감 이후여야 합니다"
   );
 });
 
