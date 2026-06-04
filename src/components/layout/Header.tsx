@@ -69,12 +69,13 @@ export function Header({ settings }: { settings: SiteSettingsValue }) {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <Image
-              src="/images/logo.png"
+              src="/images/logo.svg"
               alt={settings.site_title}
               width={120}
               height={37}
               className="h-8 w-auto"
               priority
+              unoptimized
             />
             <span className="hidden border-l border-ink/15 pl-3 text-[11px] font-medium text-ink/55 sm:block">
               Est. 2021

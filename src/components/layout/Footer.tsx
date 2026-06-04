@@ -20,11 +20,12 @@ export function Footer({ settings }: { settings: SiteSettingsValue }) {
           <div className="lg:col-span-5">
             <Link href="/" className="inline-block mb-5">
               <Image
-                src="/images/logo.png"
+                src="/images/logo.svg"
                 alt={settings.site_title}
                 width={120}
                 height={37}
                 className="h-9 w-auto"
+                unoptimized
               />
             </Link>
             <p className="text-base md:text-lg font-semibold text-ink leading-relaxed max-w-md mb-3">

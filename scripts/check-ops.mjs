@@ -77,6 +77,7 @@ const checks = [
 
 const assetChecks = [
   { path: "/images/logo.png", contentType: "image/png", minBytes: 1000 },
+  { path: "/images/logo.svg", contentType: "image/svg+xml", minBytes: 1000 },
   { path: "/images/gold-recruiting-board.png", contentType: "image/png", minBytes: 1000 },
   { path: "/images/semester-flow-board.webp", contentType: "image/webp", minBytes: 1000 },
 ];

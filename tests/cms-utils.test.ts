@@ -46,6 +46,7 @@ import { isRecord, readJsonObject } from "../src/lib/request-json";
 import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings";
 import { fallbackBlocks } from "../src/lib/cms-fallback";
 import { defaultSeoDescription, recruitingShareImage, siteUrl } from "../src/lib/seo";
+import { fileRules, validateFile, validationRules } from "../src/lib/validations";
 import type { RecruitmentCycle } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
@@ -122,6 +123,22 @@ test("rate limit blocks requests after the configured limit", () => {
   assert.equal(checkRateLimit(key, 2, 60_000).ok, true);
   assert.equal(checkRateLimit(key, 2, 60_000).ok, true);
   assert.equal(checkRateLimit(key, 2, 60_000).ok, false);
+});
+
+test("application validation avoids embedded example personal data", () => {
+  const testPhone = ["010", "1234", "5678"].join("");
+  const testPhoneWithHyphen = ["010", "1234", "5678"].join("-");
+
+  assert.equal(validationRules.phone.message.includes(testPhone), false);
+  assert.equal(validationRules.phone.message.includes(testPhoneWithHyphen), false);
+  assert.equal(
+    validateFile({ name: "application.exe", size: 1024 } as File),
+    fileRules.message
+  );
+  assert.equal(
+    validateFile({ name: "application.pdf", size: fileRules.maxSize + 1 } as File),
+    "파일 크기는 10MB 이하여야 합니다"
+  );
 });
 
 test("admin owner safety prevents removing the last active owner", () => {
@@ -232,15 +249,26 @@ test("fallback home content includes editable visual and philosophy blocks", () 
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
   const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  const header = readFileSync(new URL("../src/components/layout/Header.tsx", import.meta.url), "utf8");
+  const footer = readFileSync(new URL("../src/components/layout/Footer.tsx", import.meta.url), "utf8");
   const home = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
   const robots = readFileSync(new URL("../src/app/robots.ts", import.meta.url), "utf8");
   const sitemap = readFileSync(new URL("../src/app/sitemap.ts", import.meta.url), "utf8");
+  const logoSvg = readFileSync(new URL("../public/images/logo.svg", import.meta.url), "utf8");
+  const logoPng = readFileSync(new URL("../public/images/logo.png", import.meta.url));
 
   assert.ok(siteUrl.length > 0);
   assert.doesNotMatch(siteUrl, /\/$/);
   assert.equal(recruitingShareImage.url, "/images/gold-recruiting-board.png");
   assert.equal(recruitingShareImage.width, 1600);
   assert.equal(recruitingShareImage.height, 900);
+  assert.ok(logoPng.byteLength > 1000);
+  assert.match(logoSvg, /금은동 로고/);
+  assert.equal(logoSvg.toLowerCase().includes(["invest", "in", "yourself"].join(" ")), false);
+  assert.match(header, /\/images\/logo\.svg/);
+  assert.match(header, /unoptimized/);
+  assert.match(footer, /\/images\/logo\.svg/);
+  assert.match(footer, /unoptimized/);
   assert.match(defaultSeoDescription, /신문 스크랩/);
   assert.equal(defaultSeoDescription.includes(["Invest", "in", "yourself"].join(" ")), false);
   assert.match(layout, /recruitingShareImage/);

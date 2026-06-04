@@ -1,5 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 74" fill="none">
-  <text x="0" y="52" font-family="Inter, sans-serif" font-weight="700" font-size="42" fill="#C9A84C" letter-spacing="2">CBNU</text>
-  <text x="148" y="52" font-family="Inter, sans-serif" font-weight="700" font-size="42" fill="#1A1A1A" letter-spacing="2">GOLD</text>
-  <text x="0" y="70" font-family="Pretendard, sans-serif" font-weight="400" font-size="11" fill="#999" letter-spacing="4">충북대학교 금융권 취업 동아리</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 388 120" role="img" aria-labelledby="title desc">
+  <title id="title">금은동 로고</title>
+  <desc id="desc">충북대학교 금융권 취업 동아리 금은동의 금색과 잉크색 가로형 로고</desc>
+  <g fill="none">
+    <rect x="8" y="18" width="84" height="84" rx="18" fill="#3A0B0B"/>
+    <rect x="15" y="25" width="70" height="70" rx="14" stroke="#D6B545" stroke-width="4"/>
+    <path d="M50 34L72 44V61C72 76 63 86 50 92C37 86 28 76 28 61V44L50 34Z" stroke="#F1D21B" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M38 68V58M50 76V47M62 64V53" stroke="#F1D21B" stroke-width="5" stroke-linecap="round"/>
+    <path d="M35 77C44 71 53 70 66 42" stroke="#F1D21B" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g font-family="Pretendard, Inter, Arial, sans-serif" letter-spacing="0">
+    <text x="116" y="58" fill="#111827" font-size="39" font-weight="800">금은동</text>
+    <text x="116" y="91" fill="#B8891F" font-size="24" font-weight="800">CBNU GOLD</text>
+  </g>
 </svg>
