@@ -134,6 +134,9 @@ async function requestHealth() {
   });
   const body = await response.json().catch(() => null);
   const status = body?.status ?? "unknown";
+  const failedChecks = Array.isArray(body?.checks)
+    ? body.checks.filter((check) => !check.ok)
+    : [];
 
   return {
     path: healthPath,
@@ -141,9 +144,10 @@ async function requestHealth() {
     actual: response.status,
     ok: allowDegraded ? [200, 503].includes(response.status) : response.status === 200,
     healthStatus: status,
-    failedChecks: Array.isArray(body?.checks)
-      ? body.checks.filter((check) => !check.ok).length
-      : null,
+    failedChecks: Array.isArray(body?.checks) ? failedChecks.length : null,
+    failedCheckDetails: failedChecks.map((check) =>
+      check.message ? `${check.name}:${check.message}` : check.name
+    ),
   };
 }
 
@@ -208,7 +212,11 @@ const protectedDeployment =
 for (const result of results) {
   const extra =
     result.path === "/api/health" || result.path === "/api/health?deep=1"
-      ? ` status=${result.healthStatus} failedChecks=${result.failedChecks ?? "-"}`
+      ? ` status=${result.healthStatus} failedChecks=${result.failedChecks ?? "-"}${
+          result.failedCheckDetails?.length
+            ? ` failed=${result.failedCheckDetails.join("|")}`
+            : ""
+        }`
       : result.contentType
         ? ` contentType=${result.contentType} bytes=${result.bytes}`
       : result.missingHeaders?.length
