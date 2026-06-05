@@ -17,7 +17,13 @@ import {
   getResendFromEmail,
 } from "../src/lib/resend";
 import { checkRateLimit } from "../src/lib/rate-limit";
-import { getRecruitmentPhase, isRecruitmentOpen } from "../src/lib/recruitment";
+import {
+  formatKoreanDateTime,
+  getRecruitmentPhase,
+  getRecruitmentPhaseLabel,
+  isRecruitmentOpen,
+} from "../src/lib/recruitment";
+import { buildRecruitmentOperationReport } from "../src/lib/recruitment-operations";
 import {
   canManageAdmins,
   canManageApplicants,
@@ -251,6 +257,52 @@ test("recruitment phase distinguishes scheduled, closed, paused, and open states
   assert.equal(getRecruitmentPhase(baseCycle, new Date("2026-02-25T00:00:00+09:00")), "open");
   assert.equal(getRecruitmentPhase(baseCycle, new Date("2026-03-02T00:00:00+09:00")), "closed");
   assert.equal(getRecruitmentPhase({ ...baseCycle, end_at: null, is_open: false }, new Date("2026-02-25T00:00:00+09:00")), "paused");
+  assert.equal(getRecruitmentPhaseLabel("open"), "모집 중");
+  assert.equal(formatKoreanDateTime(null), "일정 별도 안내");
+});
+
+test("recruitment operation report catches schedule, form, and privacy gaps", () => {
+  const now = new Date("2026-02-25T00:00:00+09:00");
+  const complete = buildRecruitmentOperationReport(
+    [
+      {
+        ...baseCycle,
+        docx_url: "/files/gold-9.docx",
+        document_result_at: "2026-03-03T18:00:00+09:00",
+        interview_at: "2026-03-05T18:00:00+09:00",
+        final_result_at: "2026-03-07T18:00:00+09:00",
+        requirements: ["충북대학교 재학생"],
+      },
+    ],
+    now
+  );
+
+  assert.equal(complete.status, "pass");
+  assert.equal(complete.phaseLabel, "모집 중");
+  assert.equal(complete.daysUntilDeadline, 5);
+
+  const incomplete = buildRecruitmentOperationReport(
+    [
+      {
+        ...baseCycle,
+        docx_url: null,
+        hwp_url: null,
+        document_result_at: null,
+        interview_at: null,
+        final_result_at: null,
+        privacy_retention: "",
+      },
+    ],
+    now
+  );
+
+  assert.equal(incomplete.status, "fail");
+  assert.equal(incomplete.items.find((item) => item.key === "forms")?.status, "warning");
+  assert.equal(incomplete.items.find((item) => item.key === "privacy")?.status, "fail");
+
+  const empty = buildRecruitmentOperationReport([], now);
+  assert.equal(empty.status, "fail");
+  assert.equal(empty.phaseLabel, "모집 없음");
 });
 
 test("rate limit blocks requests after the configured limit", () => {
@@ -701,8 +753,10 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /organizationThemePresets/);
   assert.match(adminPage, /organizationSiteVerticals/);
   assert.match(adminPage, /지원 퍼널/);
+  assert.match(adminPage, /모집 운영/);
   assert.match(adminPage, /기수 필터/);
   assert.match(adminPage, /buildRecruitingFunnelReport/);
+  assert.match(adminPage, /buildRecruitmentOperationReport/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);

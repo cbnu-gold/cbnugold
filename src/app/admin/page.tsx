@@ -12,6 +12,7 @@ import {
   inspectOrganizationSiteExportBundle,
   type OrganizationSiteExportInspection,
 } from "@/lib/organization-export";
+import { buildRecruitmentOperationReport } from "@/lib/recruitment-operations";
 import { buildRecruitingFunnelReport } from "@/lib/recruiting-funnel";
 import {
   buildContentFreshnessReport,
@@ -528,6 +529,10 @@ export default function AdminPage() {
     () => buildRecruitingFunnelReport(canHandleApplicants ? state.applicants : []),
     [canHandleApplicants, state.applicants]
   );
+  const recruitmentOperations = useMemo(
+    () => buildRecruitmentOperationReport(state.recruitment),
+    [state.recruitment]
+  );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
     () =>
@@ -991,6 +996,74 @@ export default function AdminPage() {
                     지원 퍼널은 owner/admin 권한에서만 확인할 수 있습니다.
                   </p>
                 )}
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">모집 운영</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      현재 모집 기수의 상태, 일정, 지원서 양식, 지원 자격, 개인정보 고지를 점검합니다.
+                    </p>
+                  </div>
+                  <div
+                    className={`rounded-lg px-4 py-3 text-left md:text-right ${
+                      recruitmentOperations.status === "pass"
+                        ? "bg-emerald-50 text-emerald-800"
+                        : recruitmentOperations.status === "warning"
+                          ? "bg-amber-50 text-amber-800"
+                          : "bg-red-50 text-red-800"
+                    }`}
+                  >
+                    <p className="text-xs font-semibold">현재 상태</p>
+                    <p className="mt-1 text-lg font-bold">{recruitmentOperations.phaseLabel}</p>
+                    {recruitmentOperations.cycle && (
+                      <p className="mt-1 text-xs font-semibold">
+                        {recruitmentOperations.cycle.generation}기
+                        {recruitmentOperations.daysUntilDeadline !== null
+                          ? recruitmentOperations.daysUntilDeadline >= 0
+                            ? ` · D-${recruitmentOperations.daysUntilDeadline}`
+                            : " · 마감"
+                          : ""}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {recruitmentOperations.items.map((item) => (
+                    <article
+                      key={item.key}
+                      className={`rounded-lg border p-4 ${
+                        item.status === "pass"
+                          ? "border-emerald-100 bg-emerald-50"
+                          : item.status === "warning"
+                            ? "border-amber-200 bg-amber-50"
+                            : "border-red-200 bg-red-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-950">{item.title}</h3>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            item.status === "pass"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.status === "warning"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {item.status === "pass" ? "정상" : item.status === "warning" ? "검토" : "필수"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">{item.detail}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <AdminButton variant="secondary" onClick={() => setTab("recruitment")}>
+                    <Megaphone className="h-4 w-4" />
+                    모집 관리
+                  </AdminButton>
+                </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
