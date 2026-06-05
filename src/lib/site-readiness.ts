@@ -32,6 +32,18 @@ export type SiteReadinessItem = {
     | "audit";
 };
 
+export type SiteVerticalFitKey = "recruiting_club" | "academic_society" | "startup_team" | "event_program";
+
+export type SiteVerticalFitItem = {
+  key: SiteVerticalFitKey;
+  title: string;
+  score: number;
+  status: Exclude<SiteReadinessStatus, "fail">;
+  strengths: string[];
+  gaps: string[];
+  targetTab: SiteReadinessItem["targetTab"];
+};
+
 export type SiteReadinessInput = {
   settings: SiteSettingsValue;
   recruitment: RecruitmentCycle[];
@@ -67,6 +79,15 @@ function getActiveRecruitment(recruitment: RecruitmentCycle[]) {
 
 function isOwner(profile: AdminProfile) {
   return profile.is_active && profile.role === "owner";
+}
+
+function addScore(condition: boolean, points: number, strengths: string[], gaps: string[], strength: string, gap: string) {
+  if (condition) {
+    strengths.push(strength);
+    return points;
+  }
+  gaps.push(gap);
+  return 0;
 }
 
 export function buildSiteReadinessReport(input: SiteReadinessInput): {
@@ -181,4 +202,96 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
   const status: SiteReadinessStatus = failCount > 0 ? "fail" : score >= 80 ? "pass" : "warning";
 
   return { score, status, items };
+}
+
+export function buildSiteVerticalFitReport(input: SiteReadinessInput): SiteVerticalFitItem[] {
+  const publishedPages = countPublished(input.pages);
+  const publishedActivities = countPublished(input.activities);
+  const publishedAchievements = countPublished(input.achievements);
+  const publishedFaqs = countPublished(input.faqs);
+  const publishedMedia = countPublished(input.media);
+  const activeRecruitment = getActiveRecruitment(input.recruitment);
+  const hasIdentity =
+    hasText(input.settings.site_title) &&
+    hasText(input.settings.organization_type) &&
+    hasText(input.settings.hero_title) &&
+    hasText(input.settings.hero_subtitle);
+  const hasBrandAssets = isSafeLogoOrImage(input.settings.logo_url) && isSafeLogoOrImage(input.settings.share_image_url);
+  const hasContact = hasText(input.settings.contact_email);
+
+  const definitions: Array<{
+    key: SiteVerticalFitKey;
+    title: string;
+    targetTab: SiteReadinessItem["targetTab"];
+    checks: Array<[boolean, number, string, string]>;
+  }> = [
+    {
+      key: "recruiting_club",
+      title: "리크루팅형 동아리",
+      targetTab: "recruitment",
+      checks: [
+        [Boolean(activeRecruitment), 30, "공개 모집 기수가 있습니다.", "공개 모집 기수가 필요합니다."],
+        [publishedActivities >= 3, 20, "활동 근거가 충분합니다.", "활동 콘텐츠를 3개 이상 게시하세요."],
+        [publishedAchievements >= 3, 20, "성과 근거가 충분합니다.", "성과 콘텐츠를 3개 이상 게시하세요."],
+        [publishedFaqs >= 3, 15, "지원 FAQ가 준비되어 있습니다.", "지원 FAQ를 3개 이상 게시하세요."],
+        [hasContact, 15, "문의 채널이 준비되어 있습니다.", "문의 이메일을 설정하세요."],
+      ],
+    },
+    {
+      key: "academic_society",
+      title: "학회·연구회",
+      targetTab: "activities",
+      checks: [
+        [hasIdentity, 20, "연구회 정체성을 설명할 기본 문구가 있습니다.", "정체성 문구를 먼저 정리하세요."],
+        [publishedPages >= 4, 20, "기본 공개 페이지가 준비되어 있습니다.", "소개/활동/지원 등 공개 페이지를 게시하세요."],
+        [publishedActivities >= 3, 25, "활동 기록을 연구회 구조로 전환할 수 있습니다.", "세션·연구 활동 콘텐츠를 보강하세요."],
+        [publishedFaqs >= 3, 15, "문의 전 FAQ 흐름이 있습니다.", "FAQ를 보강하세요."],
+        [publishedAchievements >= 1, 20, "성과 또는 산출물 기록이 있습니다.", "프로젝트·자료·성과 기록을 추가하세요."],
+      ],
+    },
+    {
+      key: "startup_team",
+      title: "창업팀·프로젝트",
+      targetTab: "content",
+      checks: [
+        [hasIdentity, 25, "팀/프로젝트 소개 문구로 전환할 수 있습니다.", "문제 정의와 팀 소개 문구가 필요합니다."],
+        [hasBrandAssets, 15, "로고와 공유 이미지 구조가 준비되어 있습니다.", "브랜드 자산을 안전한 URL로 설정하세요."],
+        [publishedPages >= 4, 20, "제품/팀/활동 페이지 구조를 재사용할 수 있습니다.", "핵심 공개 페이지를 게시하세요."],
+        [publishedAchievements >= 2, 20, "진행 기록 또는 성과로 바꿀 수 있는 항목이 있습니다.", "진행 기록 또는 성과를 2개 이상 게시하세요."],
+        [hasContact, 20, "협업 문의 채널이 준비되어 있습니다.", "문의 채널을 설정하세요."],
+      ],
+    },
+    {
+      key: "event_program",
+      title: "행사·프로그램",
+      targetTab: "recruitment",
+      checks: [
+        [Boolean(activeRecruitment), 30, "신청/접수 흐름을 행사 신청으로 전환할 수 있습니다.", "신청 기간과 접수 상태가 필요합니다."],
+        [publishedPages >= 4, 20, "행사 소개 페이지 구조가 준비되어 있습니다.", "행사 안내 페이지를 게시하세요."],
+        [publishedFaqs >= 3, 20, "참가 전 질문을 처리할 FAQ가 있습니다.", "참가 FAQ를 3개 이상 게시하세요."],
+        [publishedMedia >= 2, 15, "행사 홍보 이미지로 교체할 미디어 구조가 있습니다.", "홍보 미디어를 등록하세요."],
+        [hasContact, 15, "운영 문의 채널이 준비되어 있습니다.", "문의 채널을 설정하세요."],
+      ],
+    },
+  ];
+
+  return definitions.map((definition) => {
+    const strengths: string[] = [];
+    const gaps: string[] = [];
+    const score = definition.checks.reduce(
+      (total, [condition, points, strength, gap]) =>
+        total + addScore(condition, points, strengths, gaps, strength, gap),
+      0
+    );
+
+    return {
+      key: definition.key,
+      title: definition.title,
+      score,
+      status: score >= 80 ? "pass" : "warning",
+      strengths,
+      gaps,
+      targetTab: definition.targetTab,
+    };
+  });
 }

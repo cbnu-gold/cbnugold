@@ -7,7 +7,7 @@ import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import { buildOrganizationSiteExport } from "@/lib/organization-export";
-import { buildSiteReadinessReport } from "@/lib/site-readiness";
+import { buildSiteReadinessReport, buildSiteVerticalFitReport } from "@/lib/site-readiness";
 import {
   organizationSiteModules,
   organizationSiteQualityGates,
@@ -527,6 +527,22 @@ export default function AdminPage() {
       }),
     [canManageAdminAccounts, state]
   );
+  const verticalFit = useMemo(
+    () =>
+      buildSiteVerticalFitReport({
+        settings: state.settings,
+        recruitment: state.recruitment,
+        pages: state.pages,
+        blocks: state.blocks,
+        activities: state.activities,
+        achievements: state.achievements,
+        faqs: state.faqs,
+        media: state.media,
+        admins: state.admins,
+        canVerifyAdmins: canManageAdminAccounts,
+      }),
+    [canManageAdminAccounts, state]
+  );
   const uploadFileError = uploadFile
     ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
     : "";
@@ -1027,6 +1043,49 @@ export default function AdminPage() {
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">콘텐츠는 published 상태만 공개 페이지에 노출됩니다.</p>
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">모든 주요 수정은 audit_logs에 기록됩니다.</p>
                   <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">활성 소유자 계정은 최소 1개 이상 유지됩니다.</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-lg font-bold">적용 유형 준비도</h2>
+                  <p className="text-sm leading-6 text-slate-500">
+                    현재 CMS 데이터를 다른 단체 홈페이지로 전환할 때 어느 유형에 바로 가까운지 점검합니다.
+                  </p>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {verticalFit.map((item) => (
+                    <article key={item.key} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-950">{item.title}</h3>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-bold tabular-nums ${
+                            item.status === "pass" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          {item.score}%
+                        </span>
+                      </div>
+                      <p className="mt-3 text-xs font-semibold text-slate-500">강점</p>
+                      <ul className="mt-2 grid gap-1 text-xs leading-5 text-slate-600">
+                        {(item.strengths.length ? item.strengths.slice(0, 2) : ["아직 확정된 강점이 없습니다."]).map((strength) => (
+                          <li key={strength}>{strength}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-3 text-xs font-semibold text-slate-500">보완</p>
+                      <ul className="mt-2 grid gap-1 text-xs leading-5 text-slate-600">
+                        {(item.gaps.length ? item.gaps.slice(0, 2) : ["즉시 전환 가능한 상태입니다."]).map((gap) => (
+                          <li key={gap}>{gap}</li>
+                        ))}
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => setTab(item.targetTab)}
+                        className="mt-3 inline-flex min-h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-gold/50 hover:text-ink"
+                      >
+                        관련 탭 보기
+                      </button>
+                    </article>
+                  ))}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">

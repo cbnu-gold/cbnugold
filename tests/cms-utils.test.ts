@@ -57,7 +57,7 @@ import {
   organizationSiteVerticals,
   organizationThemePresets,
 } from "../src/lib/organization-site-model";
-import { buildSiteReadinessReport } from "../src/lib/site-readiness";
+import { buildSiteReadinessReport, buildSiteVerticalFitReport } from "../src/lib/site-readiness";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -639,7 +639,7 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
 });
 
 test("site readiness report surfaces CMS launch gaps", () => {
-  const complete = buildSiteReadinessReport({
+  const completeInput = {
     settings: {
       ...baseSettings,
       organization_type: "금융권 취업 동아리",
@@ -692,7 +692,8 @@ test("site readiness report surfaces CMS launch gaps", () => {
       status: "published",
     })),
     admins: [{ id: "owner-id", email: "owner@example.com", name: "Owner", role: "owner", is_active: true }],
-  });
+  };
+  const complete = buildSiteReadinessReport(completeInput);
 
   assert.equal(complete.status, "pass");
   assert.equal(complete.score, 100);
@@ -723,6 +724,15 @@ test("site readiness report surfaces CMS launch gaps", () => {
   assert.equal(ownerCheck?.status, "warning");
   assert.equal(ownerCheck?.targetTab, "overview");
   assert.equal(ownerCheck?.actionLabel, "소유자에게 확인 요청");
+
+  const verticalFit = buildSiteVerticalFitReport(completeInput);
+  assert.deepEqual(
+    verticalFit.map((item) => item.key),
+    ["recruiting_club", "academic_society", "startup_team", "event_program"]
+  );
+  assert.equal(verticalFit.find((item) => item.key === "recruiting_club")?.status, "pass");
+  assert.equal(verticalFit.every((item) => item.score >= 0 && item.score <= 100), true);
+  assert.equal(verticalFit.every((item) => item.strengths.length + item.gaps.length > 0), true);
 });
 
 test("organization site export excludes sensitive operations data", () => {
