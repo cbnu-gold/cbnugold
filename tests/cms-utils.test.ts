@@ -46,6 +46,7 @@ import {
 } from "../src/lib/media-references";
 import {
   buildOrganizationSiteExport,
+  inspectOrganizationSiteExportBundle,
   organizationSiteExportResourceKeys,
   validateOrganizationSiteExportBundle,
 } from "../src/lib/organization-export";
@@ -847,6 +848,43 @@ test("organization site export validation rejects sensitive or runtime data", ()
   assert.equal(result.errors.some((error) => error.includes("runtime-id")), false);
   assert.equal(result.errors.some((error) => error.includes("런타임 필드")), true);
   assert.equal(result.errors.some((error) => error.includes("민감 필드")), true);
+});
+
+test("organization site export inspection summarizes portability gaps", () => {
+  const minimal = buildOrganizationSiteExport(
+    {
+      settings: baseSettings,
+      pages: [{ slug: "home", title: "홈", description: null, status: "published", sort_order: 1 }],
+      blocks: [{ page_slug: "home", block_key: "hero", title: "홈", subtitle: null, body: null, cta_label: null, cta_href: null, media_url: null, status: "published", sort_order: 1 }],
+      recruitment: [],
+      activities: [],
+      achievements: [],
+      history: [],
+      faqs: [],
+      media: [],
+    },
+    "2026-01-01T00:00:00.000Z"
+  );
+  const inspection = inspectOrganizationSiteExportBundle(minimal);
+
+  assert.equal(inspection.ok, true);
+  assert.equal(inspection.counts.settings, 1);
+  assert.equal(inspection.counts.pages, 1);
+  assert.equal(inspection.warnings.some((warning) => warning.includes("공개 페이지가 4개 미만")), true);
+  assert.equal(inspection.warnings.some((warning) => warning.includes("join/first-semester")), true);
+
+  const rejected = inspectOrganizationSiteExportBundle({
+    ...minimal,
+    resources: {
+      ...minimal.resources,
+      applicants: [{ phone: "010-0000-0000" }],
+      pages: [{ ...minimal.resources.pages[0], id: "runtime-id" }],
+    },
+  });
+
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.errors.some((error) => error.includes("applicants")), true);
+  assert.equal(rejected.counts.pages, 1);
 });
 
 test("CMS media delete guard detects public content references", () => {

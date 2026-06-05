@@ -35,7 +35,16 @@ export type OrganizationSiteExportInput = {
   media: MediaAsset[];
 };
 
+type OrganizationSiteExportResourceKey = (typeof organizationSiteExportResourceKeys)[number];
+
 export type OrganizationSiteExportBundle = ReturnType<typeof buildOrganizationSiteExport>;
+
+export type OrganizationSiteExportInspection = {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+  counts: Record<OrganizationSiteExportResourceKey, number>;
+};
 
 const sensitiveExportKeys = new Set([
   "applicants",
@@ -160,4 +169,50 @@ export function validateOrganizationSiteExportBundle(value: unknown): {
   }
 
   return { ok: errors.length === 0, errors };
+}
+
+export function inspectOrganizationSiteExportBundle(value: unknown): OrganizationSiteExportInspection {
+  const validation = validateOrganizationSiteExportBundle(value);
+  const counts = Object.fromEntries(organizationSiteExportResourceKeys.map((key) => [key, 0])) as Record<
+    OrganizationSiteExportResourceKey,
+    number
+  >;
+  const warnings: string[] = [];
+
+  if (!isRecord(value) || !isRecord(value.resources)) {
+    return { ...validation, warnings, counts };
+  }
+
+  for (const key of organizationSiteExportResourceKeys) {
+    const resource = value.resources[key];
+    counts[key] = key === "settings" ? (isRecord(resource) ? 1 : 0) : Array.isArray(resource) ? resource.length : 0;
+  }
+
+  const pages = Array.isArray(value.resources.pages) ? value.resources.pages.filter(isRecord) : [];
+  const blocks = Array.isArray(value.resources.blocks) ? value.resources.blocks.filter(isRecord) : [];
+
+  if (counts.pages < 4) warnings.push("공개 페이지가 4개 미만입니다. 홈, 소개, 활동, 지원 페이지 구성을 확인해야 합니다.");
+  if (counts.recruitment < 1) warnings.push("모집 기수가 없습니다. 지원 또는 신청 흐름이 필요한 단체라면 모집 설정을 추가해야 합니다.");
+  if (counts.faqs < 3) warnings.push("FAQ가 3개 미만입니다. 지원자 또는 방문자가 반복 확인하는 질문을 보강해야 합니다.");
+  if (counts.media < 1) warnings.push("미디어가 없습니다. 공식 로고, 공유 이미지, 홍보 이미지를 교체할 계획을 확인해야 합니다.");
+
+  const pageSlugs = new Set(pages.map((item) => item.slug).filter((value): value is string => typeof value === "string"));
+  for (const slug of ["home", "about", "activity", "join"]) {
+    if (!pageSlugs.has(slug)) warnings.push(`공개 페이지 slug가 누락되었습니다: ${slug}`);
+  }
+
+  const blockKeys = new Set(
+    blocks
+      .map((item) =>
+        typeof item.page_slug === "string" && typeof item.block_key === "string"
+          ? `${item.page_slug}/${item.block_key}`
+          : null
+      )
+      .filter((value): value is string => Boolean(value))
+  );
+  for (const key of ["home/hero", "home/proof", "join/first-semester"]) {
+    if (!blockKeys.has(key)) warnings.push(`핵심 블록이 누락되었습니다: ${key}`);
+  }
+
+  return { ...validation, warnings, counts };
 }

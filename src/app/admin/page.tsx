@@ -6,7 +6,11 @@ import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
-import { buildOrganizationSiteExport } from "@/lib/organization-export";
+import {
+  buildOrganizationSiteExport,
+  inspectOrganizationSiteExportBundle,
+  type OrganizationSiteExportInspection,
+} from "@/lib/organization-export";
 import {
   buildContentFreshnessReport,
   buildSiteReadinessReport,
@@ -104,6 +108,10 @@ type HealthSnapshot = {
     ok: boolean;
     message?: string;
   }[];
+};
+
+type OrganizationPackageInspectionState = OrganizationSiteExportInspection & {
+  fileName: string;
 };
 
 const defaultSettings: SiteSettingsValue = defaultSiteSettingsValue;
@@ -363,9 +371,12 @@ export default function AdminPage() {
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
+  const [packageInspection, setPackageInspection] = useState<OrganizationPackageInspectionState | null>(null);
+  const [packageInspectionError, setPackageInspectionError] = useState("");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const packageInputRef = useRef<HTMLInputElement>(null);
   const uploadFileErrorId = useId();
 
   function getSupabase() {
@@ -744,6 +755,27 @@ export default function AdminPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  async function inspectOrganizationSitePackage(file: File | null) {
+    setPackageInspection(null);
+    setPackageInspectionError("");
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith(".json")) {
+      setPackageInspectionError("JSON 운영 패키지 파일만 검증할 수 있습니다.");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(await file.text()) as unknown;
+      const inspection = inspectOrganizationSiteExportBundle(parsed);
+      setPackageInspection({ ...inspection, fileName: file.name });
+    } catch {
+      setPackageInspectionError("운영 패키지 JSON을 읽지 못했습니다. 파일 형식을 확인해 주세요.");
+    } finally {
+      if (packageInputRef.current) packageInputRef.current.value = "";
+    }
+  }
+
   async function uploadMedia() {
     if (!requireWrite("미디어 업로드")) return;
     if (!uploadFile) {
@@ -918,11 +950,75 @@ export default function AdminPage() {
                       지원자, 관리자 계정, 감사 로그, 비공개 지원서 파일은 포함하지 않습니다.
                     </p>
                   </div>
-                  <AdminButton variant="secondary" onClick={downloadOrganizationSiteExport}>
-                    <Download className="h-4 w-4" />
-                    운영 패키지 다운로드
-                  </AdminButton>
+                  <div className="flex flex-wrap gap-2">
+                    <AdminButton variant="secondary" onClick={downloadOrganizationSiteExport}>
+                      <Download className="h-4 w-4" />
+                      운영 패키지 다운로드
+                    </AdminButton>
+                    <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300">
+                      <Upload className="h-4 w-4" />
+                      패키지 검증
+                      <input
+                        ref={packageInputRef}
+                        type="file"
+                        accept="application/json,.json"
+                        className="sr-only"
+                        onChange={(event) => {
+                          void inspectOrganizationSitePackage(event.target.files?.[0] ?? null);
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
+                {(packageInspection || packageInspectionError) && (
+                  <div
+                    className={`mt-4 rounded-lg border p-4 text-sm ${
+                      packageInspectionError || packageInspection?.errors.length
+                        ? "border-red-200 bg-red-50 text-red-700"
+                        : packageInspection?.warnings.length
+                          ? "border-amber-200 bg-amber-50 text-amber-800"
+                          : "border-emerald-100 bg-emerald-50 text-emerald-800"
+                    }`}
+                  >
+                    {packageInspectionError ? (
+                      <p>{packageInspectionError}</p>
+                    ) : packageInspection ? (
+                      <div className="grid gap-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold">{packageInspection.fileName}</p>
+                          <span className="rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">
+                            {packageInspection.ok ? "형식 통과" : "형식 확인 필요"}
+                          </span>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                          {Object.entries(packageInspection.counts).map(([key, value]) => (
+                            <div key={key} className="rounded-md bg-white/70 px-3 py-2">
+                              <p className="text-[11px] font-semibold uppercase text-slate-500">{key}</p>
+                              <p className="mt-1 font-bold tabular-nums text-slate-950">{value}</p>
+                            </div>
+                          ))}
+                        </div>
+                        {packageInspection.errors.length > 0 && (
+                          <ul className="grid gap-1 text-sm leading-6">
+                            {packageInspection.errors.map((item) => (
+                              <li key={item}>필수 확인: {item}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {packageInspection.warnings.length > 0 && (
+                          <ul className="grid gap-1 text-sm leading-6">
+                            {packageInspection.warnings.map((item) => (
+                              <li key={item}>운영 확인: {item}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {packageInspection.ok && packageInspection.warnings.length === 0 && (
+                          <p>다른 단체에 적용하기 전 기본 구조 검증을 통과했습니다.</p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
