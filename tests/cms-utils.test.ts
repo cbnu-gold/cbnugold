@@ -699,7 +699,7 @@ test("site readiness report surfaces CMS launch gaps", () => {
   assert.equal(complete.items.every((item) => item.actionLabel && item.targetTab), true);
   assert.equal(complete.items.find((item) => item.key === "recruitment")?.targetTab, "recruitment");
 
-  const incomplete = buildSiteReadinessReport({
+  const incompleteInput = {
     settings: { ...baseSettings, hero_title: "", logo_url: "http://unsafe.example/logo.png" },
     recruitment: [],
     pages: [],
@@ -709,13 +709,20 @@ test("site readiness report surfaces CMS launch gaps", () => {
     faqs: [],
     media: [],
     admins: [],
-  });
+  };
+  const incomplete = buildSiteReadinessReport(incompleteInput);
 
   assert.equal(incomplete.status, "fail");
   assert.equal(incomplete.items.some((item) => item.key === "admin-owner" && item.status === "fail"), true);
   assert.equal(incomplete.items.some((item) => item.key === "recruitment" && item.status === "fail"), true);
   assert.equal(incomplete.items.some((item) => item.key === "brand-assets" && item.status === "warning"), true);
   assert.equal(incomplete.items.find((item) => item.key === "admin-owner")?.targetTab, "admins");
+
+  const permissionLimited = buildSiteReadinessReport({ ...incompleteInput, canVerifyAdmins: false });
+  const ownerCheck = permissionLimited.items.find((item) => item.key === "admin-owner");
+  assert.equal(ownerCheck?.status, "warning");
+  assert.equal(ownerCheck?.targetTab, "overview");
+  assert.equal(ownerCheck?.actionLabel, "소유자에게 확인 요청");
 });
 
 test("organization site export excludes sensitive operations data", () => {

@@ -42,6 +42,7 @@ export type SiteReadinessInput = {
   faqs: FAQItem[];
   media: MediaAsset[];
   admins: AdminProfile[];
+  canVerifyAdmins?: boolean;
 };
 
 function hasText(value: string | null | undefined) {
@@ -74,6 +75,7 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
   items: SiteReadinessItem[];
 } {
   const activeRecruitment = getActiveRecruitment(input.recruitment);
+  const canVerifyAdmins = input.canVerifyAdmins ?? true;
 
   const items: SiteReadinessItem[] = [
     {
@@ -164,10 +166,12 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
     {
       key: "admin-owner",
       title: "관리자 권한",
-      status: input.admins.some(isOwner) ? "pass" : "fail",
-      detail: "활성 소유자 계정이 최소 1개 있어야 운영 권한을 잃지 않습니다.",
-      actionLabel: "관리자 확인",
-      targetTab: "admins",
+      status: canVerifyAdmins ? (input.admins.some(isOwner) ? "pass" : "fail") : "warning",
+      detail: canVerifyAdmins
+        ? "활성 소유자 계정이 최소 1개 있어야 운영 권한을 잃지 않습니다."
+        : "현재 계정 권한으로는 owner 존재 여부를 확인할 수 없습니다.",
+      actionLabel: canVerifyAdmins ? "관리자 확인" : "소유자에게 확인 요청",
+      targetTab: canVerifyAdmins ? "admins" : "overview",
     },
   ];
 

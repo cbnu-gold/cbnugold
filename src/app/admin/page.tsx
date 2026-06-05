@@ -523,8 +523,9 @@ export default function AdminPage() {
         faqs: state.faqs,
         media: state.media,
         admins: state.admins,
+        canVerifyAdmins: canManageAdminAccounts,
       }),
-    [state]
+    [canManageAdminAccounts, state]
   );
   const uploadFileError = uploadFile
     ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
