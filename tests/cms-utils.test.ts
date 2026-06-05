@@ -696,6 +696,8 @@ test("site readiness report surfaces CMS launch gaps", () => {
 
   assert.equal(complete.status, "pass");
   assert.equal(complete.score, 100);
+  assert.equal(complete.items.every((item) => item.actionLabel && item.targetTab), true);
+  assert.equal(complete.items.find((item) => item.key === "recruitment")?.targetTab, "recruitment");
 
   const incomplete = buildSiteReadinessReport({
     settings: { ...baseSettings, hero_title: "", logo_url: "http://unsafe.example/logo.png" },
@@ -713,6 +715,7 @@ test("site readiness report surfaces CMS launch gaps", () => {
   assert.equal(incomplete.items.some((item) => item.key === "admin-owner" && item.status === "fail"), true);
   assert.equal(incomplete.items.some((item) => item.key === "recruitment" && item.status === "fail"), true);
   assert.equal(incomplete.items.some((item) => item.key === "brand-assets" && item.status === "warning"), true);
+  assert.equal(incomplete.items.find((item) => item.key === "admin-owner")?.targetTab, "admins");
 });
 
 test("organization site export excludes sensitive operations data", () => {

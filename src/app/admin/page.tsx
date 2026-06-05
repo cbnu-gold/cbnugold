@@ -1008,6 +1008,13 @@ export default function AdminPage() {
                         </span>
                       </div>
                       <p className="mt-2 text-xs leading-5 text-slate-600">{item.detail}</p>
+                      <button
+                        type="button"
+                        onClick={() => setTab(item.targetTab)}
+                        className="mt-3 inline-flex min-h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-gold/50 hover:text-ink"
+                      >
+                        {item.actionLabel}
+                      </button>
                     </article>
                   ))}
                 </div>
