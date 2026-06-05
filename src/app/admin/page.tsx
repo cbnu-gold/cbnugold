@@ -20,7 +20,11 @@ import {
   canViewAudit as roleCanViewAudit,
   canWriteContent,
 } from "@/lib/admin-permissions";
-import { defaultSiteSettingsValue, siteSettingFields } from "@/lib/site-settings";
+import {
+  defaultSiteSettingsValue,
+  siteSettingFields,
+  validateAndNormalizeSiteSettingsValue,
+} from "@/lib/site-settings";
 import type {
   ActivityItem,
   AdminProfile,
@@ -115,7 +119,10 @@ const initialState: ResourceState = {
 };
 
 function normalizeAdminSettings(value: Partial<SiteSettingsValue> | null | undefined): SiteSettingsValue {
-  return { ...defaultSettings, ...(value ?? {}) };
+  return (
+    validateAndNormalizeSiteSettingsValue({ ...defaultSettings, ...(value ?? {}) }).value ??
+    defaultSettings
+  );
 }
 
 const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
