@@ -63,6 +63,7 @@ import {
   buildSiteReadinessReport,
   buildSiteVerticalFitReport,
 } from "../src/lib/site-readiness";
+import { buildRecruitingFunnelReport } from "../src/lib/recruiting-funnel";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -168,6 +169,28 @@ test("applicant admin patch validation bounds sensitive review fields", () => {
   );
   assert.equal(validateAndNormalizeApplicantPatch({ review_score: 101 }).error, "점수는 0~100 사이의 정수여야 합니다");
   assert.equal(validateAndNormalizeApplicantPatch({ status: "hold" }).error, "지원자 상태값이 올바르지 않습니다");
+});
+
+test("recruiting funnel report summarizes applicant status without PII", () => {
+  const report = buildRecruitingFunnelReport([
+    { status: "pending" },
+    { status: "reviewed" },
+    { status: "interview" },
+    { status: "accepted" },
+    { status: "rejected" },
+  ]);
+
+  assert.equal(report.total, 5);
+  assert.equal(report.reviewRate, 80);
+  assert.equal(report.interviewRate, 60);
+  assert.equal(report.decisionRate, 40);
+  assert.equal(report.acceptanceRate, 50);
+  assert.equal(report.stages.find((stage) => stage.key === "active_pipeline")?.count, 3);
+  assert.equal(report.stages.find((stage) => stage.key === "decisioned")?.count, 2);
+
+  const empty = buildRecruitingFunnelReport([]);
+  assert.equal(empty.reviewRate, 0);
+  assert.equal(empty.acceptanceRate, 0);
 });
 
 test("recruitment is open only when published, enabled, and before deadline", () => {
@@ -631,6 +654,8 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /organizationSiteModules/);
   assert.match(adminPage, /organizationThemePresets/);
   assert.match(adminPage, /organizationSiteVerticals/);
+  assert.match(adminPage, /지원 퍼널/);
+  assert.match(adminPage, /buildRecruitingFunnelReport/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);

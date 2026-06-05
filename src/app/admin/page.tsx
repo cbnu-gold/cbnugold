@@ -11,6 +11,7 @@ import {
   inspectOrganizationSiteExportBundle,
   type OrganizationSiteExportInspection,
 } from "@/lib/organization-export";
+import { buildRecruitingFunnelReport } from "@/lib/recruiting-funnel";
 import {
   buildContentFreshnessReport,
   buildSiteReadinessReport,
@@ -525,6 +526,10 @@ export default function AdminPage() {
   const canHandleApplicants = roleCanManageApplicants(role);
   const canManageAdminAccounts = roleCanManageAdmins(role);
   const canReadAudit = roleCanViewAudit(role);
+  const recruitingFunnel = useMemo(
+    () => buildRecruitingFunnelReport(canHandleApplicants ? state.applicants : []),
+    [canHandleApplicants, state.applicants]
+  );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
     () =>
@@ -941,6 +946,54 @@ export default function AdminPage() {
                   </p>
                 </div>
               ))}
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-lg font-bold">지원 퍼널</h2>
+                  <p className="text-sm leading-6 text-slate-500">
+                    접수, 검토, 면접, 결과 확정 흐름을 상태값 기준으로 요약합니다. 지원자 개인정보는 표시하지 않습니다.
+                  </p>
+                </div>
+                {canHandleApplicants ? (
+                  <div className="mt-4 grid gap-4">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        ["검토율", recruitingFunnel.reviewRate],
+                        ["면접 전환", recruitingFunnel.interviewRate],
+                        ["결과 확정", recruitingFunnel.decisionRate],
+                        ["합격 비율", recruitingFunnel.acceptanceRate],
+                      ].map(([label, value]) => (
+                        <div key={label} className="rounded-lg bg-slate-50 p-4">
+                          <p className="text-xs font-semibold text-slate-500">{label}</p>
+                          <p className="mt-2 text-2xl font-bold tabular-nums text-slate-950">{value}%</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid gap-2 md:grid-cols-4">
+                      {recruitingFunnel.stages.map((stage) => (
+                        <div key={stage.key} className="rounded-lg border border-slate-100 bg-white p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold text-slate-500">{stage.label}</p>
+                            <p className="text-sm font-bold tabular-nums text-slate-950">{stage.count}</p>
+                          </div>
+                          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full bg-gold"
+                              style={{ width: `${Math.min(stage.rate, 100)}%` }}
+                            />
+                          </div>
+                          <p className="mt-1 text-right text-[11px] font-semibold tabular-nums text-slate-500">
+                            {stage.rate}%
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
+                    지원 퍼널은 owner/admin 권한에서만 확인할 수 있습니다.
+                  </p>
+                )}
+              </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
