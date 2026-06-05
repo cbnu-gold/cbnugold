@@ -57,6 +57,8 @@ export type SiteReadinessInput = {
   canVerifyAdmins?: boolean;
 };
 
+export type ContentFreshnessItem = SiteReadinessItem;
+
 function hasText(value: string | null | undefined) {
   return Boolean(value?.trim());
 }
@@ -75,6 +77,22 @@ function hasPublishedBlock(blocks: ContentBlock[], page: string, key: string) {
 
 function getActiveRecruitment(recruitment: RecruitmentCycle[]) {
   return recruitment.find((item) => item.status === "published" && item.is_open) ?? null;
+}
+
+function getPublished<T extends { status: string }>(items: T[]) {
+  return items.filter((item) => item.status === "published");
+}
+
+function getTime(value: string | null | undefined) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : null;
+}
+
+function isOlderThan(value: string | null | undefined, now: Date, days: number) {
+  const time = getTime(value);
+  if (time === null) return true;
+  return now.getTime() - time > days * 24 * 60 * 60 * 1000;
 }
 
 function isOwner(profile: AdminProfile) {
@@ -202,6 +220,120 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
   const status: SiteReadinessStatus = failCount > 0 ? "fail" : score >= 80 ? "pass" : "warning";
 
   return { score, status, items };
+}
+
+export function buildContentFreshnessReport(
+  input: SiteReadinessInput,
+  now = new Date()
+): {
+  status: SiteReadinessStatus;
+  items: ContentFreshnessItem[];
+} {
+  const activeRecruitment = getActiveRecruitment(input.recruitment);
+  const publishedPages = getPublished(input.pages);
+  const publishedBlocks = getPublished(input.blocks);
+  const publishedAchievements = getPublished(input.achievements);
+  const publishedFaqs = getPublished(input.faqs);
+  const publishedMedia = getPublished(input.media);
+  const recruitmentEndTime = getTime(activeRecruitment?.end_at);
+  const currentYear = now.getFullYear();
+
+  const stalePages = publishedPages.filter((page) => isOlderThan(page.updated_at, now, 180));
+  const requiredBlocks = [
+    ["home", "hero"],
+    ["home", "proof"],
+    ["join", "first-semester"],
+  ];
+  const staleOrMissingBlocks = requiredBlocks.filter(([page, key]) => {
+    const block = publishedBlocks.find((item) => item.page_slug === page && item.block_key === key);
+    return !block || isOlderThan(block.updated_at, now, 180);
+  });
+  const recentAchievements = publishedAchievements.filter(
+    (item) => typeof item.year === "number" && item.year >= currentYear - 1
+  );
+  const mediaWithoutAlt = publishedMedia.filter((item) => item.kind === "image" && !hasText(item.alt));
+  const staleMedia = publishedMedia.filter((item) => isOlderThan(item.updated_at, now, 365));
+
+  const items: ContentFreshnessItem[] = [
+    {
+      key: "fresh-recruitment",
+      title: "모집 상태",
+      status: activeRecruitment
+        ? recruitmentEndTime !== null && recruitmentEndTime < now.getTime()
+          ? "fail"
+          : "pass"
+        : "warning",
+      detail: activeRecruitment
+        ? recruitmentEndTime !== null && recruitmentEndTime < now.getTime()
+          ? "모집 마감일이 지났지만 공개 모집이 열림 상태입니다."
+          : "공개 모집 상태와 마감일이 운영 기준 안에 있습니다."
+        : "공개 모집 기수가 없습니다. 모집 기간 전에는 닫힌 상태도 명확히 안내해야 합니다.",
+      actionLabel: "모집 확인",
+      targetTab: "recruitment",
+    },
+    {
+      key: "fresh-pages",
+      title: "공개 페이지",
+      status: publishedPages.length >= 4 && stalePages.length === 0 ? "pass" : "warning",
+      detail:
+        stalePages.length > 0
+          ? `최근 180일 기준으로 검토일 확인이 필요한 공개 페이지가 ${stalePages.length}개 있습니다.`
+          : `공개 페이지 ${publishedPages.length}개가 최신성 기준을 충족합니다.`,
+      actionLabel: "페이지 확인",
+      targetTab: "content",
+    },
+    {
+      key: "fresh-blocks",
+      title: "핵심 블록",
+      status: staleOrMissingBlocks.length === 0 ? "pass" : "warning",
+      detail:
+        staleOrMissingBlocks.length > 0
+          ? `홈 첫 화면, 2025년 성과, 지원 첫 학기 흐름 중 ${staleOrMissingBlocks.length}개 블록의 검토가 필요합니다.`
+          : "홈 첫 화면, 성과, 지원 흐름 블록이 최신성 기준을 충족합니다.",
+      actionLabel: "블록 확인",
+      targetTab: "content",
+    },
+    {
+      key: "fresh-achievements",
+      title: "성과 연도",
+      status: recentAchievements.length > 0 ? "pass" : "warning",
+      detail:
+        recentAchievements.length > 0
+          ? `최근 2년 기준 성과 ${recentAchievements.length}개가 공개되어 있습니다.`
+          : "최근 2년 기준으로 공개된 성과가 없습니다. 2025년 성과 목록을 확인해야 합니다.",
+      actionLabel: "성과 확인",
+      targetTab: "achievements",
+    },
+    {
+      key: "fresh-faqs",
+      title: "지원 FAQ",
+      status: publishedFaqs.length >= 3 ? "pass" : "warning",
+      detail: `공개 FAQ ${publishedFaqs.length}개가 준비되어 있습니다. 지원 시즌 전 최소 3개 이상을 유지합니다.`,
+      actionLabel: "FAQ 확인",
+      targetTab: "faqs",
+    },
+    {
+      key: "fresh-media",
+      title: "미디어 설명",
+      status: publishedMedia.length > 0 && mediaWithoutAlt.length === 0 && staleMedia.length === 0 ? "pass" : "warning",
+      detail:
+        mediaWithoutAlt.length > 0
+          ? `대체텍스트가 비어 있는 공개 이미지가 ${mediaWithoutAlt.length}개 있습니다.`
+          : staleMedia.length > 0
+            ? `최근 1년 기준으로 검토가 필요한 미디어가 ${staleMedia.length}개 있습니다.`
+            : `공개 미디어 ${publishedMedia.length}개가 최신성 기준을 충족합니다.`,
+      actionLabel: "미디어 확인",
+      targetTab: "media",
+    },
+  ];
+
+  const status: SiteReadinessStatus = items.some((item) => item.status === "fail")
+    ? "fail"
+    : items.some((item) => item.status === "warning")
+      ? "warning"
+      : "pass";
+
+  return { status, items };
 }
 
 export function buildSiteVerticalFitReport(input: SiteReadinessInput): SiteVerticalFitItem[] {

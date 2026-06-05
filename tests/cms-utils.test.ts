@@ -57,7 +57,11 @@ import {
   organizationSiteVerticals,
   organizationThemePresets,
 } from "../src/lib/organization-site-model";
-import { buildSiteReadinessReport, buildSiteVerticalFitReport } from "../src/lib/site-readiness";
+import {
+  buildContentFreshnessReport,
+  buildSiteReadinessReport,
+  buildSiteVerticalFitReport,
+} from "../src/lib/site-readiness";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -699,6 +703,48 @@ test("site readiness report surfaces CMS launch gaps", () => {
   assert.equal(complete.score, 100);
   assert.equal(complete.items.every((item) => item.actionLabel && item.targetTab), true);
   assert.equal(complete.items.find((item) => item.key === "recruitment")?.targetTab, "recruitment");
+
+  const freshInput = {
+    ...completeInput,
+    recruitment: [
+      {
+        ...completeInput.recruitment[0],
+        end_at: "2026-06-30T18:00:00+09:00",
+      },
+    ],
+    pages: completeInput.pages.map((item) => ({ ...item, updated_at: "2026-05-01T00:00:00.000Z" })),
+    blocks: completeInput.blocks.map((item) => ({ ...item, updated_at: "2026-05-01T00:00:00.000Z" })),
+    media: completeInput.media.map((item) => ({ ...item, updated_at: "2026-05-01T00:00:00.000Z" })),
+  };
+  const freshness = buildContentFreshnessReport(freshInput, new Date("2026-06-05T00:00:00.000Z"));
+
+  assert.equal(freshness.status, "pass");
+  assert.equal(freshness.items.every((item) => item.actionLabel && item.targetTab), true);
+  assert.equal(freshness.items.find((item) => item.key === "fresh-achievements")?.status, "pass");
+
+  const expiredRecruitment = buildContentFreshnessReport(
+    {
+      ...freshInput,
+      recruitment: [{ ...freshInput.recruitment[0], end_at: "2026-03-01T18:00:00+09:00" }],
+    },
+    new Date("2026-06-05T00:00:00.000Z")
+  );
+
+  assert.equal(expiredRecruitment.status, "fail");
+  assert.equal(expiredRecruitment.items.find((item) => item.key === "fresh-recruitment")?.status, "fail");
+
+  const staleContent = buildContentFreshnessReport(
+    {
+      ...freshInput,
+      achievements: freshInput.achievements.map((item) => ({ ...item, year: 2023 })),
+      faqs: [],
+    },
+    new Date("2026-06-05T00:00:00.000Z")
+  );
+
+  assert.equal(staleContent.status, "warning");
+  assert.equal(staleContent.items.find((item) => item.key === "fresh-achievements")?.status, "warning");
+  assert.equal(staleContent.items.find((item) => item.key === "fresh-faqs")?.status, "warning");
 
   const incompleteInput = {
     settings: { ...baseSettings, hero_title: "", logo_url: "http://unsafe.example/logo.png" },
