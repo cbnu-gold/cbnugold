@@ -7,6 +7,7 @@ import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import { buildOrganizationSiteExport } from "@/lib/organization-export";
+import { buildSiteReadinessReport } from "@/lib/site-readiness";
 import {
   organizationSiteModules,
   organizationSiteQualityGates,
@@ -510,6 +511,21 @@ export default function AdminPage() {
   const canManageAdminAccounts = roleCanManageAdmins(role);
   const canReadAudit = roleCanViewAudit(role);
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
+  const readiness = useMemo(
+    () =>
+      buildSiteReadinessReport({
+        settings: state.settings,
+        recruitment: state.recruitment,
+        pages: state.pages,
+        blocks: state.blocks,
+        activities: state.activities,
+        achievements: state.achievements,
+        faqs: state.faqs,
+        media: state.media,
+        admins: state.admins,
+      }),
+    [state]
+  );
   const uploadFileError = uploadFile
     ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
     : "";
@@ -940,6 +956,60 @@ export default function AdminPage() {
                       운영 상태를 불러오는 중입니다.
                     </p>
                   )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">운영 준비도</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      공개 화면, 모집 전환, 콘텐츠 근거, 관리자 권한을 기준으로 현재 사이트 상태를 점검합니다.
+                    </p>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-4 py-3 text-right">
+                    <p className="text-xs font-semibold text-slate-500">준비도 점수</p>
+                    <p
+                      className={`mt-1 text-2xl font-bold tabular-nums ${
+                        readiness.status === "pass"
+                          ? "text-emerald-700"
+                          : readiness.status === "warning"
+                            ? "text-amber-700"
+                            : "text-red-700"
+                      }`}
+                    >
+                      {readiness.score}%
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  {readiness.items.map((item) => (
+                    <article
+                      key={item.key}
+                      className={`rounded-lg border p-4 ${
+                        item.status === "pass"
+                          ? "border-emerald-100 bg-emerald-50"
+                          : item.status === "warning"
+                            ? "border-amber-200 bg-amber-50"
+                            : "border-red-200 bg-red-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-950">{item.title}</h3>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            item.status === "pass"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.status === "warning"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {item.status === "pass" ? "완료" : item.status === "warning" ? "보완" : "필수"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">{item.detail}</p>
+                    </article>
+                  ))}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">

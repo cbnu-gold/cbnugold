@@ -13,7 +13,7 @@ export const organizationSiteModules = [
   },
   {
     key: "recruiting",
-    title: "모집/신청",
+    title: "모집/지원",
     scope: "모집 일정, 지원 자격, 지원서 양식, 접수 확인",
     adminSurface: "모집 관리, 지원자 관리",
   },
@@ -26,11 +26,11 @@ export const organizationSiteModules = [
 ] as const;
 
 export const organizationSiteQualityGates = [
-  "공개 문구는 확인 가능한 활동, 일정, 절차, 기록만 사용합니다.",
+  "공개 문구는 검증 가능한 활동, 일정, 절차, 기록만 사용합니다.",
   "지원서와 개인정보는 공개 URL로 노출하지 않습니다.",
-  "운영자가 웹 대시보드에서 반복 콘텐츠와 모집 상태를 수정할 수 있어야 합니다.",
+  "운영자는 대시보드에서 반복 콘텐츠와 모집 상태를 수정할 수 있어야 합니다.",
   "삭제 가능한 미디어와 사용 중인 미디어를 서버에서 구분합니다.",
-  "배포 전 공개 라우트, 관리자 API, 이미지 자산, 보안 헤더를 자동 점검합니다.",
+  "배포 후 공개 라우트, 관리자 API, 이미지 자산, 보안 헤더를 자동 점검합니다.",
 ] as const;
 
 export const organizationThemePresets = [
@@ -59,7 +59,7 @@ export const organizationThemePresets = [
   {
     key: "green",
     label: "Green",
-    description: "ESG, 창업, 지역 프로젝트형 단체에 맞는 균형 잡힌 녹색 계열입니다.",
+    description: "ESG, 창업, 지역 프로젝트에 맞는 균형 잡힌 녹색 계열입니다.",
     colors: {
       ink: "#102018",
       accent: "#2F9D68",
@@ -90,7 +90,7 @@ export const organizationSiteUseCases = [
   "동아리·학회 공식 홈페이지",
   "리크루팅과 지원자 관리가 필요한 팀",
   "성과·활동·FAQ를 운영진이 직접 관리하는 단체",
-  "행사, 프로젝트, 창업팀의 공개 소개 사이트",
+  "행사, 프로젝트, 창업팀 공개 소개 사이트",
 ] as const;
 
 export const organizationSiteVerticals = [
@@ -105,7 +105,7 @@ export const organizationSiteVerticals = [
     key: "academic_society",
     title: "학회·연구회",
     primaryFlow: "연구 주제 확인 → 활동 자료 확인 → 세션 일정 확인 → 문의",
-    coreContent: "연구 분야, 세미나, 프로젝트, 운영진, 자료실",
+    coreContent: "연구 분야, 멤버, 프로젝트, 운영진, 자료실",
     cta: "세션 일정 보기",
   },
   {

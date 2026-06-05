@@ -57,6 +57,7 @@ import {
   organizationSiteVerticals,
   organizationThemePresets,
 } from "../src/lib/organization-site-model";
+import { buildSiteReadinessReport } from "../src/lib/site-readiness";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -635,6 +636,83 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(cutover, /배포 전환 및 운영 검증 체크리스트/);
   assert.match(cutover, /Server: Vercel/);
   assert.match(checkOps, /failedCheckDetails/);
+});
+
+test("site readiness report surfaces CMS launch gaps", () => {
+  const complete = buildSiteReadinessReport({
+    settings: {
+      ...baseSettings,
+      organization_type: "금융권 취업 동아리",
+      logo_url: "/images/logo.svg",
+      share_image_url: "/images/gold-recruiting-board.png",
+    },
+    recruitment: [{ ...baseCycle, status: "published", privacy_retention: "지원 결과 발표 후 6개월" }],
+    pages: ["home", "about", "activity", "join"].map((slug, index) => ({
+      slug,
+      title: slug,
+      description: null,
+      status: "published",
+      sort_order: index,
+    })),
+    blocks: [
+      { page_slug: "home", block_key: "hero", title: null, subtitle: null, body: null, cta_label: null, cta_href: null, media_url: null, status: "published", sort_order: 1 },
+      { page_slug: "home", block_key: "proof", title: null, subtitle: null, body: null, cta_label: null, cta_href: null, media_url: null, status: "published", sort_order: 2 },
+      { page_slug: "join", block_key: "first-semester", title: null, subtitle: null, body: null, cta_label: null, cta_href: null, media_url: null, status: "published", sort_order: 3 },
+    ],
+    activities: [1, 2, 3].map((sort_order) => ({
+      title: `활동 ${sort_order}`,
+      subtitle: null,
+      description: "활동 설명",
+      category: "regular",
+      tags: [],
+      status: "published",
+      sort_order,
+    })),
+    achievements: [1, 2, 3].map((sort_order) => ({
+      title: `성과 ${sort_order}`,
+      organization: null,
+      result: "성과",
+      kind: "metric",
+      year: 2025,
+      status: "published",
+      sort_order,
+    })),
+    faqs: [1, 2, 3].map((sort_order) => ({
+      question: `질문 ${sort_order}`,
+      answer: "답변",
+      status: "published",
+      sort_order,
+    })),
+    media: [1, 2].map((sort_order) => ({
+      bucket: "cms-media",
+      path: `asset-${sort_order}.webp`,
+      public_url: `/images/asset-${sort_order}.webp`,
+      alt: "이미지",
+      kind: "image",
+      status: "published",
+    })),
+    admins: [{ id: "owner-id", email: "owner@example.com", name: "Owner", role: "owner", is_active: true }],
+  });
+
+  assert.equal(complete.status, "pass");
+  assert.equal(complete.score, 100);
+
+  const incomplete = buildSiteReadinessReport({
+    settings: { ...baseSettings, hero_title: "", logo_url: "http://unsafe.example/logo.png" },
+    recruitment: [],
+    pages: [],
+    blocks: [],
+    activities: [],
+    achievements: [],
+    faqs: [],
+    media: [],
+    admins: [],
+  });
+
+  assert.equal(incomplete.status, "fail");
+  assert.equal(incomplete.items.some((item) => item.key === "admin-owner" && item.status === "fail"), true);
+  assert.equal(incomplete.items.some((item) => item.key === "recruitment" && item.status === "fail"), true);
+  assert.equal(incomplete.items.some((item) => item.key === "brand-assets" && item.status === "warning"), true);
 });
 
 test("organization site export excludes sensitive operations data", () => {
