@@ -76,7 +76,11 @@ for (const route of routes) {
       expect((await imageResponse.body()).byteLength, `${route} background image ${imageUrl}`).toBeGreaterThan(0);
     }
 
-    const relevantConsole = consoleMessages.filter((entry) => !entry.includes("Supabase에 연결할 수 없습니다"));
+    const relevantConsole = consoleMessages.filter(
+      (entry) =>
+        !entry.includes("Supabase에 연결할 수 없습니다") &&
+        !entry.includes("/_next/webpack-hmr")
+    );
     expect(relevantConsole, `${route} console messages`).toEqual([]);
 
     await testInfo.attach(`${testInfo.project.name}-${route === "/" ? "home" : route.slice(1).replaceAll("/", "-")}.png`, {

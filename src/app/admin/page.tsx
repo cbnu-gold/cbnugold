@@ -6,14 +6,21 @@ import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
-import { organizationSiteModules, organizationSiteQualityGates } from "@/lib/organization-site-model";
+import { buildOrganizationSiteExport } from "@/lib/organization-export";
+import {
+  organizationSiteModules,
+  organizationSiteQualityGates,
+  organizationSiteUseCases,
+  organizationSiteVerticals,
+  organizationThemePresets,
+} from "@/lib/organization-site-model";
 import {
   canManageAdmins as roleCanManageAdmins,
   canManageApplicants as roleCanManageApplicants,
   canViewAudit as roleCanViewAudit,
   canWriteContent,
 } from "@/lib/admin-permissions";
-import { siteSettingFields } from "@/lib/site-settings";
+import { defaultSiteSettingsValue, siteSettingFields } from "@/lib/site-settings";
 import type {
   ActivityItem,
   AdminProfile,
@@ -90,21 +97,7 @@ type HealthSnapshot = {
   }[];
 };
 
-const defaultSettings: SiteSettingsValue = {
-  site_title: "금은동",
-  club_name: "충북대학교 금융권 취업 동아리 금은동",
-  hero_title: "충북대 금융권 취업 동아리, 금은동",
-  hero_subtitle: "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
-  primary_cta_label: "지원 안내 보기",
-  primary_cta_href: "/join",
-  secondary_cta_label: "활동 살펴보기",
-  secondary_cta_href: "/activity",
-  contact_name: "6대 회장 이승현",
-  contact_phone: "010-2623-2004",
-  contact_email: "cni351237@naver.com",
-  instagram_url: "https://www.instagram.com/cbnu_gold/",
-  naver_cafe_url: "https://cafe.naver.com/cufaclub",
-};
+const defaultSettings: SiteSettingsValue = defaultSiteSettingsValue;
 
 const initialState: ResourceState = {
   applicants: [],
@@ -120,6 +113,10 @@ const initialState: ResourceState = {
   admins: [],
   audit: [],
 };
+
+function normalizeAdminSettings(value: Partial<SiteSettingsValue> | null | undefined): SiteSettingsValue {
+  return { ...defaultSettings, ...(value ?? {}) };
+}
 
 const tabs: { key: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { key: "overview", label: "대시보드", icon: LayoutDashboard },
@@ -204,6 +201,7 @@ function getSettingInputType(key: keyof SiteSettingsValue) {
   if (key === "contact_email") return "email";
   if (key === "contact_phone") return "tel";
   if (key === "instagram_url" || key === "naver_cafe_url") return "url";
+  if (key === "logo_url" || key === "share_image_url") return "text";
   return "text";
 }
 
@@ -214,6 +212,11 @@ function getSettingHint(key: keyof SiteSettingsValue) {
   if (key === "instagram_url" || key === "naver_cafe_url") {
     return "외부 채널은 https URL만 저장됩니다. 비워두면 공개 화면에서 숨겨집니다.";
   }
+  if (key === "logo_url") return "예: /images/logo.svg 또는 CMS 미디어 https URL";
+  if (key === "share_image_url") return "검색·SNS 공유와 홈 키비주얼 기본 이미지에 사용됩니다.";
+  if (key === "organization_type") return "예: 금융권 취업 동아리, 투자 학회, 창업팀";
+  if (key === "founded_label") return "예: Est. 2021, Since 2024";
+  if (key === "brand_statement") return "짧은 운영 철학입니다. 자평 문구보다 행동 기준으로 작성합니다.";
   if (key === "contact_phone") return "하이픈 포함 입력 가능";
   return undefined;
 }
@@ -426,7 +429,7 @@ export default function AdminPage() {
     setAdmin(me.admin);
     setState({
       applicants: applicants.applicants ?? [],
-      settings: settings.items?.[0]?.value ?? defaultSettings,
+      settings: normalizeAdminSettings(settings.items?.[0]?.value),
       recruitment: recruitment.items ?? [],
       pages: pages.items ?? [],
       blocks: blocks.items ?? [],
@@ -656,6 +659,31 @@ export default function AdminPage() {
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  function downloadOrganizationSiteExport() {
+    const exportData = buildOrganizationSiteExport({
+      settings: state.settings,
+      pages: state.pages,
+      blocks: state.blocks,
+      recruitment: state.recruitment,
+      activities: state.activities,
+      achievements: state.achievements,
+      history: state.history,
+      faqs: state.faqs,
+      media: state.media,
+    });
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: "application/json;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${state.settings.site_title}_CMS_운영패키지_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
   async function uploadMedia() {
     if (!requireWrite("미디어 업로드")) return;
     if (!uploadFile) {
@@ -822,6 +850,21 @@ export default function AdminPage() {
                 </div>
               ))}
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">단체 CMS 운영 패키지</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      공개 CMS 설정, 페이지, 활동, 성과, 연혁, FAQ, 미디어 메타데이터를 JSON으로 내려받습니다.
+                      지원자, 관리자 계정, 감사 로그, 비공개 지원서 파일은 포함하지 않습니다.
+                    </p>
+                  </div>
+                  <AdminButton variant="secondary" onClick={downloadOrganizationSiteExport}>
+                    <Download className="h-4 w-4" />
+                    운영 패키지 다운로드
+                  </AdminButton>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h2 className="text-lg font-bold">운영 상태</h2>
@@ -926,6 +969,61 @@ export default function AdminPage() {
                     </li>
                   ))}
                 </ul>
+                <div className="mt-5 grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+                  <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <p className="text-sm font-bold text-slate-950">재사용 가능한 대상</p>
+                    <ul className="mt-3 grid gap-2 text-sm text-slate-600">
+                      {organizationSiteUseCases.map((item) => (
+                        <li key={item} className="flex gap-2">
+                          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-white p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-950">테마 프리셋</p>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                        현재 {state.settings.brand_preset}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {organizationThemePresets.map((preset) => (
+                        <div key={preset.key} className="rounded-lg bg-slate-50 p-3">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="h-4 w-4 rounded-full border border-white shadow-sm"
+                              style={{ backgroundColor: preset.colors.accent }}
+                              aria-hidden="true"
+                            />
+                            <p className="text-sm font-semibold text-slate-900">{preset.label}</p>
+                          </div>
+                          <p className="mt-2 text-xs leading-5 text-slate-500">{preset.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="text-sm font-bold text-slate-950">적용 분야별 운영 초점</p>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    {organizationSiteVerticals.map((vertical) => (
+                      <article key={vertical.key} className="rounded-lg bg-slate-50 p-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-950">{vertical.title}</p>
+                          <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                            {vertical.cta}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs leading-5 text-slate-600">{vertical.primaryFlow}</p>
+                        <p className="mt-2 border-t border-slate-200 pt-2 text-[11px] leading-5 text-slate-500">
+                          {vertical.coreContent}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -1215,21 +1313,39 @@ export default function AdminPage() {
                 <h2 className="text-lg font-bold">사이트 기본 설정</h2>
                 <p className="mt-1 text-sm text-slate-500">헤더, 푸터, 홈 CTA, 지원 페이지 문의 채널에 공통 적용됩니다.</p>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
-                  {siteSettingFields.map((field) => (
-                    <Field
-                      key={field.key}
-                      label={field.label}
-                      type={getSettingInputType(field.key)}
-                      hint={getSettingHint(field.key)}
-                      value={state.settings[field.key]}
-                      onChange={(next) =>
-                        setState((prev) => ({
-                          ...prev,
-                          settings: { ...prev.settings, [field.key]: next },
-                        }))
-                      }
-                    />
-                  ))}
+                  {siteSettingFields.map((field) =>
+                    field.kind === "theme-preset" ? (
+                      <SelectField
+                        key={field.key}
+                        label={field.label}
+                        value={state.settings[field.key]}
+                        options={organizationThemePresets.map((preset) => ({
+                          value: preset.key,
+                          label: `${preset.label} · ${preset.description}`,
+                        }))}
+                        onChange={(next) =>
+                          setState((prev) => ({
+                            ...prev,
+                            settings: { ...prev.settings, [field.key]: next as SiteSettingsValue["brand_preset"] },
+                          }))
+                        }
+                      />
+                    ) : (
+                      <Field
+                        key={field.key}
+                        label={field.label}
+                        type={getSettingInputType(field.key)}
+                        hint={getSettingHint(field.key)}
+                        value={state.settings[field.key]}
+                        onChange={(next) =>
+                          setState((prev) => ({
+                            ...prev,
+                            settings: { ...prev.settings, [field.key]: next },
+                          }))
+                        }
+                      />
+                    )
+                  )}
                 </div>
                 <div className="mt-4">
                   <AdminButton onClick={saveSettings} disabled={!canWrite}>

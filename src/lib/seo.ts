@@ -10,4 +10,17 @@ export const recruitingShareImage = {
   alt: "금은동 금융권 리크루팅 키비주얼",
 };
 
+export function toAbsoluteSiteUrl(url: string) {
+  if (/^https:\/\//i.test(url)) return url;
+  return `${siteUrl}${url.startsWith("/") ? url : `/${url}`}`;
+}
+
+export function getShareImage(url: string | null | undefined, alt = recruitingShareImage.alt) {
+  return {
+    ...recruitingShareImage,
+    url: url || recruitingShareImage.url,
+    alt,
+  };
+}
+
 export const absoluteRecruitingShareImage = `${siteUrl}${recruitingShareImage.url}`;

@@ -84,6 +84,7 @@ export default async function RootLayout({
     <html lang="ko" className={`${inter.variable} ${jetBrainsMono.variable} ${fraunces.variable}`}>
       <head>
         {/* Pretendard (Korean) */}
+        <link rel="icon" href={settings.logo_url} />
         <link
           rel="stylesheet"
           as="style"
@@ -91,8 +92,8 @@ export default async function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="antialiased marble-texture">
-        <JsonLd />
+      <body className="antialiased marble-texture" data-brand-preset={settings.brand_preset}>
+        <JsonLd settings={settings} />
         <Header settings={settings} />
         <main className="min-h-screen">{children}</main>
         <Footer settings={settings} />

@@ -493,6 +493,12 @@ INSERT INTO site_settings (key, value, status) VALUES
 ('site', '{
   "site_title": "금은동",
   "club_name": "충북대학교 금융권 취업 동아리 금은동",
+  "organization_type": "금융권 취업 동아리",
+  "founded_label": "Est. 2021",
+  "brand_statement": "읽고, 말하고, 연결합니다",
+  "brand_preset": "gold",
+  "logo_url": "/images/logo.svg",
+  "share_image_url": "/images/gold-recruiting-board.png",
   "hero_title": "충북대 금융권 취업 동아리, 금은동",
   "hero_subtitle": "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
   "primary_cta_label": "지원 안내 보기",

@@ -44,7 +44,18 @@ import {
   collectCmsMediaReferences,
   isCmsMediaReferenceValue,
 } from "../src/lib/media-references";
-import { organizationSiteModules, organizationSiteQualityGates } from "../src/lib/organization-site-model";
+import {
+  buildOrganizationSiteExport,
+  organizationSiteExportResourceKeys,
+} from "../src/lib/organization-export";
+import {
+  isOrganizationThemePreset,
+  organizationSiteModules,
+  organizationSiteQualityGates,
+  organizationSiteUseCases,
+  organizationSiteVerticals,
+  organizationThemePresets,
+} from "../src/lib/organization-site-model";
 import {
   getCmsMediaKind,
   getCmsMediaUploadValidationError,
@@ -60,7 +71,7 @@ import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings"
 import { fallbackBlocks } from "../src/lib/cms-fallback";
 import { defaultSeoDescription, recruitingShareImage, siteUrl } from "../src/lib/seo";
 import { fileRules, validateFile, validationRules } from "../src/lib/validations";
-import type { RecruitmentCycle } from "../src/types";
+import type { RecruitmentCycle, SiteSettingsValue } from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
   generation: 9,
@@ -80,9 +91,15 @@ const baseCycle: RecruitmentCycle = {
   status: "published",
 };
 
-const baseSettings = {
+const baseSettings: SiteSettingsValue = {
   site_title: "금은동",
   club_name: "충북대학교 금융권 취업 동아리 금은동",
+  organization_type: "금융권 취업 동아리",
+  founded_label: "Est. 2021",
+  brand_statement: "읽고, 말하고, 연결합니다",
+  brand_preset: "gold",
+  logo_url: "/images/logo.svg",
+  share_image_url: "/images/gold-recruiting-board.png",
   hero_title: "충북대 금융권 취업 동아리 금은동",
   hero_subtitle: "신문 스크랩, 리포트 분석, 현직자 네트워킹을 진행합니다.",
   primary_cta_label: "지원 안내 보기",
@@ -307,14 +324,15 @@ test("SEO metadata uses the recruiting visual and Korean description", () => {
   assert.ok(logoPng.byteLength > 1000);
   assert.match(logoSvg, /금은동 로고/);
   assert.equal(logoSvg.toLowerCase().includes(["invest", "in", "yourself"].join(" ")), false);
-  assert.match(header, /\/images\/logo\.svg/);
-  assert.match(header, /unoptimized/);
-  assert.match(footer, /\/images\/logo\.svg/);
-  assert.match(footer, /unoptimized/);
+  assert.match(header, /settings\.logo_url/);
+  assert.match(header, /<img/);
+  assert.match(footer, /settings\.logo_url/);
+  assert.match(footer, /<img/);
   assert.match(defaultSeoDescription, /신문 스크랩/);
   assert.equal(defaultSeoDescription.includes(["Invest", "in", "yourself"].join(" ")), false);
-  assert.match(layout, /recruitingShareImage/);
-  assert.match(home, /recruitingShareImage/);
+  assert.match(layout, /data-brand-preset/);
+  assert.match(home, /getShareImage/);
+  assert.match(home, /settings\.share_image_url/);
   assert.match(robots, /siteUrl/);
   assert.match(sitemap, /siteUrl/);
 });
@@ -363,6 +381,23 @@ test("site settings validation normalizes safe values", () => {
   assert.equal(result.value?.instagram_url, "");
 });
 
+test("site settings validation backfills reusable organization fields", () => {
+  const legacySettings = { ...baseSettings };
+  delete (legacySettings as Partial<typeof baseSettings>).organization_type;
+  delete (legacySettings as Partial<typeof baseSettings>).founded_label;
+  delete (legacySettings as Partial<typeof baseSettings>).brand_statement;
+  delete (legacySettings as Partial<typeof baseSettings>).brand_preset;
+  delete (legacySettings as Partial<typeof baseSettings>).logo_url;
+  delete (legacySettings as Partial<typeof baseSettings>).share_image_url;
+
+  const result = validateAndNormalizeSiteSettingsValue(legacySettings);
+
+  assert.equal(result.error, null);
+  assert.equal(result.value?.brand_preset, "gold");
+  assert.equal(result.value?.logo_url, "/images/logo.svg");
+  assert.equal(result.value?.share_image_url, "/images/gold-recruiting-board.png");
+});
+
 test("site settings validation rejects unsafe public links", () => {
   assert.equal(
     validateAndNormalizeSiteSettingsValue({
@@ -378,6 +413,22 @@ test("site settings validation rejects unsafe public links", () => {
       instagram_url: "http://example.com",
     }).error,
     "인스타그램 URL은 https URL만 사용할 수 있습니다"
+  );
+
+  assert.equal(
+    validateAndNormalizeSiteSettingsValue({
+      ...baseSettings,
+      brand_preset: "purple",
+    }).error,
+    "테마 프리셋은 gold, navy, green, graphite 중 하나여야 합니다"
+  );
+
+  assert.equal(
+    validateAndNormalizeSiteSettingsValue({
+      ...baseSettings,
+      logo_url: "javascript:alert(1)",
+    }).error,
+    "로고 URL은 사이트 내부 경로 또는 https URL만 사용할 수 있습니다"
   );
 });
 
@@ -559,7 +610,22 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
     ["identity", "content", "recruiting", "operations"]
   );
   assert.equal(organizationSiteQualityGates.length >= 5, true);
+  assert.deepEqual(
+    organizationThemePresets.map((item) => item.key),
+    ["gold", "navy", "green", "graphite"]
+  );
+  assert.equal(isOrganizationThemePreset("gold"), true);
+  assert.equal(isOrganizationThemePreset("purple"), false);
+  assert.equal(organizationSiteUseCases.length >= 4, true);
+  assert.deepEqual(
+    organizationSiteVerticals.map((item) => item.key),
+    ["recruiting_club", "academic_society", "startup_team", "event_program"]
+  );
   assert.match(adminPage, /organizationSiteModules/);
+  assert.match(adminPage, /organizationThemePresets/);
+  assert.match(adminPage, /organizationSiteVerticals/);
+  assert.match(adminPage, /재사용 가능한 대상/);
+  assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);
   assert.match(readme, /ORG_SITE_PLATFORM_BLUEPRINT/);
   assert.match(readme, /DEPLOYMENT_CUTOVER_CHECKLIST/);
@@ -568,6 +634,41 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(cutover, /배포 전환 및 운영 검증 체크리스트/);
   assert.match(cutover, /Server: Vercel/);
   assert.match(checkOps, /failedCheckDetails/);
+});
+
+test("organization site export excludes sensitive operations data", () => {
+  const exported = buildOrganizationSiteExport(
+    {
+      settings: baseSettings,
+      pages: [{ id: "page-id", slug: "home", title: "홈", description: null, status: "published", sort_order: 1 }],
+      blocks: [],
+      recruitment: [],
+      activities: [],
+      achievements: [],
+      history: [],
+      faqs: [],
+      media: [
+        {
+          id: "media-id",
+          bucket: "cms-media",
+          path: "brand.webp",
+          public_url: "/images/brand.webp",
+          alt: "브랜드 이미지",
+          kind: "image",
+          status: "published",
+          updated_at: "2026-01-01T00:00:00.000Z",
+        },
+      ],
+    },
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  assert.deepEqual(Object.keys(exported.resources), [...organizationSiteExportResourceKeys]);
+  assert.equal(JSON.stringify(exported).includes("applicants"), false);
+  assert.equal(JSON.stringify(exported).includes("admin_profiles"), false);
+  assert.equal(JSON.stringify(exported).includes("audit_logs"), false);
+  assert.equal("id" in exported.resources.pages[0], false);
+  assert.equal("updated_at" in exported.resources.media[0], false);
 });
 
 test("CMS media delete guard detects public content references", () => {

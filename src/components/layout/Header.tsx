@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { MobileNav } from "./MobileNav";
@@ -68,18 +67,19 @@ export function Header({ settings }: { settings: SiteSettingsValue }) {
         <div className="max-w-[1400px] mx-auto h-full px-6 sm:px-8 lg:px-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <Image
-              src="/images/logo.svg"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={settings.logo_url}
               alt={settings.site_title}
               width={120}
               height={37}
               className="h-8 w-auto"
-              priority
-              unoptimized
             />
-            <span className="hidden border-l border-ink/15 pl-3 text-[11px] font-medium text-ink/55 sm:block">
-              Est. 2021
-            </span>
+            {settings.founded_label && (
+              <span className="hidden border-l border-ink/15 pl-3 text-[11px] font-medium text-ink/55 sm:block">
+                {settings.founded_label}
+              </span>
+            )}
           </Link>
 
           {/* Right side — Nav + Social + CTA */}

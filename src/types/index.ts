@@ -87,6 +87,12 @@ export interface AdminProfile {
 export interface SiteSettingsValue {
   site_title: string;
   club_name: string;
+  organization_type: string;
+  founded_label: string;
+  brand_statement: string;
+  brand_preset: "gold" | "navy" | "green" | "graphite";
+  logo_url: string;
+  share_image_url: string;
   hero_title: string;
   hero_subtitle: string;
   primary_cta_label: string;

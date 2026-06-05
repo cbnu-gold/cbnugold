@@ -15,29 +15,32 @@ import {
   formatKoreanDateTime,
   isRecruitmentOpen,
 } from "@/lib/cms-public";
-import { recruitingShareImage, siteUrl } from "@/lib/seo";
+import { getShareImage, siteUrl } from "@/lib/seo";
 
 export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const page = await getPublicPage("home");
+  const data = await getPublicCmsData();
+  const page = data.pages.find((item) => item.slug === "home") ?? (await getPublicPage("home"));
   const title = page?.title ?? "금은동";
   const description =
     page?.description ?? "충북대학교 금융권 취업 동아리 금은동 공식 홈페이지입니다.";
+  const shareImage = getShareImage(data.settings.share_image_url, `${data.settings.site_title} 공유 이미지`);
 
   return {
     title,
     description,
     openGraph: {
-      title: `${title} | 금은동`,
+      title: `${title} | ${data.settings.site_title}`,
       description,
       url: siteUrl,
-      images: [recruitingShareImage],
+      siteName: data.settings.site_title,
+      images: [shareImage],
     },
     twitter: {
-      title: `${title} | 금은동`,
+      title: `${title} | ${data.settings.site_title}`,
       description,
-      images: [recruitingShareImage.url],
+      images: [shareImage.url],
     },
     alternates: {
       canonical: siteUrl,
@@ -54,7 +57,7 @@ export default async function Home() {
     (block) => block.page_slug === "home" && block.block_key === "philosophy"
   );
   const philosophyItems = getPhilosophyItems(philosophy?.body);
-  const heroMediaUrl = hero?.media_url ?? "/images/gold-recruiting-board.png";
+  const heroMediaUrl = hero?.media_url ?? data.settings.share_image_url;
   const achievements2025 = data.achievements.filter((item) => item.year === 2025);
   const displayAchievements = achievements2025.length ? achievements2025 : data.achievements;
   const recruitmentOpen = isRecruitmentOpen(data.recruitment);
@@ -81,7 +84,7 @@ export default async function Home() {
               <span className="rounded-full border border-gold/25 bg-gold/10 px-3 py-1 text-xs font-semibold text-gold-dark">
                 {recruitmentOpen
                   ? `${data.recruitment.generation}기 모집 진행 중`
-                  : "충북대학교 금융권 취업 동아리"}
+                  : data.settings.organization_type}
               </span>
               <span className="rounded-full border border-ink/10 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-600">
                 {recruitmentLabel}
@@ -111,7 +114,7 @@ export default async function Home() {
           </div>
 
           <div className="overflow-hidden rounded-xl border border-ink/10 bg-white shadow-[0_24px_70px_-45px_rgba(14,20,32,0.45)]">
-            <HeroVisual src={heroMediaUrl} />
+            <HeroVisual src={heroMediaUrl} alt={`${data.settings.site_title} 키비주얼`} />
             <div className="p-4 sm:p-5">
               <div className="flex items-center justify-between border-b border-ink/10 pb-4">
                 <div>
@@ -163,7 +166,7 @@ export default async function Home() {
           </div>
 
           <div className="grid grid-cols-2 gap-2 border-y border-ink/10 py-4 sm:grid-cols-3 lg:col-span-2 lg:max-w-2xl">
-            <Metric value="2021" label="활동 시작" />
+            <Metric value={data.settings.founded_label.replace(/^Est\.\s*/i, "") || "2021"} label="활동 시작" />
             <Metric value={data.recruitment.meeting_time?.split(" ")[1] ?? "화요일"} label="정기모임" />
             <Metric value={`${data.recruitment.generation}기`} label="모집 기수" />
           </div>
@@ -203,7 +206,7 @@ export default async function Home() {
           <div>
             <p className="text-sm font-semibold text-gold-dark">운영 철학</p>
             <h2 className="mt-2 text-2xl font-bold tracking-normal sm:text-4xl">
-              {philosophy?.title ?? "읽고, 말하고, 연결합니다"}
+              {philosophy?.title ?? data.settings.brand_statement}
             </h2>
             <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">
               {philosophy?.subtitle ?? "금융권 직무 준비를 활동 단위로 쌓습니다"}
@@ -298,11 +301,11 @@ function getPhilosophyItems(value: string | null | undefined) {
   });
 }
 
-function HeroVisual({ src }: { src: string }) {
+function HeroVisual({ src, alt }: { src: string; alt: string }) {
   return (
     <div
       role="img"
-      aria-label="금은동 금융권 리크루팅 키비주얼"
+      aria-label={alt}
       className="relative aspect-[16/9] border-b border-ink/10 bg-cover bg-center"
       style={{
         backgroundImage: `linear-gradient(120deg, rgba(255,255,255,0.02), rgba(14,20,32,0.06)), url(${JSON.stringify(src)})`,

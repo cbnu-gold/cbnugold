@@ -66,8 +66,10 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 - Application notification email does not include applicant name, student ID, phone number, or file links; admins review details only in `/admin`.
 - Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
 - CMS media accepts PNG, JPG, WebP, PDF, DOCX, and HWP files. SVG upload is intentionally blocked for public-bucket safety.
-- `home/hero` can use a CMS media URL for the first-screen key visual; the default image is `public/images/gold-recruiting-board.png`.
-- Open Graph and Twitter preview cards use the same recruiting key visual for consistent sharing.
+- `site_settings.value` controls organization type, brand statement, theme preset, logo URL, sharing image URL, homepage CTA, and contact channels.
+- `home/hero` can use a CMS media URL for the first-screen key visual; if empty, the site sharing image is used.
+- Open Graph and Twitter preview cards use `share_image_url` for consistent sharing.
+- Theme presets are `gold`, `navy`, `green`, and `graphite`; 금은동 keeps the default `gold` tone.
 - Public copy should stay factual: activity, schedule, support process, and verified outcomes. Do not add self-ranking claims or encyclopedia-style content.
 - The application API requires a published open recruitment cycle before accepting submissions and blocks duplicate submissions by recruitment scope and student ID.
 - `/api/health` exposes a shallow public check; deep DB/storage checks require `HEALTHCHECK_TOKEN`.

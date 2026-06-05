@@ -2,6 +2,7 @@ import { activities as baseActivities } from "@/data/activities";
 import { placements, awards } from "@/data/achievements";
 import { history as baseHistory } from "@/data/history";
 import { faqs as baseFaqs } from "@/data/faqs";
+import { defaultSiteSettingsValue } from "@/lib/site-settings";
 import type {
   ActivityItem,
   AchievementItem,
@@ -14,22 +15,7 @@ import type {
   SiteSettingsValue,
 } from "@/types";
 
-export const fallbackSettings: SiteSettingsValue = {
-  site_title: "금은동",
-  club_name: "충북대학교 금융권 취업 동아리 금은동",
-  hero_title: "충북대 금융권 취업 동아리, 금은동",
-  hero_subtitle:
-    "신문 스크랩, 리포트 분석, 세일즈 페어, 현직자 멘토링을 진행합니다.",
-  primary_cta_label: "지원 안내 보기",
-  primary_cta_href: "/join",
-  secondary_cta_label: "활동 살펴보기",
-  secondary_cta_href: "/activity",
-  contact_name: "6대 회장 이승현",
-  contact_phone: "010-2623-2004",
-  contact_email: "cni351237@naver.com",
-  instagram_url: "https://www.instagram.com/cbnu_gold/",
-  naver_cafe_url: "https://cafe.naver.com/cufaclub",
-};
+export const fallbackSettings: SiteSettingsValue = defaultSiteSettingsValue;
 
 export const fallbackRecruitment: RecruitmentCycle = {
   generation: 9,

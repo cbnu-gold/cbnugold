@@ -35,6 +35,42 @@ body {
   font-feature-settings: "ss01", "ss02", "cv11";
 }
 
+body[data-brand-preset="navy"] {
+  --color-ink: #0B1324;
+  --color-gold: #2F6BFF;
+  --color-gold-light: #AFC4FF;
+  --color-gold-dark: #214FBF;
+  --color-gold-muted: rgba(47, 107, 255, 0.13);
+  --color-gold-line: rgba(47, 107, 255, 0.24);
+  --color-marble: #F6F8FC;
+  --color-marble-light: #FFFFFF;
+  --color-marble-dark: #E7ECF7;
+}
+
+body[data-brand-preset="green"] {
+  --color-ink: #102018;
+  --color-gold: #2F9D68;
+  --color-gold-light: #A7DEC2;
+  --color-gold-dark: #20774E;
+  --color-gold-muted: rgba(47, 157, 104, 0.13);
+  --color-gold-line: rgba(47, 157, 104, 0.24);
+  --color-marble: #F5FAF7;
+  --color-marble-light: #FFFFFF;
+  --color-marble-dark: #E5F1EA;
+}
+
+body[data-brand-preset="graphite"] {
+  --color-ink: #111418;
+  --color-gold: #6E7781;
+  --color-gold-light: #D4D8DD;
+  --color-gold-dark: #4B535C;
+  --color-gold-muted: rgba(110, 119, 129, 0.14);
+  --color-gold-line: rgba(110, 119, 129, 0.24);
+  --color-marble: #F7F7F6;
+  --color-marble-light: #FFFFFF;
+  --color-marble-dark: #E8E8E6;
+}
+
 /* Tabular numbers for all numeric data */
 .tabular-nums,
 .font-mono {

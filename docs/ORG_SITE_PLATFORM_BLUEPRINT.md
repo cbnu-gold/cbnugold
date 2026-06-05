@@ -13,11 +13,20 @@
 
 | 모듈 | 관리 대상 | 현재 구현 |
 | --- | --- | --- |
-| 정체성/브랜드 | 사이트명, 단체명, 홈 문구, 로고, 공유 이미지 | `site_settings`, `content_pages`, `media_assets` |
+| 정체성/브랜드 | 사이트명, 단체 유형, 홈 문구, 운영 철학, 로고, 공유 이미지, 테마 | `site_settings`, `content_pages`, `media_assets` |
 | 공개 콘텐츠 | 소개, 활동, 성과, 이력, FAQ | `content_blocks`, `activity_items`, `achievement_items`, `history_entries`, `faq_items` |
 | 모집/신청 | 모집 기수, 일정, 지원 자격, 지원서 양식, 접수 확인 | `recruitment_cycles`, `applicants`, `/api/apply`, `/join` |
 | 운영 통제 | 관리자 권한, 감사 로그, 헬스체크, 파일 보호 | `admin_profiles`, `audit_logs`, `/api/health`, RLS |
 | 미디어 관리 | 이미지, 문서, 지원서 양식 | `cms-media` public bucket, `applications` private bucket |
+
+## 2-1. 적용 분야
+
+| 분야 | 우선 흐름 | 핵심 콘텐츠 |
+| --- | --- | --- |
+| 리크루팅형 동아리 | 정체성 확인 → 모집 일정 확인 → 지원서 제출 → 접수 확인 | 활동, 모집 기수, 지원 자격, FAQ, 확인된 성과 |
+| 학회·연구회 | 연구 주제 확인 → 활동 자료 확인 → 세션 일정 확인 → 문의 | 연구 분야, 세미나, 프로젝트, 운영진, 자료실 |
+| 창업팀·프로젝트 | 문제 정의 확인 → 제품/실험 확인 → 팀 소개 확인 → 협업 문의 | 문제, 솔루션, 진행 기록, 팀, 파트너, 문의 |
+| 행사·프로그램 | 행사 목적 확인 → 일정 확인 → 신청 → 안내 확인 | 일정, 참가 대상, 장소, 준비물, 공지, FAQ |
 
 ## 3. 확장 원칙
 
@@ -33,6 +42,12 @@
 1. `site_settings.value`
    - `site_title`
    - `club_name`
+   - `organization_type`
+   - `founded_label`
+   - `brand_statement`
+   - `brand_preset`
+   - `logo_url`
+   - `share_image_url`
    - `hero_title`
    - `hero_subtitle`
    - CTA와 연락처
@@ -50,8 +65,9 @@
 ## 5. 다음 단계 후보
 
 - 단체 유형 프리셋: 동아리, 학회, 연구회, 행사, 포트폴리오 팀.
-- 테마 토큰 확장: 기존 `marble / gold / ink` 외에 단체별 색상 세트를 안전하게 교체.
+- 테마 토큰 확장: 현재 `gold`, `navy`, `green`, `graphite`를 지원하며, 금은동 기본값은 `gold`입니다.
 - 관리자 데이터 내보내기/가져오기: 설정과 콘텐츠를 JSON으로 백업하고 신규 단체에 적용.
+- 운영 패키지 다운로드: `/admin` 대시보드에서 지원자·관리자·감사 로그를 제외한 CMS JSON을 내려받습니다.
 - 콘텐츠 변경 미리보기: `draft` 상태 콘텐츠를 관리자만 preview.
 - 폼 빌더: 지원서 항목을 단체별로 조정하되 개인정보 처리와 파일 보호 정책은 유지.
 
@@ -64,4 +80,5 @@
 - 관리자 API 비인증 401 여부
 - 지원서 파일 public URL 미노출 여부
 - 미디어 삭제 시 사용 중인 공개 콘텐츠 참조 차단 여부
+- 로고, 공유 이미지, 테마 프리셋이 관리자 설정과 공개 화면에 일관되게 반영되는지 여부
 - 자평 문구, 허위 성과, 출처 없는 사진 미사용 여부

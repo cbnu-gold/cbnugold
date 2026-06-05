@@ -1,16 +1,17 @@
-import { absoluteRecruitingShareImage, defaultSeoDescription, siteUrl } from "@/lib/seo";
+import type { SiteSettingsValue } from "@/types";
+import { defaultSeoDescription, siteUrl, toAbsoluteSiteUrl } from "@/lib/seo";
 
-export function JsonLd() {
+export function JsonLd({ settings }: { settings: SiteSettingsValue }) {
   const organizationSchema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "금은동",
+    name: settings.site_title,
     alternateName: "CBNU GOLD",
     url: siteUrl,
-    logo: `${siteUrl}/images/logo.png`,
-    image: absoluteRecruitingShareImage,
-    foundingDate: "2021",
-    description: defaultSeoDescription,
+    logo: toAbsoluteSiteUrl(settings.logo_url),
+    image: toAbsoluteSiteUrl(settings.share_image_url),
+    foundingDate: settings.founded_label.replace(/[^0-9]/g, "").slice(0, 4) || "2021",
+    description: settings.hero_subtitle || defaultSeoDescription,
     parentOrganization: {
       "@type": "CollegeOrUniversity",
       name: "충북대학교",
@@ -21,7 +22,7 @@ export function JsonLd() {
   const websiteSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "금은동",
+    name: settings.site_title,
     alternateName: "CBNU GOLD",
     url: siteUrl,
   };

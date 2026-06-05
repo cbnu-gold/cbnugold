@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Instagram } from "lucide-react";
 import type { SiteSettingsValue } from "@/types";
 
@@ -19,13 +18,13 @@ export function Footer({ settings }: { settings: SiteSettingsValue }) {
           {/* Brand */}
           <div className="lg:col-span-5">
             <Link href="/" className="inline-block mb-5">
-              <Image
-                src="/images/logo.svg"
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={settings.logo_url}
                 alt={settings.site_title}
                 width={120}
                 height={37}
                 className="h-9 w-auto"
-                unoptimized
               />
             </Link>
             <p className="text-base md:text-lg font-semibold text-ink leading-relaxed max-w-md mb-3">
@@ -109,7 +108,7 @@ export function Footer({ settings }: { settings: SiteSettingsValue }) {
         {/* Bottom bar */}
         <div className="mt-10 border-t border-ink/10 pt-6 md:mt-14">
           <p className="text-[11px] font-mono tabular-nums text-ink/40">
-            © {new Date().getFullYear()} CBNU GOLD SOCIETY · ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} {settings.site_title.toUpperCase()} · ALL RIGHTS RESERVED.
           </p>
         </div>
       </div>
