@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
+import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import {
   buildOrganizationSiteExport,
@@ -369,6 +370,7 @@ export default function AdminPage() {
   const [uploadAlt, setUploadAlt] = useState("");
   const [applicantSearch, setApplicantSearch] = useState("");
   const [applicantStatusFilter, setApplicantStatusFilter] = useState("all");
+  const [applicantGenerationFilter, setApplicantGenerationFilter] = useState("all");
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
@@ -502,24 +504,20 @@ export default function AdminPage() {
     }, {});
   }, [state.applicants]);
 
-  const filteredApplicants = useMemo(() => {
-    const query = applicantSearch.trim().toLowerCase();
-    return state.applicants.filter((applicant) => {
-      const matchesStatus =
-        applicantStatusFilter === "all" || applicant.status === applicantStatusFilter;
-      const haystack = [
-        applicant.name,
-        applicant.student_id,
-        applicant.email,
-        applicant.phone,
-        applicant.admin_note ?? "",
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return matchesStatus && (!query || haystack.includes(query));
-    });
-  }, [applicantSearch, applicantStatusFilter, state.applicants]);
+  const applicantGenerationOptions = useMemo(
+    () => buildApplicantGenerationOptions(state.applicants),
+    [state.applicants]
+  );
+  const filteredApplicants = useMemo(
+    () =>
+      filterApplicants({
+        applicants: state.applicants,
+        query: applicantSearch,
+        status: applicantStatusFilter,
+        generation: applicantGenerationFilter,
+      }),
+    [applicantGenerationFilter, applicantSearch, applicantStatusFilter, state.applicants]
+  );
 
   const role = admin?.role;
   const canWrite = canWriteContent(role);
@@ -1400,7 +1398,7 @@ export default function AdminPage() {
                   CSV 다운로드
                 </AdminButton>
               </div>
-              <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[1fr_220px]">
+              <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 md:grid-cols-[1fr_180px_180px]">
                 <label className="grid gap-1.5 text-sm">
                   <span className="font-medium text-slate-700">검색</span>
                   <span className="relative">
@@ -1418,6 +1416,12 @@ export default function AdminPage() {
                   value={applicantStatusFilter}
                   onChange={setApplicantStatusFilter}
                   options={[{ value: "all", label: "전체" }, ...applicantStatusOptions]}
+                />
+                <SelectField
+                  label="기수 필터"
+                  value={applicantGenerationFilter}
+                  onChange={setApplicantGenerationFilter}
+                  options={[{ value: "all", label: "전체" }, ...applicantGenerationOptions]}
                 />
               </div>
               <div className="mt-5 grid gap-3 md:hidden">

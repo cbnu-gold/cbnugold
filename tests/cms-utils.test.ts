@@ -34,6 +34,7 @@ import {
   validateAndNormalizeApplicantPatch,
 } from "../src/lib/applicant-admin";
 import { buildApplicantAuditMetadata } from "../src/lib/applicant-audit";
+import { buildApplicantGenerationOptions, filterApplicants } from "../src/lib/applicant-filters";
 import {
   getOptionalCmsHrefError,
   isSafeCmsHref,
@@ -169,6 +170,51 @@ test("applicant admin patch validation bounds sensitive review fields", () => {
   );
   assert.equal(validateAndNormalizeApplicantPatch({ review_score: 101 }).error, "점수는 0~100 사이의 정수여야 합니다");
   assert.equal(validateAndNormalizeApplicantPatch({ status: "hold" }).error, "지원자 상태값이 올바르지 않습니다");
+});
+
+test("applicant filters combine query, status, and generation", () => {
+  const applicants = [
+    {
+      id: "a1",
+      name: "김지원",
+      student_id: "20240001",
+      email: "a@example.com",
+      phone: "010-0000-0001",
+      file_url: "",
+      file_name: "a.pdf",
+      generation: 9,
+      status: "pending" as const,
+      applied_at: "2026-01-01T00:00:00.000Z",
+      admin_note: null,
+    },
+    {
+      id: "a2",
+      name: "박면접",
+      student_id: "20240002",
+      email: "b@example.com",
+      phone: "010-0000-0002",
+      file_url: "",
+      file_name: "b.pdf",
+      generation: 10,
+      status: "interview" as const,
+      applied_at: "2026-01-02T00:00:00.000Z",
+      admin_note: "IB 준비",
+    },
+  ];
+
+  assert.deepEqual(buildApplicantGenerationOptions(applicants), [
+    { value: "10", label: "10기" },
+    { value: "9", label: "9기" },
+  ]);
+  assert.deepEqual(
+    filterApplicants({ applicants, status: "interview", generation: "10" }).map((applicant) => applicant.id),
+    ["a2"]
+  );
+  assert.deepEqual(
+    filterApplicants({ applicants, query: "IB", status: "all", generation: "all" }).map((applicant) => applicant.id),
+    ["a2"]
+  );
+  assert.deepEqual(filterApplicants({ applicants, status: "accepted", generation: "all" }), []);
 });
 
 test("recruiting funnel report summarizes applicant status without PII", () => {
@@ -655,6 +701,7 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /organizationThemePresets/);
   assert.match(adminPage, /organizationSiteVerticals/);
   assert.match(adminPage, /지원 퍼널/);
+  assert.match(adminPage, /기수 필터/);
   assert.match(adminPage, /buildRecruitingFunnelReport/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
