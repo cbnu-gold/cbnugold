@@ -47,6 +47,7 @@ import {
 import {
   buildOrganizationSiteExport,
   organizationSiteExportResourceKeys,
+  validateOrganizationSiteExportBundle,
 } from "../src/lib/organization-export";
 import {
   isOrganizationThemePreset,
@@ -669,6 +670,39 @@ test("organization site export excludes sensitive operations data", () => {
   assert.equal(JSON.stringify(exported).includes("audit_logs"), false);
   assert.equal("id" in exported.resources.pages[0], false);
   assert.equal("updated_at" in exported.resources.media[0], false);
+  assert.deepEqual(validateOrganizationSiteExportBundle(exported), { ok: true, errors: [] });
+});
+
+test("organization site export validation rejects sensitive or runtime data", () => {
+  const exported = buildOrganizationSiteExport(
+    {
+      settings: baseSettings,
+      pages: [],
+      blocks: [],
+      recruitment: [],
+      activities: [],
+      achievements: [],
+      history: [],
+      faqs: [],
+      media: [],
+    },
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  const result = validateOrganizationSiteExportBundle({
+    ...exported,
+    resources: {
+      ...exported.resources,
+      applicants: [{ name: "지원자", phone: "010-0000-0000" }],
+      pages: [{ id: "runtime-id", slug: "home" }],
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.errors.some((error) => error.includes("applicants")), true);
+  assert.equal(result.errors.some((error) => error.includes("runtime-id")), false);
+  assert.equal(result.errors.some((error) => error.includes("런타임 필드")), true);
+  assert.equal(result.errors.some((error) => error.includes("민감 필드")), true);
 });
 
 test("CMS media delete guard detects public content references", () => {

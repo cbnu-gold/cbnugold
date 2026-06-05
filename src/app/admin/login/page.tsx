@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Input } from "@/components/ui/Input";
+import { AlertCircle, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { createClient } from "@/lib/supabase";
-import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -27,14 +27,14 @@ export default function AdminLoginPage() {
       });
 
       if (authError) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다");
+        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
         return;
       }
 
       router.push("/admin");
       router.refresh();
     } catch {
-      setError("로그인에 실패했습니다");
+      setError("로그인에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -47,14 +47,18 @@ export default function AdminLoginPage() {
           <div className="hidden lg:block">
             <p className="text-sm font-semibold text-gold-dark">관리자 접근</p>
             <h1 className="mt-3 text-4xl font-bold tracking-normal text-ink">
-              콘텐츠와 모집 운영을 한 곳에서 관리합니다.
+              콘텐츠와 모집 운영을 한곳에서 관리합니다.
             </h1>
             <p className="mt-5 max-w-md text-sm leading-7 text-slate-600">
               승인된 Supabase Auth 계정과 관리자 권한이 연결된 계정만 대시보드에 접근할 수 있습니다.
             </p>
             <div className="mt-7 grid gap-3 text-sm text-slate-600">
-              <div className="rounded-lg border border-ink/10 bg-white px-4 py-3">지원자 개인정보와 파일은 권한별로 분리됩니다.</div>
-              <div className="rounded-lg border border-ink/10 bg-white px-4 py-3">콘텐츠, 모집 일정, 미디어, FAQ를 웹에서 수정합니다.</div>
+              <div className="rounded-lg border border-ink/10 bg-white px-4 py-3">
+                지원자 개인정보와 파일은 권한별로 분리합니다.
+              </div>
+              <div className="rounded-lg border border-ink/10 bg-white px-4 py-3">
+                콘텐츠, 모집 일정, 미디어, FAQ를 웹에서 수정합니다.
+              </div>
             </div>
           </div>
 
@@ -63,9 +67,7 @@ export default function AdminLoginPage() {
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-gold/25 bg-gold/10 text-gold-dark">
                 <ShieldCheck className="h-5 w-5" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-950">
-                관리자 로그인
-              </h2>
+              <h2 className="text-2xl font-bold text-slate-950">관리자 로그인</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 승인된 운영 계정으로 로그인하세요.
               </p>

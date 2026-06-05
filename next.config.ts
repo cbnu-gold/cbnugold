@@ -32,6 +32,10 @@ const nextConfig: NextConfig = {
         headers: privateRouteHeaders,
       },
       {
+        source: "/admin",
+        headers: privateRouteHeaders,
+      },
+      {
         source: "/api/admin/:path*",
         headers: privateRouteHeaders,
       },
