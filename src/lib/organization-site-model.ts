@@ -1,7 +1,7 @@
 export const organizationSiteModules = [
   {
     key: "identity",
-    title: "정체성/브랜드",
+    title: "정체성·브랜드",
     scope: "사이트 설정, 로고, 공유 이미지, 핵심 문구, 테마",
     adminSurface: "설정, 페이지 CMS, 미디어",
   },
@@ -13,7 +13,7 @@ export const organizationSiteModules = [
   },
   {
     key: "recruiting",
-    title: "모집/지원",
+    title: "모집·지원",
     scope: "모집 일정, 지원 자격, 지원서 양식, 접수 확인",
     adminSurface: "모집 관리, 지원자 관리",
   },
@@ -37,7 +37,7 @@ export const organizationThemePresets = [
   {
     key: "gold",
     label: "Gold",
-    description: "금은동 기본 톤입니다. 밝은 marble 배경, gold 포인트, ink 텍스트를 유지합니다.",
+    description: "금은동 기본 톤입니다. 밝은 marble 배경, gold 라인, ink 텍스트를 유지합니다.",
     colors: {
       ink: "#0E1420",
       accent: "#C9A84C",
@@ -59,7 +59,7 @@ export const organizationThemePresets = [
   {
     key: "green",
     label: "Green",
-    description: "ESG, 창업, 지역 프로젝트에 맞는 균형 잡힌 녹색 계열입니다.",
+    description: "ESG, 창업, 지역 프로젝트에 맞는 균형 있는 녹색 계열입니다.",
     colors: {
       ink: "#102018",
       accent: "#2F9D68",
@@ -111,7 +111,7 @@ export const organizationSiteVerticals = [
   {
     key: "startup_team",
     title: "창업팀·프로젝트",
-    primaryFlow: "문제 정의 확인 → 제품/실험 확인 → 팀 소개 확인 → 협업 문의",
+    primaryFlow: "문제 정의 확인 → 제품·실험 확인 → 팀 소개 확인 → 협업 문의",
     coreContent: "문제, 솔루션, 진행 기록, 팀, 파트너, 문의",
     cta: "프로젝트 문의",
   },

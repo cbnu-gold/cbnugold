@@ -127,7 +127,7 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
         hasText(input.settings.hero_subtitle)
           ? "pass"
           : "fail",
-      detail: "사이트명, 단체 유형, 홈 제목, 홈 설명이 공개 화면의 첫 인상을 만듭니다.",
+      detail: "사이트명, 단체 유형, 홈 제목, 홈 설명은 첫 화면 신뢰도에 필요한 기본 정보입니다.",
       actionLabel: "설정 수정",
       targetTab: "content",
     },
@@ -138,7 +138,7 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
         isSafeLogoOrImage(input.settings.logo_url) && isSafeLogoOrImage(input.settings.share_image_url)
           ? "pass"
           : "warning",
-      detail: "로고와 공유 이미지는 내부 경로 또는 https URL만 사용합니다.",
+      detail: "로고와 공유 이미지는 내부 경로 또는 https URL만 사용할 수 있습니다.",
       actionLabel: "브랜드 설정",
       targetTab: "content",
     },
@@ -172,9 +172,7 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
           : activeRecruitment
             ? "warning"
             : "fail",
-      detail: activeRecruitment
-        ? `${activeRecruitment.title} 모집이 공개 상태입니다.`
-        : "공개 중인 모집 기수가 없습니다.",
+      detail: activeRecruitment ? `${activeRecruitment.title} 모집이 공개 상태입니다.` : "공개 중인 모집 기수가 없습니다.",
       actionLabel: "모집 설정",
       targetTab: "recruitment",
     },
@@ -207,7 +205,7 @@ export function buildSiteReadinessReport(input: SiteReadinessInput): {
       title: "관리자 권한",
       status: canVerifyAdmins ? (input.admins.some(isOwner) ? "pass" : "fail") : "warning",
       detail: canVerifyAdmins
-        ? "활성 소유자 계정이 최소 1개 있어야 운영 권한을 잃지 않습니다."
+        ? "활성 소유자 계정이 최소 1개 있어야 운영 권한이 끊기지 않습니다."
         : "현재 계정 권한으로는 owner 존재 여부를 확인할 수 없습니다.",
       actionLabel: canVerifyAdmins ? "관리자 확인" : "소유자에게 확인 요청",
       targetTab: canVerifyAdmins ? "admins" : "overview",
@@ -377,7 +375,7 @@ export function buildSiteVerticalFitReport(input: SiteReadinessInput): SiteVerti
         [hasIdentity, 20, "연구회 정체성을 설명할 기본 문구가 있습니다.", "정체성 문구를 먼저 정리하세요."],
         [publishedPages >= 4, 20, "기본 공개 페이지가 준비되어 있습니다.", "소개/활동/지원 등 공개 페이지를 게시하세요."],
         [publishedActivities >= 3, 25, "활동 기록을 연구회 구조로 전환할 수 있습니다.", "세션·연구 활동 콘텐츠를 보강하세요."],
-        [publishedFaqs >= 3, 15, "문의 전 FAQ 흐름이 있습니다.", "FAQ를 보강하세요."],
+        [publishedFaqs >= 3, 15, "문의 및 FAQ 흐름이 있습니다.", "FAQ를 보강하세요."],
         [publishedAchievements >= 1, 20, "성과 또는 산출물 기록이 있습니다.", "프로젝트·자료·성과 기록을 추가하세요."],
       ],
     },
@@ -400,7 +398,7 @@ export function buildSiteVerticalFitReport(input: SiteReadinessInput): SiteVerti
       checks: [
         [Boolean(activeRecruitment), 30, "신청/접수 흐름을 행사 신청으로 전환할 수 있습니다.", "신청 기간과 접수 상태가 필요합니다."],
         [publishedPages >= 4, 20, "행사 소개 페이지 구조가 준비되어 있습니다.", "행사 안내 페이지를 게시하세요."],
-        [publishedFaqs >= 3, 20, "참가 전 질문을 처리할 FAQ가 있습니다.", "참가 FAQ를 3개 이상 게시하세요."],
+        [publishedFaqs >= 3, 20, "참가 질문을 처리할 FAQ가 있습니다.", "참가 FAQ를 3개 이상 게시하세요."],
         [publishedMedia >= 2, 15, "행사 홍보 이미지로 교체할 미디어 구조가 있습니다.", "홍보 미디어를 등록하세요."],
         [hasContact, 15, "운영 문의 채널이 준비되어 있습니다.", "문의 채널을 설정하세요."],
       ],

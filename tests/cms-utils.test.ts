@@ -643,6 +643,20 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(checkOps, /failedCheckDetails/);
 });
 
+test("admin operating model copy does not contain mojibake", () => {
+  const files = [
+    readFileSync(new URL("../src/lib/site-readiness.ts", import.meta.url), "utf8"),
+    readFileSync(new URL("../src/lib/organization-site-model.ts", import.meta.url), "utf8"),
+  ].join("\n");
+
+  assert.doesNotMatch(files, /\uFFFD/);
+  assert.doesNotMatch(files, /[\uF900-\uFAFF]/);
+  assert.doesNotMatch(files, /[?][가-힣]/);
+  assert.match(files, /정체성 문구/);
+  assert.match(files, /리크루팅형 동아리/);
+  assert.match(files, /운영 통제/);
+});
+
 test("site readiness report surfaces CMS launch gaps", () => {
   const completeInput = {
     settings: {
