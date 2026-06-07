@@ -10,6 +10,22 @@ export function getHealthStatus(checks: HealthCheck[]): HealthStatus {
   return checks.every((check) => check.ok) ? "ok" : "degraded";
 }
 
+export function isValidHttpsUrl(value: string | undefined) {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+export function isLikelyJwt(value: string | undefined) {
+  if (!value) return false;
+  return value.split(".").length === 3;
+}
+
 export function sanitizeHealthError(error: unknown) {
   if (error instanceof Error) {
     if (error.message.includes("fetch failed")) return "Supabase에 연결할 수 없습니다";

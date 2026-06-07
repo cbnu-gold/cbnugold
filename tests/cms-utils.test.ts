@@ -77,7 +77,12 @@ import {
   getCmsMediaUploadValidationError,
 } from "../src/lib/cms-media-files";
 import { validateAndNormalizeCmsResourcePayload } from "../src/lib/cms-resource-validation";
-import { getHealthStatus, sanitizeHealthError } from "../src/lib/health";
+import {
+  getHealthStatus,
+  isLikelyJwt,
+  isValidHttpsUrl,
+  sanitizeHealthError,
+} from "../src/lib/health";
 import {
   validateAndNormalizeRecruitmentPayload,
   validateRecruitmentTimelinePatch,
@@ -510,6 +515,8 @@ test("Next config applies baseline security headers and admin no-store cache", (
 });
 
 test("health status reports degraded when any check fails", () => {
+  const healthRoute = readFileSync(new URL("../src/app/api/health/route.ts", import.meta.url), "utf8");
+
   assert.equal(getHealthStatus([{ name: "env", ok: true }]), "ok");
   assert.equal(
     getHealthStatus([
@@ -522,6 +529,13 @@ test("health status reports degraded when any check fails", () => {
     sanitizeHealthError(new Error("TypeError: fetch failed")),
     "Supabase에 연결할 수 없습니다"
   );
+  assert.equal(isValidHttpsUrl("https://example.supabase.co"), true);
+  assert.equal(isValidHttpsUrl("http://example.supabase.co"), false);
+  assert.equal(isLikelyJwt("aaa.bbb.ccc"), true);
+  assert.equal(isLikelyJwt("not-a-jwt"), false);
+  assert.match(healthRoute, /env:supabase_url_format/);
+  assert.match(healthRoute, /env:supabase_anon_key_format/);
+  assert.match(healthRoute, /env:supabase_service_role_key_format/);
 });
 
 test("site settings validation normalizes safe values", () => {
@@ -759,6 +773,7 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   const blueprint = readFileSync(new URL("../docs/ORG_SITE_PLATFORM_BLUEPRINT.md", import.meta.url), "utf8");
   const cutover = readFileSync(new URL("../docs/DEPLOYMENT_CUTOVER_CHECKLIST.md", import.meta.url), "utf8");
   const checkOps = readFileSync(new URL("../scripts/check-ops.mjs", import.meta.url), "utf8");
+  const checkDeploy = readFileSync(new URL("../scripts/check-deployment.mjs", import.meta.url), "utf8");
 
   assert.deepEqual(
     organizationSiteModules.map((item) => item.key),
@@ -791,11 +806,16 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);
   assert.match(readme, /ORG_SITE_PLATFORM_BLUEPRINT/);
   assert.match(readme, /DEPLOYMENT_CUTOVER_CHECKLIST/);
+  assert.match(readme, /check:deploy/);
   assert.match(blueprint, /단체형 CMS 홈페이지 확장 Blueprint/);
   assert.match(blueprint, /지원서 파일 public URL 미노출/);
   assert.match(cutover, /배포 전환 및 운영 검증 체크리스트/);
+  assert.match(cutover, /check:deploy/);
   assert.match(cutover, /Server: Vercel/);
   assert.match(checkOps, /failedCheckDetails/);
+  assert.match(checkDeploy, /canonical domain still points to Wix\/Pepyaka/);
+  assert.match(checkDeploy, /VERCEL_SITE_URL/);
+  assert.match(checkDeploy, /api\/health/);
 });
 
 test("admin operating model copy does not contain mojibake", () => {
