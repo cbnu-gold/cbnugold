@@ -13,6 +13,7 @@ import {
   type OrganizationSiteExportInspection,
 } from "@/lib/organization-export";
 import { buildRecruitmentOperationReport } from "@/lib/recruitment-operations";
+import { buildRecruitmentShareKit } from "@/lib/recruitment-share-kit";
 import { buildRecruitingFunnelReport } from "@/lib/recruiting-funnel";
 import {
   buildContentFreshnessReport,
@@ -56,6 +57,7 @@ import {
   BarChart3,
   BookOpen,
   ClipboardList,
+  Copy,
   Database,
   Download,
   FileText,
@@ -533,6 +535,10 @@ export default function AdminPage() {
     () => buildRecruitmentOperationReport(state.recruitment),
     [state.recruitment]
   );
+  const recruitmentShareKit = useMemo(
+    () => buildRecruitmentShareKit(state.settings, state.recruitment),
+    [state.recruitment, state.settings]
+  );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
     () =>
@@ -850,6 +856,16 @@ export default function AdminPage() {
     }
   }
 
+  async function copyRecruitmentShareBody() {
+    try {
+      await navigator.clipboard.writeText(recruitmentShareKit.body);
+      setMessage("모집 홍보 문안을 복사했습니다.");
+      setError("");
+    } catch {
+      setError("브라우저에서 클립보드 복사를 허용하지 않았습니다. 홍보 문안을 직접 선택해 복사해주세요.");
+    }
+  }
+
   async function deleteMedia(item: MediaAsset) {
     if (!item.id) return;
     if (!requireWrite("미디어 삭제")) return;
@@ -1063,6 +1079,61 @@ export default function AdminPage() {
                     <Megaphone className="h-4 w-4" />
                     모집 관리
                   </AdminButton>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">모집 홍보 패키지</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      외부 공지와 SNS에 붙일 수 있는 모집 문안과 공개 링크를 현재 설정값 기준으로 생성합니다.
+                    </p>
+                  </div>
+                  <AdminButton variant="secondary" onClick={copyRecruitmentShareBody}>
+                    <Copy className="h-4 w-4" />
+                    문안 복사
+                  </AdminButton>
+                </div>
+                <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-bold text-slate-950">{recruitmentShareKit.title}</h3>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">
+                        {recruitmentShareKit.statusLabel}
+                      </span>
+                    </div>
+                    <pre className="mt-3 whitespace-pre-wrap break-words rounded-md bg-white p-4 font-sans text-sm leading-6 text-slate-700">
+                      {recruitmentShareKit.body}
+                    </pre>
+                  </div>
+                  <div className="grid content-start gap-3">
+                    <div className="rounded-lg border border-slate-100 bg-white p-4">
+                      <h3 className="text-sm font-bold text-slate-950">공개 링크</h3>
+                      <div className="mt-3 grid gap-2">
+                        {recruitmentShareKit.links.map((link) => (
+                          <a
+                            key={`${link.label}-${link.href}`}
+                            href={link.href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-gold/50 hover:text-ink"
+                          >
+                            {link.label}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                    {recruitmentShareKit.warnings.length > 0 && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <h3 className="text-sm font-bold text-amber-900">게시 전 확인</h3>
+                        <ul className="mt-2 grid gap-1 text-xs leading-5 text-amber-800">
+                          {recruitmentShareKit.warnings.slice(0, 4).map((warning) => (
+                            <li key={warning}>{warning}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">

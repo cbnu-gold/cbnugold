@@ -24,6 +24,7 @@ import {
   isRecruitmentOpen,
 } from "../src/lib/recruitment";
 import { buildRecruitmentOperationReport } from "../src/lib/recruitment-operations";
+import { buildRecruitmentShareKit } from "../src/lib/recruitment-share-kit";
 import {
   canManageAdmins,
   canManageApplicants,
@@ -303,6 +304,32 @@ test("recruitment operation report catches schedule, form, and privacy gaps", ()
   const empty = buildRecruitmentOperationReport([], now);
   assert.equal(empty.status, "fail");
   assert.equal(empty.phaseLabel, "모집 없음");
+});
+
+test("recruitment share kit builds public recruiting copy without private data", () => {
+  const kit = buildRecruitmentShareKit(
+    baseSettings,
+    [
+      {
+        ...baseCycle,
+        docx_url: "/files/gold-9.docx",
+        hwp_url: "/files/gold-9.hwp",
+        requirements: ["충북대학교 재학생", "금융권 진로 관심자"],
+        meeting_time: "매주 수요일 18:30",
+        fee_note: "학기별 30,000원",
+      },
+    ],
+    new Date("2026-02-25T00:00:00+09:00")
+  );
+
+  assert.equal(kit.title, "금은동 9기 모집 안내");
+  assert.equal(kit.statusLabel, "모집 중");
+  assert.match(kit.body, /접수:/);
+  assert.match(kit.body, /지원 자격: 충북대학교 재학생, 금융권 진로 관심자/);
+  assert.match(kit.body, /지원 안내: https:\/\/cbnugold\.vercel\.app\/join/);
+  assert.equal(kit.body.includes("admin_note"), false);
+  assert.equal(kit.body.includes("review_score"), false);
+  assert.equal(kit.links.some((link) => link.label === "DOCX 지원서" && link.href.endsWith("/files/gold-9.docx")), true);
 });
 
 test("rate limit blocks requests after the configured limit", () => {
@@ -754,9 +781,11 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /organizationSiteVerticals/);
   assert.match(adminPage, /지원 퍼널/);
   assert.match(adminPage, /모집 운영/);
+  assert.match(adminPage, /모집 홍보 패키지/);
   assert.match(adminPage, /기수 필터/);
   assert.match(adminPage, /buildRecruitingFunnelReport/);
   assert.match(adminPage, /buildRecruitmentOperationReport/);
+  assert.match(adminPage, /buildRecruitmentShareKit/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);
