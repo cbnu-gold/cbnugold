@@ -53,10 +53,12 @@ See [`docs/ORG_SITE_PLATFORM_BLUEPRINT.md`](docs/ORG_SITE_PLATFORM_BLUEPRINT.md)
 ```bash
 npm run verify
 npm run test:e2e
+npm run check:deploy
 npm run check:ops -- https://your-deployment.example.com
 ```
 
 Use `--allow-degraded` only when the Supabase connection outage is already known. Use `--deep --token=<HEALTHCHECK_TOKEN>` for table and storage diagnostics.
+`check:deploy` compares the canonical domain with the Vercel fallback domain and fails until the canonical domain is served by Vercel and `/api/health` is `ok`.
 `test:e2e` checks public routes, mobile navigation, rejected copy, image loading, and horizontal overflow across mobile, tablet, and desktop Chromium viewports.
 
 ## Admin Operations

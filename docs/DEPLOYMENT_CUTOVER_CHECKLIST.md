@@ -29,12 +29,16 @@ vercel curl /api/health --deployment https://최신-preview-url.vercel.app
 일반 운영 점검은 보호가 없는 Production URL에서 실행합니다.
 
 ```bash
+npm run check:deploy
 npm run check:ops -- https://운영도메인
 ```
+
+`check:deploy`는 canonical 도메인과 Vercel fallback 도메인을 함께 확인합니다. canonical 도메인이 아직 Wix/Pepyaka 응답이면 전환 전 상태로 실패합니다.
 
 Supabase 연결 이슈가 이미 확인된 상태에서 공개 화면과 보안 헤더만 먼저 확인할 때는 아래처럼 실행합니다.
 
 ```bash
+npm run check:deploy -- --allow-pending
 npm run check:ops -- https://운영도메인 --allow-degraded
 ```
 
@@ -89,8 +93,9 @@ npm run check:ops -- https://운영도메인 --deep --token=<HEALTHCHECK_TOKEN>
 2. Vercel Project Domains에 운영 도메인이 연결되어 있습니다.
 3. DNS가 Vercel 안내값을 가리킵니다.
 4. `curl -I https://운영도메인`에서 `Server: Vercel` 또는 Vercel 관련 헤더가 확인됩니다.
-5. `npm run check:ops -- https://운영도메인`이 통과합니다.
-6. `/api/health`가 `200`과 `status: ok`를 반환합니다.
+5. `npm run check:deploy`가 canonical 도메인 기준으로 통과합니다.
+6. `npm run check:ops -- https://운영도메인`이 통과합니다.
+7. `/api/health`가 `200`과 `status: ok`를 반환합니다.
 
 ## 6. 전환 후 확인
 
