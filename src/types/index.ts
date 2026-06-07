@@ -37,11 +37,6 @@ export interface Generation {
   president: string | null;
 }
 
-export interface MentoringPartner {
-  name: string;
-  type: string;
-}
-
 export interface RecruitmentSettings {
   is_open: boolean;
   generation: number;
@@ -92,6 +87,12 @@ export interface AdminProfile {
 export interface SiteSettingsValue {
   site_title: string;
   club_name: string;
+  organization_type: string;
+  founded_label: string;
+  brand_statement: string;
+  brand_preset: "gold" | "navy" | "green" | "graphite";
+  logo_url: string;
+  share_image_url: string;
   hero_title: string;
   hero_subtitle: string;
   primary_cta_label: string;
@@ -103,6 +104,16 @@ export interface SiteSettingsValue {
   contact_email: string;
   instagram_url: string;
   naver_cafe_url: string;
+}
+
+export interface ContentPage {
+  id?: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  status: ContentStatus;
+  sort_order: number;
+  updated_at?: string;
 }
 
 export interface ContentBlock {
@@ -205,6 +216,7 @@ export interface AuditLog {
 
 export interface PublicCmsData {
   settings: SiteSettingsValue;
+  pages: ContentPage[];
   blocks: ContentBlock[];
   recruitment: RecruitmentCycle;
   activities: ActivityItem[];

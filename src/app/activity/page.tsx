@@ -6,14 +6,22 @@ export default async function ActivityPage() {
   const data = await getPublicCmsData();
   const regular = data.activities.filter((item) => item.category === "regular");
   const special = data.activities.filter((item) => item.category !== "regular");
+  const intro = data.blocks.find(
+    (block) => block.page_slug === "activity" && block.block_key === "intro"
+  );
 
   return (
-    <div className="bg-marble-light pt-24 text-ink">
-      <section className="border-b border-ink/10 bg-white py-16 md:py-24">
-        <div className="mx-auto max-w-[1000px] px-6 text-center">
-          <h1 className="text-4xl font-bold tracking-normal sm:text-5xl">금은동의 활동</h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
-            정기 활동과 특별 활동을 구분해 안내합니다.
+    <div className="bg-marble-light pt-20 text-ink">
+      <section className="border-b border-ink/10 bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-[1000px] px-5 text-center sm:px-6">
+          <p className="text-sm font-semibold text-gold-dark">
+            {intro?.subtitle ?? "정기 활동과 특별 활동"}
+          </p>
+          <h1 className="mt-4 text-3xl font-bold tracking-normal sm:text-5xl">
+            {intro?.title ?? "금은동의 활동"}
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
+            {intro?.body ?? "정기 활동과 특별 활동을 구분해 안내합니다."}
           </p>
         </div>
       </section>
@@ -36,16 +44,16 @@ function ActivitySection({
   if (!items.length) return null;
 
   return (
-    <section className="mx-auto max-w-[1200px] px-6 py-14 md:py-20">
-      <div className="mb-8 max-w-2xl">
+    <section className="mx-auto max-w-[1200px] px-5 py-10 sm:px-6 md:py-16">
+      <div className="mb-6 max-w-2xl md:mb-8">
         <h2 className="text-2xl font-bold tracking-normal">{title}</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {items.map((item, index) => (
-          <article key={item.id ?? `${item.title}-${index}`} className="rounded-xl border border-ink/10 bg-white p-6">
+          <article key={item.id ?? `${item.title}-${index}`} className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
             <span className="font-mono text-sm text-gold-dark">{String(index + 1).padStart(2, "0")}</span>
-            <h3 className="mt-4 text-xl font-bold">{item.title}</h3>
+            <h3 className="mt-4 text-lg font-bold md:text-xl">{item.title}</h3>
             {item.subtitle && <p className="mt-1 text-sm font-medium text-slate-500">{item.subtitle}</p>}
             <p className="mt-4 text-sm leading-7 text-slate-600">{item.description}</p>
             <div className="mt-5 flex flex-wrap gap-2">

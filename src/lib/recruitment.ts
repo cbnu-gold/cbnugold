@@ -6,10 +6,7 @@ export function isRecruitmentOpen(cycle: RecruitmentCycle, now = new Date()) {
   return getRecruitmentPhase(cycle, now) === "open";
 }
 
-export function getRecruitmentPhase(
-  cycle: RecruitmentCycle,
-  now = new Date()
-): RecruitmentPhase {
+export function getRecruitmentPhase(cycle: RecruitmentCycle, now = new Date()): RecruitmentPhase {
   if (cycle.status !== "published") return "paused";
 
   const current = now.getTime();
@@ -24,10 +21,10 @@ export function getRecruitmentPhase(
 
 export function getRecruitmentPhaseLabel(phase: RecruitmentPhase) {
   const labels: Record<RecruitmentPhase, string> = {
-    open: "모집중",
+    open: "모집 중",
     scheduled: "모집 예정",
     closed: "모집 마감",
-    paused: "모집 준비중",
+    paused: "모집 준비 중",
   };
 
   return labels[phase];

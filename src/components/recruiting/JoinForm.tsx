@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -9,6 +9,7 @@ import {
   FileText,
   Loader2,
   Upload,
+  X,
 } from "lucide-react";
 import { formatPhone, validateField, validateFile } from "@/lib/validations";
 import type { FAQItem, RecruitmentCycle } from "@/types";
@@ -42,6 +43,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   const [success, setSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileErrorId = useId();
 
   function changeField(field: keyof FormData, value: string) {
     setFormData((prev) => ({
@@ -49,6 +51,19 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
       [field]: field === "phone" ? formatPhone(value) : value,
     }));
     setErrors((prev) => ({ ...prev, [field]: "" }));
+  }
+
+  function changeFile(selected: File | null) {
+    setFile(selected);
+    setErrors((prev) => ({
+      ...prev,
+      file: selected ? validateFile(selected) ?? "" : "",
+    }));
+  }
+
+  function clearFile() {
+    if (fileRef.current) fileRef.current.value = "";
+    changeFile(null);
   }
 
   function validate() {
@@ -97,21 +112,21 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   }
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
-      <aside className="rounded-xl border border-ink/10 bg-white p-6">
+    <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8">
+      <aside className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
         <h2 className="text-xl font-bold">지원서 다운로드</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명에는 이름과 연락처를 포함해주세요.
+          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명은 이름_지원서 형식을 권장합니다.
         </p>
         <div className="mt-5 grid gap-3">
           {recruitment.docx_url && (
-            <a href={recruitment.docx_url} download className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+            <a href={recruitment.docx_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
               <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 워드 지원서</span>
               <Download className="h-4 w-4" />
             </a>
           )}
           {recruitment.hwp_url && (
-            <a href={recruitment.hwp_url} download className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+            <a href={recruitment.hwp_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
               <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 한글 지원서</span>
               <Download className="h-4 w-4" />
             </a>
@@ -121,14 +136,30 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
           <p className="font-semibold text-slate-800">개인정보 보유 기간</p>
           <p>{recruitment.privacy_retention}</p>
         </div>
+        <div className="mt-4 rounded-lg border border-ink/10 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">제출 전 확인</p>
+          <ul className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
+            <li>· 지원서 파일 형식은 hwp, docx, pdf 중 하나여야 합니다.</li>
+            <li>· 파일명은 이름_지원서 형식을 권장합니다.</li>
+            <li>· 제출 후 지원 확인 페이지에서 접수 여부를 확인할 수 있습니다.</li>
+          </ul>
+        </div>
       </aside>
 
-      <section className="rounded-xl border border-ink/10 bg-white p-6">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
-            제출 후 접수 여부를 확인할 수 있습니다.
-          </p>
+      <section className="scroll-mt-24 rounded-xl border border-ink/10 bg-white p-5 md:p-6">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold">온라인 지원서 제출</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              제출 후 접수 여부를 확인할 수 있습니다.
+            </p>
+          </div>
+          <Link
+            href="/join/check"
+            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/30"
+          >
+            지원 확인
+          </Link>
         </div>
 
         {!isOpen ? (
@@ -149,9 +180,9 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
             </Link>
           </div>
         ) : (
-          <form onSubmit={submit} className="grid gap-4">
+          <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
             {serverError && (
-              <div className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+              <div className="flex gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 md:col-span-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 {serverError}
               </div>
@@ -161,31 +192,58 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
             <InputLike label="이메일" type="email" value={formData.email} error={errors.email} onChange={(value) => changeField("email", value)} />
             <InputLike label="전화번호" value={formData.phone} error={errors.phone} onChange={(value) => changeField("phone", value)} />
 
-            <div>
+            <div className="md:col-span-2">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="w-full rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center transition hover:border-gold/50"
+                aria-describedby={errors.file ? fileErrorId : undefined}
+                className={`w-full rounded-xl border border-dashed px-5 py-6 text-center transition md:py-8 ${
+                  errors.file
+                    ? "border-red-300 bg-red-50/70"
+                    : "border-slate-300 bg-slate-50 hover:border-gold/50"
+                }`}
               >
                 <Upload className="mx-auto h-7 w-7 text-slate-400" />
-                <p className="mt-3 text-sm font-semibold text-slate-700">{file ? file.name : "지원서 파일 선택"}</p>
-                <p className="mt-1 text-xs text-slate-500">.hwp, .docx, .pdf · 최대 10MB</p>
+                <p className="mx-auto mt-3 max-w-full truncate text-sm font-semibold text-slate-700">
+                  {file ? file.name : "지원서 파일 선택"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {file ? `${formatFileSize(file.size)} · hwp/docx/pdf` : ".hwp, .docx, .pdf · 최대 10MB"}
+                </p>
               </button>
+              {file && (
+                <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-slate-800">{file.name}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{formatFileSize(file.size)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearFile}
+                    className="inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:border-ink/20 hover:text-ink"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    파일 해제
+                  </button>
+                </div>
+              )}
               <input
                 ref={fileRef}
                 type="file"
                 className="hidden"
-                accept=".hwp,.docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+                accept=".hwp,.docx,.pdf,application/x-hwp,application/haansofthwp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
                 onChange={(event) => {
-                  const selected = event.target.files?.[0] ?? null;
-                  setFile(selected);
-                  setErrors((prev) => ({ ...prev, file: selected ? "" : prev.file }));
+                  changeFile(event.target.files?.[0] ?? null);
                 }}
               />
-              {errors.file && <p className="mt-1 text-xs text-red-600">{errors.file}</p>}
+              {errors.file && (
+                <p id={fileErrorId} className="mt-1 text-xs text-red-600" role="alert">
+                  {errors.file}
+                </p>
+              )}
             </div>
 
-            <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+            <label className="flex items-start gap-3 rounded-lg bg-slate-50 p-4 text-sm leading-6 text-slate-600 md:col-span-2">
               <input
                 type="checkbox"
                 checked={consent}
@@ -199,12 +257,12 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
                 성명, 학번, 이메일, 전화번호, 지원서 파일을 입부 지원 검토와 합격 여부 안내 목적으로 수집·이용하는 데 동의합니다.
               </span>
             </label>
-            {errors.consent && <p className="text-xs text-red-600">{errors.consent}</p>}
+            {errors.consent && <p className="text-xs text-red-600 md:col-span-2">{errors.consent}</p>}
 
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-60"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:opacity-60 md:col-span-2"
             >
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               지원서 제출하기
@@ -213,7 +271,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
         )}
       </section>
 
-      <section className="rounded-xl border border-ink/10 bg-white p-6 lg:col-span-2">
+      <section className="rounded-xl border border-ink/10 bg-white p-5 md:p-6 lg:col-span-2">
         <h2 className="text-xl font-bold">자주 묻는 질문</h2>
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           {faqs.map((faq) => (
@@ -241,16 +299,28 @@ function InputLike({
   error?: string;
   type?: string;
 }) {
+  const inputId = useId();
+  const errorId = `${inputId}-error`;
+
   return (
-    <label className="grid gap-1.5 text-sm">
+    <label htmlFor={inputId} className="grid gap-1.5 text-sm">
       <span className="font-medium text-slate-700">{label}</span>
       <input
+        id={inputId}
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
         className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
       />
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span id={errorId} className="text-xs text-red-600">{error}</span>}
     </label>
   );
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }

@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase-server";
-import { getResendClient, buildAdminEmail } from "@/lib/resend";
+import {
+  buildAdminEmail,
+  getAdminEmailRecipients,
+  getResendClient,
+  getResendFromEmail,
+} from "@/lib/resend";
+import {
+  buildApplicationStoragePath,
+  getApplicationFileExtension,
+  getApplicationFileValidationError,
+  normalizeApplicationFileName,
+} from "@/lib/application-files";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { validationRules, fileRules } from "@/lib/validations";
+import { isRecruitmentOpen } from "@/lib/recruitment";
+import { validationRules } from "@/lib/validations";
 import type { RecruitmentCycle } from "@/types";
 
 function getStorageTroubleshootingHint(message?: string) {
@@ -30,6 +42,9 @@ function publicError(message: string, status = 500, details?: string) {
   return NextResponse.json(body, { status });
 }
 
+const duplicateApplicantMessage =
+  "이미 접수된 지원서가 있습니다. 접수 여부는 지원 확인 페이지에서 확인해주세요.";
+
 export async function POST(request: NextRequest) {
   try {
     const ip =
@@ -45,13 +60,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "지원서 제출 형식이 올바르지 않습니다." },
+        { status: 400 }
+      );
+    }
 
-    const name = formData.get("name") as string;
-    const studentId = formData.get("studentId") as string;
-    const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
-    const file = formData.get("file") as File;
+    const name = String(formData.get("name") ?? "").trim();
+    const studentId = String(formData.get("studentId") ?? "").replace(/\D/g, "");
+    const email = String(formData.get("email") ?? "").trim().toLowerCase();
+    const phone = String(formData.get("phone") ?? "").replace(/\D/g, "");
+    const fileValue = formData.get("file");
 
     if (!name || !validationRules.name.pattern.test(name)) {
       return NextResponse.json({ error: "올바른 이름을 입력해주세요" }, { status: 400 });
@@ -65,17 +88,17 @@ export async function POST(request: NextRequest) {
     if (!phone || !validationRules.phone.pattern.test(phone)) {
       return NextResponse.json({ error: "올바른 전화번호를 입력해주세요" }, { status: 400 });
     }
-    if (!file) {
+    if (!(fileValue instanceof File)) {
       return NextResponse.json({ error: "파일을 첨부해주세요" }, { status: 400 });
     }
 
-    const ext = "." + file.name.split(".").pop()?.toLowerCase();
-    if (!fileRules.allowedExtensions.includes(ext)) {
-      return NextResponse.json({ error: fileRules.message }, { status: 400 });
+    const file = fileValue;
+    const fileError = getApplicationFileValidationError(file.name, file.type, file.size);
+    if (fileError) {
+      return NextResponse.json({ error: fileError }, { status: 400 });
     }
-    if (file.size > fileRules.maxSize) {
-      return NextResponse.json({ error: "파일 크기는 10MB 이하여야 합니다" }, { status: 400 });
-    }
+    const ext = getApplicationFileExtension(file.name);
+    if (!ext) return NextResponse.json({ error: "지원서 파일 형식이 올바르지 않습니다." }, { status: 400 });
 
     const supabase = createServerClient();
 
@@ -88,24 +111,59 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     const activeCycle = cycleData as RecruitmentCycle | null;
-    const now = Date.now();
-    const isOpen =
-      !activeCycle ||
-      (activeCycle.is_open &&
-        (!activeCycle.end_at || now <= new Date(activeCycle.end_at).getTime()));
+    if (!activeCycle) {
+      return NextResponse.json(
+        { error: "모집 설정을 확인하는 중입니다. 운영진에게 문의해주세요." },
+        { status: 503 }
+      );
+    }
 
-    if (!isOpen) {
+    if (!isRecruitmentOpen(activeCycle)) {
       return NextResponse.json(
         { error: "현재 모집 접수 기간이 아닙니다." },
         { status: 403 }
       );
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
     const generation = activeCycle?.generation ?? 9;
-    const timestamp = Date.now();
-    const safeStudentId = studentId.replace(/\D/g, "");
-    const filePath = `${generation}/${safeStudentId}_${timestamp}${ext}`;
+    const duplicateChecks = [
+      supabase
+        .from("applicants")
+        .select("id")
+        .is("recruitment_cycle_id", null)
+        .eq("generation", generation)
+        .eq("student_id", studentId)
+        .limit(1),
+    ];
+
+    if (activeCycle.id) {
+      duplicateChecks.push(
+        supabase
+          .from("applicants")
+          .select("id")
+          .eq("recruitment_cycle_id", activeCycle.id)
+          .eq("student_id", studentId)
+          .limit(1)
+      );
+    }
+
+    const duplicateResults = await Promise.all(duplicateChecks);
+    const duplicateCheckError = duplicateResults.find((result) => result.error)?.error;
+    if (duplicateCheckError) {
+      console.error("Duplicate applicant check error:", duplicateCheckError);
+      return publicError(
+        "지원서 접수 여부를 확인하지 못했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
+        500,
+        duplicateCheckError.message
+      );
+    }
+
+    if (duplicateResults.some((result) => result.data && result.data.length > 0)) {
+      return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
+    }
+
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const filePath = buildApplicationStoragePath(generation, ext);
 
     const { error: uploadError } = await supabase.storage
       .from("applications")
@@ -129,7 +187,7 @@ export async function POST(request: NextRequest) {
       email,
       phone,
       file_url: `private:applications/${filePath}`,
-      file_name: file.name,
+      file_name: normalizeApplicationFileName(file.name),
       generation,
       recruitment_cycle_id: activeCycle?.id ?? null,
       status: "pending",
@@ -138,6 +196,9 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error("DB insert error:", insertError);
       await supabase.storage.from("applications").remove([filePath]);
+      if (insertError.code === "23505") {
+        return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
+      }
       return publicError(
         "지원서 저장에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
         500,
@@ -146,19 +207,21 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const resend = getResendClient();
-      const adminEmail = buildAdminEmail({ name, studentId, email, phone });
+      const adminEmails = getAdminEmailRecipients();
+      const fromEmail = getResendFromEmail();
+      if (adminEmails.length > 0 && fromEmail) {
+        const resend = getResendClient();
+        const adminEmail = buildAdminEmail({ generation });
 
-      const adminEmails = process.env.ADMIN_EMAILS?.split(",").map((e) =>
-        e.trim()
-      ) || ["cni351237@naver.com"];
-
-      await resend.emails.send({
-        from: "금은동 시스템 <onboarding@resend.dev>",
-        to: adminEmails,
-        subject: adminEmail.subject,
-        text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
-      });
+        await resend.emails.send({
+          from: fromEmail,
+          to: adminEmails,
+          subject: adminEmail.subject,
+          text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
+        });
+      } else {
+        console.warn("Admin application notification skipped: ADMIN_EMAILS or RESEND_FROM_EMAIL is not configured");
+      }
     } catch (emailError) {
       console.error("Email send error:", emailError);
     }

@@ -1,7 +1,8 @@
-import { SectionLabel } from "@/components/ui/SectionLabel";
 import { Card } from "@/components/ui/Card";
 import { curriculum } from "@/data/curriculum";
-import { Target, Users, Network } from "lucide-react";
+import { getPublicCmsData } from "@/lib/cms-public";
+import type { ContentBlock } from "@/types";
+import { Network, Target, Users } from "lucide-react";
 
 const visionCards = [
   {
@@ -24,93 +25,89 @@ const visionCards = [
   },
 ];
 
-export default function AboutPage() {
+function findBlock(blocks: ContentBlock[], key: string) {
+  return blocks.find((block) => block.page_slug === "about" && block.block_key === key);
+}
+
+export default async function AboutPage() {
+  const data = await getPublicCmsData();
+  const intro = findBlock(data.blocks, "intro");
+  const partners = findBlock(data.blocks, "partners");
+  const currentHistory =
+    data.history.find((entry) => entry.is_current) ??
+    [...data.history].sort((a, b) => b.year - a.year)[0];
+
   return (
-    <div className="pt-24">
-      {/* Intro */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div>
-            <SectionLabel label="About" className="mb-6" />
-            <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-              충북대학교 금융권 취업 동아리
-            </h1>
-            <p className="text-lg text-gray-500 leading-relaxed max-w-2xl mx-auto">
-              금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을
-              준비하는 충북대학교 동아리입니다. 직무잡아드림 소속으로
-              신문 스크랩, 리포트 분석, 멘토링, 직무별 활동을 진행합니다.
-            </p>
-          </div>
+    <div className="bg-white pt-20 text-ink">
+      <section className="border-b border-ink/10 bg-white py-14 marble-texture md:py-20">
+        <div className="mx-auto max-w-4xl px-5 text-center sm:px-6">
+          <p className="text-sm font-semibold text-gold-dark">
+            {intro?.subtitle ?? "금은동 소개"}
+          </p>
+          <h1 className="mt-4 text-3xl font-bold tracking-normal text-ink sm:text-5xl">
+            {intro?.title ?? "충북대학교 금융권 취업 동아리"}
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+            {intro?.body ??
+              "금은동은 2021년 신문 스크랩 동아리로 출발하여, 현재 금융권 취업을 준비하는 충북대학교 동아리입니다."}
+          </p>
         </div>
       </section>
 
-      {/* Vision */}
-      <section className="py-24 md:py-32 bg-marble-light">
-        <div className="max-w-6xl mx-auto px-6">
-          <div>
-            <SectionLabel label="Vision" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+      <section className="bg-marble-light py-14 md:py-20">
+        <div className="mx-auto max-w-6xl px-5 sm:px-6">
+          <div className="mb-8 text-center md:mb-10">
+            <p className="text-sm font-semibold text-gold-dark">운영 기준</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-normal md:text-4xl">
               활동 방향
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid gap-4 md:grid-cols-3 md:gap-6">
             {visionCards.map((card) => (
-              <div key={card.title}>
-                <Card className="text-center py-10">
-                  <card.icon className="w-10 h-10 text-gold mx-auto mb-4" />
-                  <h3 className="text-xl font-bold text-gray-800 mb-3">
-                    {card.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    {card.description}
-                  </p>
-                </Card>
-              </div>
+              <Card key={card.title} className="py-7 text-center md:py-9">
+                <card.icon className="mx-auto mb-4 h-9 w-9 text-gold" />
+                <h3 className="mb-3 text-lg font-bold text-ink md:text-xl">
+                  {card.title}
+                </h3>
+                <p className="text-sm leading-7 text-slate-600">
+                  {card.description}
+                </p>
+              </Card>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Organization */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6">
-          <div>
-            <SectionLabel label="Organization" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+      <section className="bg-white py-14 marble-texture md:py-20">
+        <div className="mx-auto max-w-5xl px-5 sm:px-6">
+          <div className="mb-8 text-center md:mb-10">
+            <p className="text-sm font-semibold text-gold-dark">운영 체계</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-normal md:text-4xl">
               조직 구조
             </h2>
           </div>
 
-          <div className="flex flex-col items-center gap-6">
-            {/* 회장 */}
-            <div className="bg-white border-2 border-gold/40 rounded-xl px-8 py-4 text-center shadow-sm">
-              <p className="text-xs text-gold-dark uppercase tracking-wider mb-1">
-                회장
+          <div className="grid gap-5 md:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-xl border border-gold/30 bg-white p-6 shadow-sm">
+              <p className="text-xs font-semibold text-gold-dark">현재 운영</p>
+              <p className="mt-3 text-2xl font-bold text-ink">
+                {currentHistory?.president ?? "운영진"}
               </p>
-              <p className="text-lg font-semibold text-gray-900">이승현</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {currentHistory?.generation
+                  ? `${currentHistory.generation}기 운영진 기준`
+                  : "운영진 기준"}
+              </p>
             </div>
 
-            <div className="w-px h-6 bg-gold/25" />
-
-            {/* 부회장 */}
-            <div className="bg-white border border-gold/25 rounded-xl px-8 py-4 text-center shadow-sm">
-              <p className="text-xs text-gold-dark/60 uppercase tracking-wider mb-1">
-                부회장
-              </p>
-              <p className="text-lg font-semibold text-gray-800">전윤철</p>
-            </div>
-
-            <div className="w-px h-6 bg-gold/25" />
-
-            {/* Teams */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               {["은행팀", "증권팀", "보험팀", "기타"].map((team) => (
                 <div
                   key={team}
-                  className="bg-white border border-gray-200 rounded-lg px-4 py-3 text-center shadow-sm hover:border-gold/30 transition-colors"
+                  className="rounded-lg border border-ink/10 bg-marble-light px-4 py-4 text-center"
                 >
-                  <p className="text-sm font-medium text-gray-700">{team}</p>
+                  <p className="text-sm font-semibold text-slate-800">{team}</p>
                 </div>
               ))}
             </div>
@@ -118,50 +115,88 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Partners */}
-      <section className="py-16 bg-marble-light">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <span className="text-sm text-gray-400">소속 및 협력</span>
-            <span className="text-gray-700 font-medium">직무잡아드림</span>
-            <span className="text-gold/30">|</span>
-            <span className="text-gray-700 font-medium">
-              충남대 3F MOU
-            </span>
+      <section className="bg-marble-light py-12 md:py-16">
+        <div className="mx-auto max-w-5xl px-5 sm:px-6">
+          <div className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
+            <p className="text-sm font-semibold text-gold-dark">
+              {partners?.title ?? "소속 및 협력"}
+            </p>
+            <p className="mt-3 text-lg font-bold text-ink">
+              {partners?.subtitle ?? "직무잡아드림 · 충남대 3F MOU"}
+            </p>
+            {partners?.body && (
+              <p className="mt-2 text-sm leading-6 text-slate-600">{partners.body}</p>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Curriculum */}
-      <section className="py-24 md:py-32 bg-white marble-texture">
-        <div className="max-w-4xl mx-auto px-6">
-          <div>
-            <SectionLabel label="Curriculum" className="mb-6" />
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 text-center mb-16">
+      <section className="bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-5xl px-5 sm:px-6">
+          <div className="mb-8 md:mb-10">
+            <p className="text-sm font-semibold text-gold-dark">운영 이력</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-normal md:text-4xl">
+              연혁
+            </h2>
+          </div>
+
+          <ol className="divide-y divide-ink/10 border-y border-ink/10">
+            {data.history.map((entry) => (
+              <li key={entry.id ?? `${entry.year}-${entry.generation}`} className="grid gap-4 py-5 md:grid-cols-[9rem_1fr]">
+                <div>
+                  <p className="font-mono text-xl font-bold tabular-nums text-ink">
+                    {entry.year}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {entry.generation ? `${entry.generation}기` : "기수 별도"}
+                    {entry.is_current ? " · 현재" : ""}
+                  </p>
+                </div>
+                <div>
+                  {entry.president && (
+                    <p className="font-semibold text-slate-900">회장 {entry.president}</p>
+                  )}
+                  <ul className="mt-2 grid gap-1 text-sm leading-6 text-slate-600">
+                    {entry.milestones.map((milestone) => (
+                      <li key={milestone}>· {milestone}</li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      <section className="bg-marble-light py-14 md:py-20">
+        <div className="mx-auto max-w-4xl px-5 sm:px-6">
+          <div className="mb-8 text-center md:mb-10">
+            <p className="text-sm font-semibold text-gold-dark">학기 운영</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-normal md:text-4xl">
               학기별 커리큘럼
             </h2>
           </div>
 
-          <div className="space-y-12">
+          <div className="space-y-7 md:space-y-9">
             {curriculum.map((semester) => (
               <div key={semester.label}>
-                <h3 className="text-lg font-semibold text-gold mb-4">
+                <h3 className="mb-4 text-lg font-bold text-gold-dark">
                   {semester.label}
                 </h3>
                 <div className="space-y-3">
                   {semester.items.map((item) => (
                     <div
                       key={item.title}
-                      className="flex gap-4 bg-marble-light border border-gray-200 rounded-lg p-4"
+                      className="grid grid-cols-[4rem_1fr] gap-3 rounded-lg border border-ink/10 bg-white p-4 sm:gap-4"
                     >
-                      <span className="text-xs text-gold/70 font-mono whitespace-nowrap pt-0.5">
+                      <span className="pt-0.5 font-mono text-xs text-gold-dark/80">
                         {item.month}
                       </span>
                       <div>
-                        <p className="font-medium text-gray-700 text-sm">
+                        <p className="text-sm font-semibold text-slate-800">
                           {item.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">
+                        <p className="mt-1 whitespace-pre-line text-xs leading-5 text-slate-500">
                           {item.desc}
                         </p>
                       </div>

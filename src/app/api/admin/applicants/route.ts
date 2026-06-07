@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { forbidden, verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { canManageApplicants } from "@/lib/admin-permissions";
+import { validateAndNormalizeApplicantPatch } from "@/lib/applicant-admin";
+import { buildApplicantAuditMetadata } from "@/lib/applicant-audit";
+import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
 
@@ -11,9 +15,24 @@ function extractStoragePath(fileUrl: string) {
   return index >= 0 ? decodeURIComponent(fileUrl.slice(index + marker.length)) : null;
 }
 
+async function attachSignedUrl(applicant: Applicant) {
+  const path = extractStoragePath(applicant.file_url);
+  if (!path) return applicant;
+
+  const supabase = createServerClient();
+  const { data: signed } = await supabase.storage
+    .from("applications")
+    .createSignedUrl(path, 600);
+
+  return { ...applicant, signed_url: signed?.signedUrl ?? null };
+}
+
 export async function GET(request: NextRequest) {
-  const { response } = await verifyAdmin(request, true);
+  const { admin, response } = await verifyAdmin(request, true);
   if (response) return response;
+  if (!admin || !canManageApplicants(admin.profile.role)) {
+    return forbidden("지원자 개인정보 조회 권한이 없습니다");
+  }
 
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -24,16 +43,7 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const applicants = await Promise.all(
-    ((data ?? []) as Applicant[]).map(async (applicant) => {
-      const path = extractStoragePath(applicant.file_url);
-      if (!path) return applicant;
-
-      const { data: signed } = await supabase.storage
-        .from("applications")
-        .createSignedUrl(path, 600);
-
-      return { ...applicant, signed_url: signed?.signedUrl ?? null };
-    })
+    ((data ?? []) as Applicant[]).map((applicant) => attachSignedUrl(applicant))
   );
 
   return NextResponse.json({ applicants });
@@ -43,16 +53,21 @@ export async function PATCH(request: NextRequest) {
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
-
-  const { id, status, admin_note, review_score } = await request.json();
-  if (!id) return NextResponse.json({ error: "지원자 id가 필요합니다" }, { status: 400 });
-
-  const update: Record<string, unknown> = {};
-  if (status) update.status = status;
-  if (typeof admin_note === "string") update.admin_note = admin_note;
-  if (review_score === null || typeof review_score === "number") {
-    update.review_score = review_score;
+  if (!canManageApplicants(admin.profile.role)) {
+    return forbidden("지원자 정보 수정 권한이 없습니다");
   }
+
+  const bodyResult = await readJsonObject(request, "지원자 수정 요청 형식이 올바르지 않습니다");
+  if (bodyResult.error) return NextResponse.json({ error: bodyResult.error }, { status: 400 });
+  const { id, ...patchInput } = bodyResult.data ?? {};
+  if (!id) return NextResponse.json({ error: "지원자 id가 필요합니다" }, { status: 400 });
+  if (typeof id !== "string") {
+    return NextResponse.json({ error: "지원자 id 형식이 올바르지 않습니다" }, { status: 400 });
+  }
+
+  const result = validateAndNormalizeApplicantPatch(patchInput);
+  if (result.error !== null) return NextResponse.json({ error: result.error }, { status: 400 });
+  const update = result.update;
 
   const supabase = createServerClient();
   const { data, error } = await supabase
@@ -64,6 +79,6 @@ export async function PATCH(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  await writeAuditLog(admin, "update_applicant", "applicants", id, update);
-  return NextResponse.json({ applicant: data });
+  await writeAuditLog(admin, "update_applicant", "applicants", id, buildApplicantAuditMetadata(update));
+  return NextResponse.json({ applicant: await attachSignedUrl(data as Applicant) });
 }

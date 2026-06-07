@@ -1,17 +1,37 @@
 import type { Metadata } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { getPublicCmsData } from "@/lib/cms-public";
+import { defaultSeoDescription, recruitingShareImage, siteUrl } from "@/lib/seo";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const jetBrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://cbnugold.vercel.app"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "금은동 | 충북대학교 금융권 취업 동아리",
     template: "%s | 금은동",
   },
-  description:
-    "충북대학교 금융권 취업 동아리 금은동입니다. 신문 스크랩, 리포트 분석, 현직자 멘토링, 직무분석 경진대회 등 실전 금융 커리어를 준비합니다.",
+  description: defaultSeoDescription,
   keywords: [
     "충북대",
     "금융 동아리",
@@ -24,27 +44,18 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "금은동 | 충북대학교 금융권 취업 동아리",
-    description:
-      "충북대학교 금융권 취업 동아리 금은동. Invest in yourself. Since 2021.",
-    url: "https://cbnugold.vercel.app",
+    description: defaultSeoDescription,
+    url: siteUrl,
     siteName: "금은동",
     locale: "ko_KR",
     type: "website",
-    images: [
-      {
-        url: "/images/logo.png",
-        width: 256,
-        height: 256,
-        alt: "금은동 - 충북대학교 금융권 취업 동아리",
-      },
-    ],
+    images: [recruitingShareImage],
   },
   twitter: {
     card: "summary_large_image",
     title: "금은동 | 충북대학교 금융권 취업 동아리",
-    description:
-      "충북대학교 금융권 취업 동아리 금은동. Invest in yourself. Since 2021.",
-    images: ["/images/logo.png"],
+    description: defaultSeoDescription,
+    images: [recruitingShareImage.url],
   },
   robots: { index: true, follow: true },
   icons: {
@@ -52,7 +63,7 @@ export const metadata: Metadata = {
     apple: "/images/logo.png",
   },
   alternates: {
-    canonical: "https://cbnugold.vercel.app",
+    canonical: siteUrl,
   },
   verification: {
     google: "PBjLy42PMYDwpa4eoGQ-2TbsgOYJmzy4IfD19eoPBRo",
@@ -62,38 +73,30 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { settings } = await getPublicCmsData();
+
   return (
-    <html lang="ko">
+    <html lang="ko" className={`${inter.variable} ${jetBrainsMono.variable} ${fraunces.variable}`}>
       <head>
         {/* Pretendard (Korean) */}
+        <link rel="icon" href={settings.logo_url} />
         <link
           rel="stylesheet"
           as="style"
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
-        {/* Inter + JetBrains Mono (English / Numbers) */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300&display=swap"
-          rel="stylesheet"
-        />
       </head>
-      <body className="antialiased marble-texture">
-        <JsonLd />
-        <Header />
+      <body className="antialiased marble-texture" data-brand-preset={settings.brand_preset}>
+        <JsonLd settings={settings} />
+        <Header settings={settings} />
         <main className="min-h-screen">{children}</main>
-        <Footer />
+        <Footer settings={settings} />
       </body>
     </html>
   );

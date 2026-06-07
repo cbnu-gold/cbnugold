@@ -1,4 +1,14 @@
-import { CalendarDays, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+  Instagram,
+  Mail,
+  MessageSquareText,
+  Phone,
+  Users,
+} from "lucide-react";
 import { JoinForm } from "@/components/recruiting/JoinForm";
 import {
   formatKoreanDateTime,
@@ -15,6 +25,11 @@ export default async function JoinPage() {
   const open = isRecruitmentOpen(data.recruitment);
   const phase = getRecruitmentPhase(data.recruitment);
   const phaseLabel = getRecruitmentPhaseLabel(phase);
+  const firstSemesterBlock = data.blocks.find(
+    (block) => block.page_slug === "join" && block.block_key === "first-semester"
+  );
+  const firstSemesterItems = getFirstSemesterItems(firstSemesterBlock?.body);
+  const firstSemesterMediaUrl = firstSemesterBlock?.media_url ?? "/images/semester-flow-board.webp";
 
   const steps = [
     ["서류 접수", `${formatKoreanDateTime(data.recruitment.start_at)} ~ ${formatKoreanDateTime(data.recruitment.end_at)}`],
@@ -24,31 +39,35 @@ export default async function JoinPage() {
   ];
 
   return (
-    <div className="bg-marble-light pt-24 text-ink">
-      <section className="border-b border-ink/10 bg-white py-16 md:py-24">
-        <div className="mx-auto max-w-[1100px] px-6 text-center">
+    <div className="bg-marble-light pb-20 pt-20 text-ink md:pb-0">
+      <section className="border-b border-ink/10 bg-white py-14 md:py-20">
+        <div className="mx-auto max-w-[1100px] px-5 text-center sm:px-6">
           <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${open ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
             {phaseLabel}
           </span>
-          <h1 className="mt-5 text-4xl font-bold tracking-normal sm:text-5xl">{data.recruitment.title}</h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-slate-600">
+          <h1 className="mt-5 text-3xl font-bold tracking-normal sm:text-5xl">{data.recruitment.title}</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">
             모집 일정, 지원 자격, 제출 서류를 확인하세요.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1100px] px-6 py-10 md:py-14">
-        <div className="grid gap-4 md:grid-cols-4">
+      <section className="mx-auto max-w-[1100px] px-5 py-8 sm:px-6 md:py-12">
+        <div className="grid gap-3 md:grid-cols-4">
           {steps.map(([title, value], index) => (
-            <div key={title} className="rounded-xl border border-ink/10 bg-white p-5">
-              <span className="font-mono text-sm text-gold-dark">{String(index + 1).padStart(2, "0")}</span>
-              <h2 className="mt-3 font-bold">{title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{value}</p>
+            <div key={title} className="grid grid-cols-[2.5rem_1fr] gap-3 rounded-xl border border-ink/10 bg-white p-4 md:block md:p-5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold/10 font-mono text-sm text-gold-dark md:block md:h-auto md:w-auto md:bg-transparent">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <h2 className="font-bold md:mt-3">{title}</h2>
+                <p className="mt-1 text-sm leading-6 text-slate-600 md:mt-2">{value}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="mt-6 grid gap-4 rounded-xl border border-ink/10 bg-white p-6 md:grid-cols-2">
+        <div className="mt-5 grid gap-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:grid-cols-3 md:p-6">
           <div>
             <h2 className="flex items-center gap-2 text-lg font-bold">
               <CheckCircle2 className="h-5 w-5 text-gold-dark" />
@@ -68,12 +87,153 @@ export default async function JoinPage() {
             <p className="mt-4 text-sm leading-6 text-slate-600">{data.recruitment.meeting_time}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{data.recruitment.fee_note}</p>
           </div>
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-bold">
+              <Mail className="h-5 w-5 text-gold-dark" />
+              문의 채널
+            </h2>
+            <div className="mt-4 grid gap-2 text-sm leading-6 text-slate-600">
+              <p className="font-medium text-slate-800">{data.settings.contact_name}</p>
+              <a href={`tel:${data.settings.contact_phone.replace(/-/g, "")}`} className="inline-flex items-center gap-2 hover:text-ink">
+                <Phone className="h-4 w-4 text-slate-400" />
+                {data.settings.contact_phone}
+              </a>
+              <a href={`mailto:${data.settings.contact_email}`} className="inline-flex items-center gap-2 break-all hover:text-ink">
+                <Mail className="h-4 w-4 text-slate-400" />
+                {data.settings.contact_email}
+              </a>
+              {data.settings.instagram_url && (
+                <a href={data.settings.instagram_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-ink">
+                  <Instagram className="h-4 w-4 text-slate-400" />
+                  Instagram
+                </a>
+              )}
+              {data.settings.naver_cafe_url && (
+                <a href={data.settings.naver_cafe_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-ink">
+                  <span className="w-4 text-center text-sm font-bold text-slate-400">N</span>
+                  Naver Cafe
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-ink/10 bg-white p-5 md:mt-6 md:p-6">
+          <div className="flex flex-col gap-2 border-b border-ink/10 pb-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">
+                {firstSemesterBlock?.title ?? "합류 후 첫 학기 흐름"}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {firstSemesterBlock?.subtitle ?? "지원 전 확인할 활동 순서"}
+              </p>
+            </div>
+            <a
+              href="#apply-section"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition hover:border-ink/30"
+            >
+              지원 폼으로 이동
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-stretch">
+            <div
+              aria-label="금은동 첫 학기 활동 흐름 보드"
+              className="min-h-64 rounded-lg border border-ink/10 bg-marble-light bg-cover bg-center shadow-[0_18px_45px_-34px_rgba(14,20,32,0.45)] sm:min-h-80 lg:min-h-full"
+              role="img"
+              style={{ backgroundImage: `url(${JSON.stringify(firstSemesterMediaUrl)})` }}
+            />
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              {firstSemesterItems.map((item, index) => (
+                <ActivityFlowCard
+                  key={item.title}
+                  index={index}
+                  title={item.title}
+                  description={item.description}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1100px] px-6 pb-20 md:pb-28">
+      <section id="apply-section" className="mx-auto max-w-[1100px] px-5 pb-12 sm:px-6 md:pb-24">
         <JoinForm recruitment={data.recruitment} faqs={data.faqs} isOpen={open} phase={phase} />
       </section>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white/95 px-5 py-3 shadow-[0_-12px_30px_-24px_rgba(14,20,32,0.5)] backdrop-blur md:hidden">
+        <a
+          href="#apply-section"
+          className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-ink px-5 py-3 text-sm font-semibold text-white"
+        >
+          {open ? "지원서 제출하기" : "모집 안내 확인"}
+          <ArrowRight className="h-4 w-4" />
+        </a>
+      </div>
     </div>
+  );
+}
+const defaultFirstSemesterItems = [
+  {
+    title: "첫 모임",
+    description: "오리엔테이션에서 활동 방식과 제출 기준을 안내합니다.",
+  },
+  {
+    title: "정기 활동",
+    description: "신문 스크랩과 리포트 분석으로 금융권 이슈를 정리합니다.",
+  },
+  {
+    title: "심화 활동",
+    description: "세일즈 페어와 멘토링에서 발표와 직무 준비를 점검합니다.",
+  },
+];
+
+function getFirstSemesterItems(value: string | null | undefined) {
+  const lines =
+    value
+      ?.split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 3) ?? [];
+
+  if (!lines.length) return defaultFirstSemesterItems;
+
+  return lines.map((line, index) => {
+    const [title, ...descriptionParts] = line.split(":");
+    return {
+      title: title.trim() || defaultFirstSemesterItems[index]?.title || "활동",
+      description:
+        descriptionParts.join(":").trim() ||
+        defaultFirstSemesterItems[index]?.description ||
+        "금은동 정규 활동을 진행합니다.",
+    };
+  });
+}
+
+function ActivityFlowCard({
+  index,
+  title,
+  description,
+}: {
+  index: number;
+  title: string;
+  description: string;
+}) {
+  const icons = [Users, FileText, MessageSquareText];
+  const Icon = icons[index] ?? CheckCircle2;
+
+  return (
+    <article className="rounded-lg bg-marble-light p-4">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-sm text-gold-dark">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gold/25 bg-white text-gold-dark">
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+      <h3 className="mt-4 font-bold text-ink">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+    </article>
   );
 }

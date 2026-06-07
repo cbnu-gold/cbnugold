@@ -1,54 +1,56 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAdmin, writeAuditLog } from "@/lib/admin-auth";
+import { cmsMediaBucket } from "@/lib/admin-media";
+import {
+  getCmsMediaFileExtension,
+  getCmsMediaKind,
+  getCmsMediaUploadValidationError,
+} from "@/lib/cms-media-files";
 import { createServerClient } from "@/lib/supabase-server";
-
-const allowedTypes = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-]);
 
 export async function POST(request: NextRequest) {
   const { admin, response } = await verifyAdmin(request);
   if (response) return response;
   if (!admin) return NextResponse.json({ error: "관리자 인증이 필요합니다" }, { status: 401 });
 
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json({ error: "미디어 업로드 요청 형식이 올바르지 않습니다" }, { status: 400 });
+  }
   const file = formData.get("file") as File | null;
-  const alt = String(formData.get("alt") ?? "");
+  const alt = String(formData.get("alt") ?? "").trim().slice(0, 160);
 
   if (!file) return NextResponse.json({ error: "파일이 필요합니다" }, { status: 400 });
-  if (!allowedTypes.has(file.type)) {
-    return NextResponse.json({ error: "이미지 또는 PDF만 업로드할 수 있습니다" }, { status: 400 });
-  }
-  if (file.size > 10 * 1024 * 1024) {
-    return NextResponse.json({ error: "파일 크기는 10MB 이하여야 합니다" }, { status: 400 });
+  const safeName = file.name.replace(/[^\w.-]+/g, "-").toLowerCase();
+  const validationError = getCmsMediaUploadValidationError(safeName, file.type, file.size);
+  if (validationError) {
+    return NextResponse.json({ error: validationError }, { status: 400 });
   }
 
-  const safeName = file.name.replace(/[^\w.-]+/g, "-").toLowerCase();
+  const extension = getCmsMediaFileExtension(safeName);
   const path = `${Date.now()}-${safeName}`;
   const supabase = createServerClient();
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error: uploadError } = await supabase.storage
-    .from("cms-media")
+    .from(cmsMediaBucket)
     .upload(path, buffer, { contentType: file.type, upsert: false });
 
   if (uploadError) {
     return NextResponse.json({ error: uploadError.message }, { status: 500 });
   }
 
-  const { data: urlData } = supabase.storage.from("cms-media").getPublicUrl(path);
+  const { data: urlData } = supabase.storage.from(cmsMediaBucket).getPublicUrl(path);
   const { data, error } = await supabase
     .from("media_assets")
     .insert({
-      bucket: "cms-media",
+      bucket: cmsMediaBucket,
       path,
       public_url: urlData.publicUrl,
       alt,
-      kind: file.type === "application/pdf" ? "document" : "image",
+      kind: getCmsMediaKind(extension),
       status: "published",
       updated_by: admin.id,
     })
