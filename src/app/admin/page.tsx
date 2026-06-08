@@ -11,6 +11,7 @@ import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applica
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import { getHealthRemediation } from "@/lib/health-remediation";
 import { buildLaunchReadinessBrief, buildLaunchReadinessReport } from "@/lib/launch-readiness";
+import { buildOrganizationSiteDraftImport, type OrganizationSiteDraftImport } from "@/lib/organization-import";
 import {
   buildOrganizationSiteExport,
   inspectOrganizationSiteExportBundle,
@@ -121,6 +122,10 @@ type HealthSnapshot = {
 };
 
 type OrganizationPackageInspectionState = OrganizationSiteExportInspection & {
+  fileName: string;
+};
+
+type OrganizationPackageDraftState = OrganizationSiteDraftImport & {
   fileName: string;
 };
 
@@ -391,6 +396,7 @@ export default function AdminPage() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState("");
   const [packageInspection, setPackageInspection] = useState<OrganizationPackageInspectionState | null>(null);
+  const [packageDraftImport, setPackageDraftImport] = useState<OrganizationPackageDraftState | null>(null);
   const [packageInspectionError, setPackageInspectionError] = useState("");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
@@ -835,6 +841,7 @@ export default function AdminPage() {
 
   async function inspectOrganizationSitePackage(file: File | null) {
     setPackageInspection(null);
+    setPackageDraftImport(null);
     setPackageInspectionError("");
     if (!file) return;
 
@@ -846,12 +853,49 @@ export default function AdminPage() {
     try {
       const parsed = JSON.parse(await file.text()) as unknown;
       const inspection = inspectOrganizationSiteExportBundle(parsed);
+      const draftImport = buildOrganizationSiteDraftImport(parsed);
       setPackageInspection({ ...inspection, fileName: file.name });
+      setPackageDraftImport({ ...draftImport, fileName: file.name });
     } catch {
       setPackageInspectionError("운영 패키지 JSON을 읽지 못했습니다. 파일 형식을 확인해 주세요.");
     } finally {
       if (packageInputRef.current) packageInputRef.current.value = "";
     }
+  }
+
+  function applyOrganizationSiteDraftImport() {
+    if (!requireWrite("운영 패키지 초안 불러오기")) return;
+    if (!packageDraftImport?.ok || !packageDraftImport.data) {
+      setError("검증을 통과한 운영 패키지만 초안으로 불러올 수 있습니다.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      [
+        "현재 화면의 공개 CMS 편집값을 운영 패키지 초안으로 교체합니다.",
+        "DB에는 아직 저장되지 않으며, 각 항목의 저장 버튼을 눌러야 반영됩니다.",
+        "지원자, 관리자 계정, 감사 로그, 비공개 지원서 파일, 미디어 스토리지 파일은 가져오지 않습니다.",
+      ].join("\n")
+    );
+    if (!confirmed) return;
+
+    const imported = packageDraftImport.data;
+    setState((prev) => ({
+      ...prev,
+      settings: imported.settings,
+      pages: imported.pages,
+      blocks: imported.blocks,
+      recruitment: imported.recruitment,
+      activities: imported.activities,
+      achievements: imported.achievements,
+      history: imported.history,
+      faqs: imported.faqs,
+    }));
+    setTab("content");
+    setError("");
+    setMessage(
+      `운영 패키지를 초안으로 불러왔습니다. 미디어 참조 ${imported.mediaReferences.length}개는 미디어 탭에서 직접 업로드해야 합니다.`
+    );
   }
 
   async function uploadMedia() {
@@ -1310,6 +1354,27 @@ export default function AdminPage() {
                             </div>
                           ))}
                         </div>
+                        {packageDraftImport?.ok && packageDraftImport.data && (
+                          <div className="rounded-lg border border-slate-200 bg-white/80 p-3 text-slate-700">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-950">초안으로 불러오기 가능</p>
+                                <p className="mt-1 text-xs leading-5 text-slate-600">
+                                  DB 저장 없이 편집 화면에만 반영합니다. 모든 콘텐츠는 draft 상태로 들어오며 모집은 닫힌 상태가 됩니다.
+                                  미디어 참조 {packageDraftImport.data.mediaReferences.length}개는 자동 생성하지 않습니다.
+                                </p>
+                              </div>
+                              <AdminButton
+                                variant="secondary"
+                                onClick={applyOrganizationSiteDraftImport}
+                                disabled={!canWrite}
+                              >
+                                <Upload className="h-4 w-4" />
+                                초안으로 불러오기
+                              </AdminButton>
+                            </div>
+                          </div>
+                        )}
                         {packageInspection.errors.length > 0 && (
                           <ul className="grid gap-1 text-sm leading-6">
                             {packageInspection.errors.map((item) => (
