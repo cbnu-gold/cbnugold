@@ -41,8 +41,8 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-marble-light pt-20 text-ink">
-      <section className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-[1100px] items-start px-5 py-8 sm:px-8 lg:items-center lg:px-16">
+    <div className="min-h-screen bg-marble-light text-ink">
+      <section className="mx-auto flex min-h-screen max-w-[1100px] items-start px-5 py-8 sm:px-8 lg:items-center lg:px-16">
         <div className="grid w-full gap-6 lg:grid-cols-[0.9fr_1fr] lg:items-center">
           <div className="hidden lg:block">
             <p className="text-sm font-semibold text-gold-dark">관리자 접근</p>

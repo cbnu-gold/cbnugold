@@ -932,7 +932,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 pt-24 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
       </div>
     );
@@ -940,7 +940,7 @@ export default function AdminPage() {
 
   if (!admin && error) {
     return (
-      <div className="min-h-screen bg-slate-50 px-4 pt-24 text-slate-900">
+      <div className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
         <section className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/25 bg-gold/10 text-gold-dark">
             <ShieldCheck className="h-5 w-5" />
@@ -972,7 +972,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pt-20 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto grid max-w-[1500px] gap-5 px-4 py-6 lg:grid-cols-[250px_1fr] lg:gap-6 lg:px-8 lg:py-8">
         <aside className="h-fit rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="px-3 py-4">

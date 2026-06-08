@@ -103,8 +103,14 @@ test("/admin unauthenticated access does not render a blank main area", async ({
   const metrics = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
+    headerCount: document.querySelectorAll("header").length,
+    footerCount: document.querySelectorAll("footer").length,
+    jsonLdCount: document.querySelectorAll('script[type="application/ld+json"]').length,
   }));
   expect(metrics.scrollWidth, "/admin horizontal overflow").toBeLessThanOrEqual(metrics.innerWidth + 1);
+  expect(metrics.headerCount, "/admin public header").toBe(0);
+  expect(metrics.footerCount, "/admin public footer").toBe(0);
+  expect(metrics.jsonLdCount, "/admin public SEO schema").toBe(0);
 });
 
 test("mobile menu opens and closes", async ({ page }, testInfo) => {
