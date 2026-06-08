@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
+import { buildCmsPreviewCards } from "@/lib/cms-preview";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
@@ -564,6 +565,29 @@ export default function AdminPage() {
   const settingsImpactBrief = useMemo(
     () => buildSiteSettingsImpactBrief(settingsImpact),
     [settingsImpact]
+  );
+  const cmsPreviewCards = useMemo(
+    () =>
+      buildCmsPreviewCards({
+        settings: state.settings,
+        pages: state.pages,
+        blocks: state.blocks,
+        recruitment: state.recruitment,
+        activities: state.activities,
+        achievements: state.achievements,
+        history: state.history,
+        faqs: state.faqs,
+      }),
+    [
+      state.activities,
+      state.achievements,
+      state.blocks,
+      state.faqs,
+      state.history,
+      state.pages,
+      state.recruitment,
+      state.settings,
+    ]
   );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
@@ -1941,6 +1965,93 @@ export default function AdminPage() {
 
           {tab === "content" && (
             <section className="grid gap-5">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">공개 화면 미리보기</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      페이지 메타, 콘텐츠 블록, 반복 콘텐츠를 조합해 게시 전 공개 화면 구성을 압축 확인합니다.
+                      초안은 관리자 미리보기에만 반영되며 실제 공개 페이지에는 published 항목만 노출됩니다.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    draft 포함
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {cmsPreviewCards.map((card) => (
+                    <article key={card.key} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-slate-950">{card.label}</p>
+                          <p className="mt-1 font-mono text-xs text-slate-500">{card.href}</p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            card.status === "ready"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : card.status === "review"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {card.statusLabel}
+                        </span>
+                      </div>
+                      <div className="mt-4 rounded-lg bg-white p-3 ring-1 ring-slate-200">
+                        <p className="text-[11px] font-semibold text-slate-500">표시 제목</p>
+                        <h3 className="mt-1 break-words text-sm font-bold leading-5 text-slate-950">
+                          {card.headline || "제목 없음"}
+                        </h3>
+                        <p className="mt-2 max-h-20 overflow-hidden break-words text-xs leading-5 text-slate-600">
+                          {card.description || "설명 없음"}
+                        </p>
+                      </div>
+                      <div className="mt-3 grid grid-cols-4 gap-1 text-center text-[11px]">
+                        <span className="rounded-md bg-white px-1.5 py-2 text-slate-600 ring-1 ring-slate-200">
+                          게시 {card.publishedCount}
+                        </span>
+                        <span className="rounded-md bg-white px-1.5 py-2 text-amber-700 ring-1 ring-amber-100">
+                          초안 {card.draftCount}
+                        </span>
+                        <span className="rounded-md bg-white px-1.5 py-2 text-slate-500 ring-1 ring-slate-200">
+                          보관 {card.archivedCount}
+                        </span>
+                        <span className="rounded-md bg-white px-1.5 py-2 text-red-700 ring-1 ring-red-100">
+                          누락 {card.missingCount}
+                        </span>
+                      </div>
+                      <div className="mt-3 text-xs leading-5 text-slate-600">
+                        <p className="font-semibold text-slate-500">연결 표면</p>
+                        <p className="mt-1">{card.surfaces.join(" · ")}</p>
+                      </div>
+                      <div className="mt-3 text-xs leading-5 text-slate-600">
+                        <p className="font-semibold text-slate-500">CTA</p>
+                        <p className="mt-1 break-words">
+                          {card.ctaLabel ?? "없음"}
+                          {card.ctaHref ? ` → ${card.ctaHref}` : ""}
+                        </p>
+                      </div>
+                      {card.warnings.length > 0 && (
+                        <ul className="mt-3 grid gap-1 text-xs leading-5 text-amber-700">
+                          {card.warnings.slice(0, 2).map((warning) => (
+                            <li key={warning}>· {warning}</li>
+                          ))}
+                        </ul>
+                      )}
+                      <Link
+                        href={card.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-4 inline-flex min-h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-gold/50 hover:text-ink"
+                      >
+                        공개 페이지 열기
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <h2 className="text-lg font-bold">핵심 블록 매핑</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
