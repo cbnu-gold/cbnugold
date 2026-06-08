@@ -28,6 +28,7 @@ import {
   buildOrganizationStarterDraft,
   type OrganizationStarterPresetKey,
 } from "@/lib/organization-starter-presets";
+import { preserveExistingPublicCmsIds } from "@/lib/public-cms-draft-identity";
 import { buildRecruitmentOperationReport } from "@/lib/recruitment-operations";
 import { buildRecruitmentShareKit } from "@/lib/recruitment-share-kit";
 import { buildRecruitingFunnelReport } from "@/lib/recruiting-funnel";
@@ -987,21 +988,31 @@ export default function AdminPage() {
     if (!confirmed) return;
 
     const imported = packageDraftImport.data;
+    const preserved = preserveExistingPublicCmsIds(
+      {
+        pages: imported.pages,
+        blocks: imported.blocks,
+        recruitment: imported.recruitment,
+        activities: imported.activities,
+        achievements: imported.achievements,
+        history: imported.history,
+        faqs: imported.faqs,
+      },
+      state
+    );
     setState((prev) => ({
       ...prev,
       settings: imported.settings,
-      pages: imported.pages,
-      blocks: imported.blocks,
-      recruitment: imported.recruitment,
-      activities: imported.activities,
-      achievements: imported.achievements,
-      history: imported.history,
-      faqs: imported.faqs,
+      ...preserved.resources,
     }));
     setTab("content");
     setError("");
     setMessage(
-      `운영 패키지를 초안으로 불러왔습니다. 공개 CMS 전체 저장을 실행하면 현재 초안을 한 번에 저장할 수 있습니다. 미디어 참조 ${imported.mediaReferences.length}개는 미디어 탭에서 직접 업로드해야 합니다.`
+      [
+        "운영 패키지를 초안으로 불러왔습니다. 공개 CMS 전체 저장을 실행하면 현재 초안을 한 번에 저장할 수 있습니다.",
+        preserved.matchedCount > 0 ? `기존 CMS 항목 ${preserved.matchedCount}개는 새로 만들지 않고 업데이트 대상으로 연결했습니다.` : "",
+        `미디어 참조 ${imported.mediaReferences.length}개는 미디어 탭에서 직접 업로드해야 합니다.`,
+      ].filter(Boolean).join(" ")
     );
   }
 
@@ -1019,20 +1030,31 @@ export default function AdminPage() {
     if (!confirmed) return;
 
     const draft = buildOrganizationStarterDraft(starterPresetKey, state.settings);
+    const preserved = preserveExistingPublicCmsIds(
+      {
+        pages: draft.pages,
+        blocks: draft.blocks,
+        recruitment: draft.recruitment,
+        activities: draft.activities,
+        achievements: draft.achievements,
+        history: draft.history,
+        faqs: draft.faqs,
+      },
+      state
+    );
     setState((prev) => ({
       ...prev,
       settings: draft.settings,
-      pages: draft.pages,
-      blocks: draft.blocks,
-      recruitment: draft.recruitment,
-      activities: draft.activities,
-      achievements: draft.achievements,
-      history: draft.history,
-      faqs: draft.faqs,
+      ...preserved.resources,
     }));
     setTab("content");
     setError("");
-    setMessage(`${preset?.title ?? "단체 유형"} 초안을 불러왔습니다. 검토 후 공개 CMS 전체 저장으로 한 번에 반영할 수 있습니다.`);
+    setMessage(
+      [
+        `${preset?.title ?? "단체 유형"} 초안을 불러왔습니다. 검토 후 공개 CMS 전체 저장으로 한 번에 반영할 수 있습니다.`,
+        preserved.matchedCount > 0 ? `기존 CMS 항목 ${preserved.matchedCount}개는 업데이트 대상으로 연결했습니다.` : "",
+      ].filter(Boolean).join(" ")
+    );
   }
 
   async function uploadMedia() {

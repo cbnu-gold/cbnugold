@@ -79,6 +79,7 @@ import {
   organizationThemePresets,
 } from "../src/lib/organization-site-model";
 import { buildOrganizationStarterDraft } from "../src/lib/organization-starter-presets";
+import { preserveExistingPublicCmsIds } from "../src/lib/public-cms-draft-identity";
 import {
   buildContentFreshnessReport,
   buildSiteReadinessReport,
@@ -1188,6 +1189,58 @@ test("organization starter presets build safe editable drafts", () => {
   assert.equal(JSON.stringify(eventDraft).includes("applicants"), false);
   assert.equal(JSON.stringify(eventDraft).includes("admin_profiles"), false);
   assert.equal(researchDraft.settings.brand_preset, "navy");
+});
+
+test("public CMS draft import preserves existing ids by natural keys", () => {
+  const draft = buildOrganizationStarterDraft("recruiting_club", baseSettings);
+  const existing = {
+    pages: [{ ...draft.pages[0], id: "page-home", status: "published" as const }],
+    blocks: [{ ...draft.blocks[0], id: "block-hero", status: "published" as const }],
+    recruitment: [{ ...draft.recruitment[0], id: "cycle-1", status: "published" as const }],
+    activities: [{ ...draft.activities[0], id: "activity-regular", status: "published" as const }],
+    achievements: [
+      {
+        id: "achievement-existing",
+        title: "운영 기록",
+        organization: null,
+        result: "검증 완료",
+        kind: "metric" as const,
+        year: 2025,
+        status: "published" as const,
+        sort_order: 1,
+      },
+    ],
+    history: [{ year: 2026, generation: 1, president: "운영진", milestones: [], is_current: true, status: "published" as const, sort_order: 1, id: "history-2026" }],
+    faqs: [{ ...draft.faqs[0], id: "faq-target", status: "published" as const }],
+  };
+  const result = preserveExistingPublicCmsIds(
+    {
+      ...draft,
+      achievements: [
+        {
+          title: "운영 기록",
+          organization: null,
+          result: "검증 완료",
+          kind: "metric",
+          year: 2025,
+          status: "draft",
+          sort_order: 1,
+        },
+      ],
+      history: [{ year: 2026, generation: 1, president: null, milestones: [], is_current: false, status: "draft", sort_order: 1 }],
+    },
+    existing
+  );
+
+  assert.equal(result.matchedCount, 7);
+  assert.equal(result.resources.pages[0].id, "page-home");
+  assert.equal(result.resources.blocks[0].id, "block-hero");
+  assert.equal(result.resources.recruitment[0].id, "cycle-1");
+  assert.equal(result.resources.activities[0].id, "activity-regular");
+  assert.equal(result.resources.achievements[0].id, "achievement-existing");
+  assert.equal(result.resources.history[0].id, "history-2026");
+  assert.equal(result.resources.faqs[0].id, "faq-target");
+  assert.equal(result.resources.pages[1].id, undefined);
 });
 
 test("admin operating model copy does not contain mojibake", () => {
