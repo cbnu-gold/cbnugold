@@ -782,6 +782,7 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   const cutover = readFileSync(new URL("../docs/DEPLOYMENT_CUTOVER_CHECKLIST.md", import.meta.url), "utf8");
   const checkOps = readFileSync(new URL("../scripts/check-ops.mjs", import.meta.url), "utf8");
   const checkDeploy = readFileSync(new URL("../scripts/check-deployment.mjs", import.meta.url), "utf8");
+  const checkSupabase = readFileSync(new URL("../scripts/check-supabase-env.mjs", import.meta.url), "utf8");
 
   assert.deepEqual(
     organizationSiteModules.map((item) => item.key),
@@ -815,15 +816,21 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(readme, /ORG_SITE_PLATFORM_BLUEPRINT/);
   assert.match(readme, /DEPLOYMENT_CUTOVER_CHECKLIST/);
   assert.match(readme, /check:deploy/);
+  assert.match(readme, /check:supabase/);
   assert.match(blueprint, /단체형 CMS 홈페이지 확장 Blueprint/);
   assert.match(blueprint, /지원서 파일 public URL 미노출/);
   assert.match(cutover, /배포 전환 및 운영 검증 체크리스트/);
   assert.match(cutover, /check:deploy/);
+  assert.match(cutover, /check:supabase/);
   assert.match(cutover, /Server: Vercel/);
   assert.match(checkOps, /failedCheckDetails/);
   assert.match(checkDeploy, /canonical domain still points to Wix\/Pepyaka/);
   assert.match(checkDeploy, /VERCEL_SITE_URL/);
   assert.match(checkDeploy, /api\/health/);
+  assert.match(checkSupabase, /NEXT_PUBLIC_SUPABASE_URL/);
+  assert.match(checkSupabase, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(checkSupabase, /storage:buckets/);
+  assert.doesNotMatch(checkSupabase, /console\.log\(env/);
 });
 
 test("admin operating model copy does not contain mojibake", () => {
