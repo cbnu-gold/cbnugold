@@ -84,7 +84,7 @@ import {
   sanitizeHealthError,
 } from "../src/lib/health";
 import { getHealthRemediation } from "../src/lib/health-remediation";
-import { buildLaunchReadinessReport } from "../src/lib/launch-readiness";
+import { buildLaunchReadinessBrief, buildLaunchReadinessReport } from "../src/lib/launch-readiness";
 import {
   validateAndNormalizeRecruitmentPayload,
   validateRecruitmentTimelinePatch,
@@ -466,6 +466,7 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(adminPage, /first-semester/);
   assert.match(adminPage, /운영 상태/);
   assert.match(adminPage, /운영 전환 게이트/);
+  assert.match(adminPage, /공유용 브리프/);
   assert.match(adminPage, /\/api\/health/);
 });
 
@@ -550,6 +551,10 @@ test("health status reports degraded when any check fails", () => {
   assert.match(healthRoute, /env:supabase_service_role_key_format/);
   assert.match(adminPage, /getHealthRemediation/);
   assert.match(adminPage, /buildLaunchReadinessReport/);
+  assert.match(adminPage, /buildLaunchReadinessBrief/);
+  assert.match(adminPage, /getAdminBootstrapErrorMessage/);
+  assert.match(adminPage, /router\.replace\("\/admin\/login"\)/);
+  assert.match(adminPage, /관리자 접근 확인 필요/);
   assert.match(adminPage, /조치:/);
   assert.match(
     getHealthRemediation({
@@ -578,6 +583,10 @@ test("launch readiness gate blocks production cutover until core checks pass", (
   assert.equal(blocked.status, "fail");
   assert.equal(blocked.label, "전환 보류");
   assert.equal(blocked.items.find((item) => item.key === "runtime-health")?.status, "fail");
+  assert.match(buildLaunchReadinessBrief(blocked), /# 운영 전환 브리프/);
+  assert.match(buildLaunchReadinessBrief(blocked), /판정: 전환 보류/);
+  assert.match(buildLaunchReadinessBrief(blocked), /운영 상태 확인: 배포·DB 연결/);
+  assert.match(buildLaunchReadinessBrief(blocked), /지원자 개인정보/);
 
   const ready = buildLaunchReadinessReport({
     health: { status: "ok", checks: [{ name: "supabase:public_read", ok: true }] },
@@ -588,6 +597,7 @@ test("launch readiness gate blocks production cutover until core checks pass", (
 
   assert.equal(ready.status, "pass");
   assert.equal(ready.label, "전환 가능");
+  assert.match(buildLaunchReadinessBrief(ready), /추가 보완 조치 없음/);
 });
 
 test("site settings validation normalizes safe values", () => {
