@@ -90,18 +90,6 @@ export async function POST(request: NextRequest) {
     if (!phone || !validationRules.phone.pattern.test(phone)) {
       return NextResponse.json({ error: "올바른 전화번호를 입력해주세요" }, { status: 400 });
     }
-    if (!(fileValue instanceof File)) {
-      return NextResponse.json({ error: "파일을 첨부해주세요" }, { status: 400 });
-    }
-
-    const file = fileValue;
-    const fileError = getApplicationFileValidationError(file.name, file.type, file.size);
-    if (fileError) {
-      return NextResponse.json({ error: fileError }, { status: 400 });
-    }
-    const ext = getApplicationFileExtension(file.name);
-    if (!ext) return NextResponse.json({ error: "지원서 파일 형식이 올바르지 않습니다." }, { status: 400 });
-
     const supabase = createServerClient();
 
     const { data: cycleData } = await supabase
@@ -126,6 +114,22 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    const requiresFile = activeCycle.requires_file !== false;
+    const file = fileValue instanceof File && fileValue.size > 0 ? fileValue : null;
+    if (requiresFile && !file) {
+      return NextResponse.json({ error: "파일을 첨부해주세요" }, { status: 400 });
+    }
+    if (fileValue && !(fileValue instanceof File)) {
+      return NextResponse.json({ error: "파일 첨부 형식이 올바르지 않습니다." }, { status: 400 });
+    }
+
+    const fileError = file ? getApplicationFileValidationError(file.name, file.type, file.size) : null;
+    if (fileError) {
+      return NextResponse.json({ error: fileError }, { status: 400 });
+    }
+    const ext = file ? getApplicationFileExtension(file.name) : null;
+    if (file && !ext) return NextResponse.json({ error: "지원서 파일 형식이 올바르지 않습니다." }, { status: 400 });
 
     let rawApplicationAnswers: unknown;
     try {
@@ -182,23 +186,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
     }
 
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    const filePath = buildApplicationStoragePath(generation, ext);
+    let filePath: string | null = null;
+    if (file && ext) {
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      filePath = buildApplicationStoragePath(generation, ext);
 
-    const { error: uploadError } = await supabase.storage
-      .from("applications")
-      .upload(filePath, fileBuffer, {
-        contentType: file.type || "application/octet-stream",
-      });
+      const { error: uploadError } = await supabase.storage
+        .from("applications")
+        .upload(filePath, fileBuffer, {
+          contentType: file.type || "application/octet-stream",
+        });
 
-    if (uploadError) {
-      console.error("Storage upload error:", uploadError);
-      const detailedMessage = uploadError.message || "unknown error";
-      return publicError(
-        "파일 업로드에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
-        500,
-        detailedMessage
-      );
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        const detailedMessage = uploadError.message || "unknown error";
+        return publicError(
+          "파일 업로드에 실패했습니다. 잠시 후 다시 시도하거나 운영진에게 문의해주세요.",
+          500,
+          detailedMessage
+        );
+      }
     }
 
     const { error: insertError } = await supabase.from("applicants").insert({
@@ -206,8 +213,8 @@ export async function POST(request: NextRequest) {
       student_id: studentId,
       email,
       phone,
-      file_url: `private:applications/${filePath}`,
-      file_name: normalizeApplicationFileName(file.name),
+      file_url: filePath ? `private:applications/${filePath}` : null,
+      file_name: file ? normalizeApplicationFileName(file.name) : null,
       application_answers: answerResult.value,
       generation,
       recruitment_cycle_id: activeCycle?.id ?? null,
@@ -216,7 +223,7 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error("DB insert error:", insertError);
-      await supabase.storage.from("applications").remove([filePath]);
+      if (filePath) await supabase.storage.from("applications").remove([filePath]);
       if (insertError.code === "23505") {
         return NextResponse.json({ error: duplicateApplicantMessage }, { status: 409 });
       }
@@ -238,7 +245,7 @@ export async function POST(request: NextRequest) {
           from: fromEmail,
           to: adminEmails,
           subject: adminEmail.subject,
-          text: adminEmail.text + `\n\n지원서 파일은 관리자 대시보드에서 확인해주세요.`,
+          text: adminEmail.text + `\n\n세부 정보${filePath ? "와 지원서 파일" : ""}는 관리자 대시보드에서 확인해주세요.`,
         });
       } else {
         console.warn("Admin application notification skipped: ADMIN_EMAILS or RESEND_FROM_EMAIL is not configured");

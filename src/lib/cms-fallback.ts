@@ -36,6 +36,7 @@ export const fallbackRecruitment: RecruitmentCycle = {
   fee_note: "학기 10,000원, 조건 충족 시 환급",
   docx_url: "/9기_금은동_지원서.docx",
   hwp_url: "/9기_금은동_지원서.hwp",
+  requires_file: true,
   privacy_retention: "지원 결과 발표일로부터 6개월 후 파기",
   application_questions: [],
   status: "published",

@@ -78,6 +78,7 @@ import {
   organizationSiteVerticals,
   organizationThemePresets,
 } from "../src/lib/organization-site-model";
+import { buildOrganizationStarterDraft } from "../src/lib/organization-starter-presets";
 import {
   buildContentFreshnessReport,
   buildSiteReadinessReport,
@@ -131,6 +132,7 @@ const baseCycle: RecruitmentCycle = {
   fee_note: null,
   docx_url: null,
   hwp_url: null,
+  requires_file: true,
   privacy_retention: "6개월",
   application_questions: [],
   status: "published",
@@ -389,6 +391,22 @@ test("recruitment operation report catches schedule, form, and privacy gaps", ()
   assert.equal(incomplete.status, "fail");
   assert.equal(incomplete.items.find((item) => item.key === "forms")?.status, "warning");
   assert.equal(incomplete.items.find((item) => item.key === "privacy")?.status, "fail");
+
+  const fileOptional = buildRecruitmentOperationReport(
+    [
+      {
+        ...baseCycle,
+        docx_url: null,
+        hwp_url: null,
+        requires_file: false,
+        requirements: ["참가 대상 입력"],
+        privacy_retention: "6개월",
+      },
+    ],
+    now
+  );
+  assert.equal(fileOptional.items.find((item) => item.key === "forms")?.status, "pass");
+  assert.match(fileOptional.items.find((item) => item.key === "forms")?.detail ?? "", /파일 첨부 없이/);
 
   const empty = buildRecruitmentOperationReport([], now);
   assert.equal(empty.status, "fail");
@@ -1121,7 +1139,9 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /buildRecruitmentOperationReport/);
   assert.match(adminPage, /buildRecruitmentShareKit/);
   assert.match(adminPage, /buildOrganizationSiteDraftImport/);
+  assert.match(adminPage, /buildOrganizationStarterDraft/);
   assert.match(adminPage, /초안으로 불러오기/);
+  assert.match(adminPage, /단체 유형 프리셋/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);
@@ -1143,6 +1163,26 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(checkSupabase, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(checkSupabase, /storage:buckets/);
   assert.doesNotMatch(checkSupabase, /console\.log\(env/);
+});
+
+test("organization starter presets build safe editable drafts", () => {
+  const eventDraft = buildOrganizationStarterDraft("event_program", baseSettings);
+  const researchDraft = buildOrganizationStarterDraft("academic_society", baseSettings);
+
+  assert.equal(eventDraft.settings.organization_type, "행사·프로그램");
+  assert.equal(eventDraft.settings.primary_cta_label, "참가 신청");
+  assert.equal(eventDraft.recruitment[0].status, "draft");
+  assert.equal(eventDraft.recruitment[0].is_open, false);
+  assert.equal(eventDraft.recruitment[0].requires_file, false);
+  assert.equal(eventDraft.achievements.length, 0);
+  assert.equal(eventDraft.history.length, 0);
+  assert.equal(eventDraft.pages.every((item) => item.status === "draft"), true);
+  assert.equal(eventDraft.blocks.every((item) => item.status === "draft"), true);
+  assert.equal(eventDraft.activities.every((item) => item.status === "draft"), true);
+  assert.equal(eventDraft.faqs.every((item) => item.status === "draft"), true);
+  assert.equal(JSON.stringify(eventDraft).includes("applicants"), false);
+  assert.equal(JSON.stringify(eventDraft).includes("admin_profiles"), false);
+  assert.equal(researchDraft.settings.brand_preset, "navy");
 });
 
 test("admin operating model copy does not contain mojibake", () => {

@@ -15,7 +15,7 @@
 | --- | --- | --- |
 | 정체성/브랜드 | 사이트명, 단체 유형, 홈 문구, 운영 철학, 로고, 공유 이미지, 테마 | `site_settings`, `content_pages`, `media_assets` |
 | 공개 콘텐츠 | 소개, 활동, 성과, 이력, FAQ | `content_blocks`, `activity_items`, `achievement_items`, `history_entries`, `faq_items` |
-| 모집/신청 | 모집 기수, 일정, 지원 자격, 추가 질문, 지원서 양식, 접수 확인 | `recruitment_cycles.application_questions`, `applicants.application_answers`, `/api/apply`, `/join` |
+| 모집/신청 | 모집 기수, 일정, 지원 자격, 추가 질문, 파일 필수 여부, 접수 확인 | `recruitment_cycles.application_questions`, `recruitment_cycles.requires_file`, `applicants.application_answers`, `/api/apply`, `/join` |
 | 운영 통제 | 관리자 권한, 감사 로그, 헬스체크, 파일 보호 | `admin_profiles`, `audit_logs`, `/api/health`, RLS |
 | 미디어 관리 | 이미지, 문서, 지원서 양식 | `cms-media` public bucket, `applications` private bucket |
 
@@ -59,19 +59,19 @@
 4. 반복 콘텐츠
    - 활동, 성과, 이력, FAQ
 5. 모집 구조
-   - 모집 기수, 일정, 지원 자격, 지원서 양식, 추가 질문, 개인정보 보유 기간
+   - 모집 기수, 일정, 지원 자격, 지원서 양식, 파일 첨부 필수 여부, 추가 질문, 개인정보 보유 기간
 6. 브랜드 자산
    - 로고, 공유 이미지, 홈 키비주얼, 지원 안내 이미지
 
 ## 5. 다음 단계 후보
 
-- 단체 유형 프리셋: 동아리, 학회, 연구회, 행사, 포트폴리오 팀.
+- 단체 유형 프리셋: 관리자 대시보드에서 리크루팅형 동아리, 학회·연구회, 창업팀·프로젝트, 행사·프로그램 초안을 불러옵니다.
 - 테마 토큰 확장: 현재 `gold`, `navy`, `green`, `graphite`를 지원하며, 금은동 기본값은 `gold`입니다.
 - 관리자 데이터 내보내기/가져오기: 설정과 콘텐츠를 JSON으로 백업하고 신규 단체의 편집 화면에 초안으로 적용.
 - 운영 패키지 다운로드: `/admin` 대시보드에서 지원자·관리자·감사 로그를 제외한 CMS JSON을 내려받습니다.
 - 운영 패키지 검증: 가져오기 전 `version`, `resources`, `settings`, 런타임 필드, 민감 리소스 포함 여부를 검증합니다.
 - 콘텐츠 변경 미리보기: `/admin` 페이지 CMS 탭에서 `draft`까지 포함한 공개 화면 요약을 확인하고, 실제 공개 페이지에는 `published` 항목만 노출합니다.
-- 모집 폼 빌더: 모집 탭에서 기수별 추가 질문을 단답, 장문, 선택형으로 조정하고 필수 답변은 제출 API에서 검증합니다.
+- 모집 폼 빌더: 모집 탭에서 기수별 추가 질문과 파일 첨부 필수 여부를 조정하고 필수 답변은 제출 API에서 검증합니다.
 
 ## 5-1. 운영 패키지 적용 순서
 
@@ -92,6 +92,7 @@
 - 관리자 API 비인증 401 여부
 - 지원서 파일 public URL 미노출 여부
 - 추가 질문 답변이 지원자 전용 데이터로만 저장되고 공개 페이지에 재노출되지 않는지 여부
+- 파일 첨부를 받지 않는 신청 흐름이 공개 폼과 API에서 모두 통과하는지 여부
 - 미디어 삭제 시 사용 중인 공개 콘텐츠 참조 차단 여부
 - 로고, 공유 이미지, 테마 프리셋이 관리자 설정과 공개 화면에 일관되게 반영되는지 여부
 - 자평 문구, 허위 성과, 출처 없는 사진 미사용 여부

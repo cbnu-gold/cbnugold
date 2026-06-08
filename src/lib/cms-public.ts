@@ -58,6 +58,7 @@ function getSafeRecruitment(recruitment: RecruitmentCycle) {
     ...recruitment,
     docx_url: normalizeOptionalCmsHref(recruitment.docx_url),
     hwp_url: normalizeOptionalCmsHref(recruitment.hwp_url),
+    requires_file: recruitment.requires_file !== false,
     application_questions: questions,
   };
 }
