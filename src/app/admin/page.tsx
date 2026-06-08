@@ -7,6 +7,7 @@ import { toCsv } from "@/lib/csv";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
+import { getHealthRemediation } from "@/lib/health-remediation";
 import {
   buildOrganizationSiteExport,
   inspectOrganizationSiteExportBundle,
@@ -1277,6 +1278,11 @@ export default function AdminPage() {
                         <span className="shrink-0 text-xs font-semibold">{check.ok ? "OK" : "확인 필요"}</span>
                       </div>
                       {check.message && <p className="mt-2 leading-6">{check.message}</p>}
+                      {!check.ok && (
+                        <p className="mt-2 rounded-md bg-white/70 px-3 py-2 text-xs leading-5 text-amber-900">
+                          조치: {getHealthRemediation(check)}
+                        </p>
+                      )}
                     </div>
                   ))}
                   {!health?.checks?.length && (
