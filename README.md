@@ -72,6 +72,7 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 - Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
 - CMS media accepts PNG, JPG, WebP, PDF, DOCX, and HWP files. SVG upload is intentionally blocked for public-bucket safety.
 - `site_settings.value` controls organization type, brand statement, theme preset, logo URL, sharing image URL, homepage CTA, and contact channels.
+- Admins can use `공개 CMS 전체 저장` after applying a starter preset or operating package draft to save site settings, pages, blocks, recruitment, activities, achievements, history, and FAQ together.
 - `home/hero` can use a CMS media URL for the first-screen key visual; if empty, the site sharing image is used.
 - Open Graph and Twitter preview cards use `share_image_url` for consistent sharing.
 - Theme presets are `gold`, `navy`, `green`, and `graphite`; 금은동 keeps the default `gold` tone.
