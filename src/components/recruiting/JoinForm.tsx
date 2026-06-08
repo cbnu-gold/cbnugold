@@ -11,8 +11,9 @@ import {
   Upload,
   X,
 } from "lucide-react";
+import { validateAndNormalizeApplicationAnswers } from "@/lib/application-questions";
 import { formatPhone, validateField, validateFile } from "@/lib/validations";
-import type { FAQItem, RecruitmentCycle } from "@/types";
+import type { ApplicationQuestion, FAQItem, RecruitmentCycle } from "@/types";
 import type { RecruitmentPhase } from "@/lib/recruitment";
 
 interface FormData {
@@ -37,6 +38,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
     phone: "",
   });
   const [file, setFile] = useState<File | null>(null);
+  const [applicationAnswers, setApplicationAnswers] = useState<Record<string, string>>({});
   const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +46,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   const [serverError, setServerError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const fileErrorId = useId();
+  const applicationQuestions = recruitment.application_questions ?? [];
 
   function changeField(field: keyof FormData, value: string) {
     setFormData((prev) => ({
@@ -61,6 +64,11 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
     }));
   }
 
+  function changeApplicationAnswer(questionId: string, value: string) {
+    setApplicationAnswers((prev) => ({ ...prev, [questionId]: value }));
+    setErrors((prev) => ({ ...prev, applicationAnswers: "" }));
+  }
+
   function clearFile() {
     if (fileRef.current) fileRef.current.value = "";
     changeFile(null);
@@ -73,12 +81,14 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
     const email = validateField("email", formData.email);
     const phone = validateField("phone", formData.phone);
     const fileError = file ? validateFile(file) : "지원서 파일을 첨부해주세요";
+    const answerResult = validateAndNormalizeApplicationAnswers(applicationQuestions, applicationAnswers);
 
     if (name) next.name = name;
     if (studentId) next.studentId = studentId;
     if (email) next.email = email;
     if (phone) next.phone = phone;
     if (fileError) next.file = fileError;
+    if (answerResult.error) next.applicationAnswers = answerResult.error;
     if (!consent) next.consent = "개인정보 수집·이용 동의가 필요합니다";
 
     setErrors(next);
@@ -97,6 +107,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
     payload.append("studentId", formData.studentId);
     payload.append("email", formData.email);
     payload.append("phone", formData.phone.replace(/-/g, ""));
+    payload.append("applicationAnswers", JSON.stringify(applicationAnswers));
     if (file) payload.append("file", file);
 
     try {
@@ -191,6 +202,29 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
             <InputLike label="학번" value={formData.studentId} error={errors.studentId} onChange={(value) => changeField("studentId", value)} />
             <InputLike label="이메일" type="email" value={formData.email} error={errors.email} onChange={(value) => changeField("email", value)} />
             <InputLike label="전화번호" value={formData.phone} error={errors.phone} onChange={(value) => changeField("phone", value)} />
+            {applicationQuestions.length > 0 && (
+              <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">추가 질문</p>
+                  <p className="mt-1 text-xs text-slate-500">운영진이 이번 모집에 필요한 항목만 확인합니다.</p>
+                </div>
+                <div className="grid gap-3">
+                  {applicationQuestions.map((question) => (
+                    <ApplicationQuestionInput
+                      key={question.id}
+                      question={question}
+                      value={applicationAnswers[question.id] ?? ""}
+                      onChange={(value) => changeApplicationAnswer(question.id, value)}
+                    />
+                  ))}
+                </div>
+                {errors.applicationAnswers && (
+                  <p className="text-xs text-red-600" role="alert">
+                    {errors.applicationAnswers}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="md:col-span-2">
               <button
@@ -283,6 +317,62 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
         </div>
       </section>
     </div>
+  );
+}
+
+function ApplicationQuestionInput({
+  question,
+  value,
+  onChange,
+}: {
+  question: ApplicationQuestion;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const inputId = useId();
+
+  return (
+    <label htmlFor={inputId} className="grid gap-1.5 text-sm">
+      <span className="font-medium text-slate-700">
+        {question.label}
+        {question.required && <span className="ml-1 text-red-500">*</span>}
+      </span>
+      {question.type === "long_text" ? (
+        <textarea
+          id={inputId}
+          value={value}
+          rows={4}
+          maxLength={1200}
+          placeholder={question.placeholder ?? undefined}
+          onChange={(event) => onChange(event.target.value)}
+          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+        />
+      ) : question.type === "select" ? (
+        <select
+          id={inputId}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-h-11 rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+        >
+          <option value="">선택해주세요</option>
+          {(question.options ?? []).map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          id={inputId}
+          type="text"
+          value={value}
+          maxLength={200}
+          placeholder={question.placeholder ?? undefined}
+          onChange={(event) => onChange(event.target.value)}
+          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+        />
+      )}
+    </label>
   );
 }
 

@@ -65,6 +65,7 @@ export interface Applicant {
   review_score?: number | null;
   signed_url?: string | null;
   updated_at?: string;
+  application_answers?: ApplicationAnswers;
 }
 
 export interface Stat {
@@ -75,6 +76,17 @@ export interface Stat {
 
 export type ContentStatus = "draft" | "published" | "archived";
 export type AdminRole = "owner" | "admin" | "editor" | "viewer";
+export type ApplicationQuestionType = "short_text" | "long_text" | "select";
+export type ApplicationAnswers = Record<string, string>;
+
+export interface ApplicationQuestion {
+  id: string;
+  label: string;
+  type: ApplicationQuestionType;
+  required: boolean;
+  options?: string[];
+  placeholder?: string | null;
+}
 
 export interface AdminProfile {
   id: string;
@@ -148,6 +160,7 @@ export interface RecruitmentCycle {
   docx_url: string | null;
   hwp_url: string | null;
   privacy_retention: string;
+  application_questions: ApplicationQuestion[];
   status: ContentStatus;
   updated_at?: string;
 }

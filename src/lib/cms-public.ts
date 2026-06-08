@@ -5,6 +5,7 @@ import {
   fallbackRecruitment,
   fallbackSettings,
 } from "@/lib/cms-fallback";
+import { validateAndNormalizeApplicationQuestions } from "@/lib/application-questions";
 import { normalizeOptionalCmsHref } from "@/lib/cms-links";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 export {
@@ -52,10 +53,12 @@ function getSafeBlocks(blocks: ContentBlock[]) {
 }
 
 function getSafeRecruitment(recruitment: RecruitmentCycle) {
+  const questions = validateAndNormalizeApplicationQuestions(recruitment.application_questions).value ?? [];
   return {
     ...recruitment,
     docx_url: normalizeOptionalCmsHref(recruitment.docx_url),
     hwp_url: normalizeOptionalCmsHref(recruitment.hwp_url),
+    application_questions: questions,
   };
 }
 

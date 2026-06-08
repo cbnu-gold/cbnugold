@@ -2,6 +2,7 @@ import {
   inspectOrganizationSiteExportBundle,
   validateOrganizationSiteExportBundle,
 } from "@/lib/organization-export";
+import { validateAndNormalizeApplicationQuestions } from "@/lib/application-questions";
 import { validateAndNormalizeSiteSettingsValue } from "@/lib/site-settings";
 import type {
   ActivityItem,
@@ -143,6 +144,7 @@ export function buildOrganizationSiteDraftImport(value: unknown): OrganizationSi
         docx_url: nullableString(item.docx_url),
         hwp_url: nullableString(item.hwp_url),
         privacy_retention: stringValue(item.privacy_retention, "지원 결과 발표 후 6개월 이내 폐기"),
+        application_questions: validateAndNormalizeApplicationQuestions(item.application_questions).value ?? [],
         status: "draft",
       })),
       activities: records(resources.activities).map((item, index) => ({

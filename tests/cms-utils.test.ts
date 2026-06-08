@@ -11,6 +11,12 @@ import {
   getApplicationFileValidationError,
   normalizeApplicationFileName,
 } from "../src/lib/application-files";
+import {
+  applicationQuestionMaxCount,
+  formatApplicationAnswersForDisplay,
+  validateAndNormalizeApplicationAnswers,
+  validateAndNormalizeApplicationQuestions,
+} from "../src/lib/application-questions";
 import { buildApplicantCheckScopes } from "../src/lib/application-check";
 import { escapeCsvValue, toCsv } from "../src/lib/csv";
 import {
@@ -126,6 +132,7 @@ const baseCycle: RecruitmentCycle = {
   docx_url: null,
   hwp_url: null,
   privacy_retention: "6개월",
+  application_questions: [],
   status: "published",
 };
 
@@ -244,6 +251,66 @@ test("applicant filters combine query, status, and generation", () => {
     ["a2"]
   );
   assert.deepEqual(filterApplicants({ applicants, status: "accepted", generation: "all" }), []);
+});
+
+test("application questions validate structure and required answers", () => {
+  const questions = [
+    {
+      id: "motivation",
+      label: "지원 동기",
+      type: "long_text",
+      required: true,
+      placeholder: "활동 목적을 작성해주세요",
+    },
+    {
+      id: "interest",
+      label: "관심 분야",
+      type: "select",
+      required: true,
+      options: ["은행", "증권"],
+    },
+  ];
+
+  const normalized = validateAndNormalizeApplicationQuestions(questions);
+  assert.equal(normalized.error, null);
+  assert.deepEqual(normalized.value?.map((question) => question.id), ["motivation", "interest"]);
+
+  assert.equal(
+    validateAndNormalizeApplicationAnswers(normalized.value, {
+      motivation: "금융권 직무를 준비하고 싶습니다.",
+      interest: "증권",
+      ignored: "저장하지 않음",
+    }).value?.interest,
+    "증권"
+  );
+  assert.match(
+    validateAndNormalizeApplicationAnswers(normalized.value, { motivation: "작성" }).error ?? "",
+    /관심 분야/
+  );
+  assert.match(
+    validateAndNormalizeApplicationQuestions(
+      Array.from({ length: applicationQuestionMaxCount + 1 }, (_, index) => ({
+        id: `q_${index + 1}`,
+        label: `문항 ${index + 1}`,
+        type: "short_text",
+        required: false,
+      }))
+    ).error ?? "",
+    /10개 이하/
+  );
+});
+
+test("application answer display maps saved ids to question labels", () => {
+  assert.equal(
+    formatApplicationAnswersForDisplay(
+      { motivation: "리포트 분석", interest: "은행" },
+      [
+        { id: "motivation", label: "지원 동기", type: "long_text", required: true },
+        { id: "interest", label: "관심 분야", type: "select", required: false, options: ["은행", "증권"] },
+      ]
+    ),
+    "지원 동기: 리포트 분석\n관심 분야: 은행"
+  );
 });
 
 test("recruiting funnel report summarizes applicant status without PII", () => {

@@ -12,6 +12,7 @@ import {
   getApplicationFileValidationError,
   normalizeApplicationFileName,
 } from "@/lib/application-files";
+import { validateAndNormalizeApplicationAnswers } from "@/lib/application-questions";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { isRecruitmentOpen } from "@/lib/recruitment";
 import { validationRules } from "@/lib/validations";
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
     const studentId = String(formData.get("studentId") ?? "").replace(/\D/g, "");
     const email = String(formData.get("email") ?? "").trim().toLowerCase();
     const phone = String(formData.get("phone") ?? "").replace(/\D/g, "");
+    const applicationAnswersValue = String(formData.get("applicationAnswers") ?? "{}");
     const fileValue = formData.get("file");
 
     if (!name || !validationRules.name.pattern.test(name)) {
@@ -122,6 +124,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "현재 모집 접수 기간이 아닙니다." },
         { status: 403 }
+      );
+    }
+
+    let rawApplicationAnswers: unknown;
+    try {
+      rawApplicationAnswers = JSON.parse(applicationAnswersValue);
+    } catch {
+      return NextResponse.json({ error: "추가 질문 답변 형식이 올바르지 않습니다." }, { status: 400 });
+    }
+
+    const answerResult = validateAndNormalizeApplicationAnswers(
+      activeCycle.application_questions ?? [],
+      rawApplicationAnswers
+    );
+    if (answerResult.error || !answerResult.value) {
+      return NextResponse.json(
+        { error: answerResult.error ?? "추가 질문 답변을 확인해주세요." },
+        { status: 400 }
       );
     }
 
@@ -188,6 +208,7 @@ export async function POST(request: NextRequest) {
       phone,
       file_url: `private:applications/${filePath}`,
       file_name: normalizeApplicationFileName(file.name),
+      application_answers: answerResult.value,
       generation,
       recruitment_cycle_id: activeCycle?.id ?? null,
       status: "pending",

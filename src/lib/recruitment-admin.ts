@@ -1,3 +1,5 @@
+import { validateAndNormalizeApplicationQuestions } from "@/lib/application-questions";
+
 const dateFields = [
   { key: "start_at", label: "모집 시작" },
   { key: "end_at", label: "모집 마감" },
@@ -67,6 +69,12 @@ export function validateAndNormalizeRecruitmentPayload(payload: RecruitmentPaylo
       return "지원 자격 항목은 120자 이하로 입력해야 합니다";
     }
     payload.requirements = requirements;
+  }
+
+  if ("application_questions" in payload) {
+    const result = validateAndNormalizeApplicationQuestions(payload.application_questions);
+    if (result.error || !result.value) return result.error ?? "지원서 추가 질문 설정이 올바르지 않습니다";
+    payload.application_questions = result.value;
   }
 
   for (const field of dateFields) {
