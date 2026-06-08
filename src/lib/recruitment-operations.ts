@@ -72,6 +72,7 @@ export function buildRecruitmentOperationReport(
 
   const phase = getRecruitmentPhase(cycle, now);
   const hasForms = hasText(cycle.docx_url) || hasText(cycle.hwp_url);
+  const requiresFile = cycle.requires_file !== false;
   const hasCoreSchedule = Boolean(cycle.start_at && cycle.end_at);
   const hasResultSchedule = Boolean(cycle.document_result_at && cycle.interview_at && cycle.final_result_at);
   const daysUntilDeadline = getDaysUntil(cycle.end_at, now);
@@ -104,8 +105,12 @@ export function buildRecruitmentOperationReport(
     {
       key: "forms",
       title: "지원서 양식",
-      status: hasForms ? "pass" : "warning",
-      detail: hasForms ? "DOCX 또는 HWP 지원서 양식이 연결되어 있습니다." : "지원서 양식 URL을 연결해야 합니다.",
+      status: !requiresFile || hasForms ? "pass" : "warning",
+      detail: !requiresFile
+        ? "파일 첨부 없이 온라인 입력 항목으로 접수합니다."
+        : hasForms
+          ? "DOCX 또는 HWP 지원서 양식이 연결되어 있습니다."
+          : "파일 첨부가 필수이면 지원서 양식 URL을 연결해야 합니다.",
     },
     {
       key: "requirements",

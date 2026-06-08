@@ -143,6 +143,7 @@ export function buildOrganizationSiteDraftImport(value: unknown): OrganizationSi
         fee_note: nullableString(item.fee_note),
         docx_url: nullableString(item.docx_url),
         hwp_url: nullableString(item.hwp_url),
+        requires_file: item.requires_file === false ? false : true,
         privacy_retention: stringValue(item.privacy_retention, "지원 결과 발표 후 6개월 이내 폐기"),
         application_questions: validateAndNormalizeApplicationQuestions(item.application_questions).value ?? [],
         status: "draft",

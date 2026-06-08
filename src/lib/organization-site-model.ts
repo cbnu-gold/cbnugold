@@ -14,7 +14,7 @@ export const organizationSiteModules = [
   {
     key: "recruiting",
     title: "모집·지원",
-    scope: "모집 일정, 지원 자격, 지원서 양식, 접수 확인",
+    scope: "모집 일정, 지원 자격, 파일 필수 여부, 추가 질문, 접수 확인",
     adminSurface: "모집 관리, 지원자 관리",
   },
   {

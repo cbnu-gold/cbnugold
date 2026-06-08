@@ -7,7 +7,7 @@ import { readJsonObject } from "@/lib/request-json";
 import { createServerClient } from "@/lib/supabase-server";
 import type { Applicant } from "@/types";
 
-function extractStoragePath(fileUrl: string) {
+function extractStoragePath(fileUrl: string | null | undefined) {
   if (!fileUrl) return null;
   if (!fileUrl.startsWith("http")) return fileUrl.replace(/^private:applications\//, "");
   const marker = "/storage/v1/object/public/applications/";

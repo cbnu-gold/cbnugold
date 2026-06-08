@@ -47,6 +47,8 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const fileErrorId = useId();
   const applicationQuestions = recruitment.application_questions ?? [];
+  const requiresFile = recruitment.requires_file !== false;
+  const hasApplicationTemplate = Boolean(recruitment.docx_url || recruitment.hwp_url);
 
   function changeField(field: keyof FormData, value: string) {
     setFormData((prev) => ({
@@ -80,7 +82,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
     const studentId = validateField("studentId", formData.studentId);
     const email = validateField("email", formData.email);
     const phone = validateField("phone", formData.phone);
-    const fileError = file ? validateFile(file) : "지원서 파일을 첨부해주세요";
+    const fileError = file ? validateFile(file) : requiresFile ? "지원서 파일을 첨부해주세요" : null;
     const answerResult = validateAndNormalizeApplicationAnswers(applicationQuestions, applicationAnswers);
 
     if (name) next.name = name;
@@ -125,24 +127,28 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
   return (
     <div className="grid gap-5 lg:grid-cols-[0.82fr_1.18fr] lg:gap-8">
       <aside className="rounded-xl border border-ink/10 bg-white p-5 md:p-6">
-        <h2 className="text-xl font-bold">지원서 다운로드</h2>
+        <h2 className="text-xl font-bold">{hasApplicationTemplate ? "지원서 다운로드" : "제출 안내"}</h2>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명은 이름_지원서 형식을 권장합니다.
+          {hasApplicationTemplate
+            ? "지원서를 작성한 뒤 제출 폼에 첨부해주세요. 파일명은 이름_지원서 형식을 권장합니다."
+            : "이번 모집은 온라인 입력 항목을 기준으로 접수합니다. 운영진 안내가 있는 경우에만 파일을 첨부해주세요."}
         </p>
-        <div className="mt-5 grid gap-3">
-          {recruitment.docx_url && (
-            <a href={recruitment.docx_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
-              <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 워드 지원서</span>
-              <Download className="h-4 w-4" />
-            </a>
-          )}
-          {recruitment.hwp_url && (
-            <a href={recruitment.hwp_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
-              <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 한글 지원서</span>
-              <Download className="h-4 w-4" />
-            </a>
-          )}
-        </div>
+        {hasApplicationTemplate && (
+          <div className="mt-5 grid gap-3">
+            {recruitment.docx_url && (
+              <a href={recruitment.docx_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+                <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 워드 지원서</span>
+                <Download className="h-4 w-4" />
+              </a>
+            )}
+            {recruitment.hwp_url && (
+              <a href={recruitment.hwp_url} download className="flex min-h-12 items-center justify-between rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold hover:border-gold/40">
+                <span className="inline-flex items-center gap-2"><FileText className="h-4 w-4 text-gold-dark" /> 한글 지원서</span>
+                <Download className="h-4 w-4" />
+              </a>
+            )}
+          </div>
+        )}
         <div className="mt-6 rounded-lg bg-slate-50 p-4 text-xs leading-6 text-slate-600">
           <p className="font-semibold text-slate-800">개인정보 보유 기간</p>
           <p>{recruitment.privacy_retention}</p>
@@ -150,8 +156,8 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
         <div className="mt-4 rounded-lg border border-ink/10 bg-white p-4">
           <p className="text-sm font-semibold text-slate-900">제출 전 확인</p>
           <ul className="mt-3 grid gap-2 text-xs leading-5 text-slate-600">
-            <li>· 지원서 파일 형식은 hwp, docx, pdf 중 하나여야 합니다.</li>
-            <li>· 파일명은 이름_지원서 형식을 권장합니다.</li>
+            <li>· 첨부 파일 형식은 hwp, docx, pdf 중 하나여야 합니다.</li>
+            <li>· 파일 첨부는 {requiresFile ? "필수" : "선택"}입니다.</li>
             <li>· 제출 후 지원 확인 페이지에서 접수 여부를 확인할 수 있습니다.</li>
           </ul>
         </div>
@@ -239,7 +245,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
               >
                 <Upload className="mx-auto h-7 w-7 text-slate-400" />
                 <p className="mx-auto mt-3 max-w-full truncate text-sm font-semibold text-slate-700">
-                  {file ? file.name : "지원서 파일 선택"}
+                  {file ? file.name : requiresFile ? "지원서 파일 선택" : "첨부 파일 선택(선택)"}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   {file ? `${formatFileSize(file.size)} · hwp/docx/pdf` : ".hwp, .docx, .pdf · 최대 10MB"}
@@ -288,7 +294,7 @@ export function JoinForm({ recruitment, faqs, isOpen, phase }: JoinFormProps) {
                 className="mt-1"
               />
               <span>
-                성명, 학번, 이메일, 전화번호, 지원서 파일을 입부 지원 검토와 합격 여부 안내 목적으로 수집·이용하는 데 동의합니다.
+                성명, 학번, 이메일, 전화번호{requiresFile || file ? ", 첨부 파일" : ""}을 신청 검토와 결과 안내 목적으로 수집·이용하는 데 동의합니다.
               </span>
             </label>
             {errors.consent && <p className="text-xs text-red-600 md:col-span-2">{errors.consent}</p>}

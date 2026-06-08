@@ -24,6 +24,10 @@ import {
   inspectOrganizationSiteExportBundle,
   type OrganizationSiteExportInspection,
 } from "@/lib/organization-export";
+import {
+  buildOrganizationStarterDraft,
+  type OrganizationStarterPresetKey,
+} from "@/lib/organization-starter-presets";
 import { buildRecruitmentOperationReport } from "@/lib/recruitment-operations";
 import { buildRecruitmentShareKit } from "@/lib/recruitment-share-kit";
 import { buildRecruitingFunnelReport } from "@/lib/recruiting-funnel";
@@ -407,6 +411,7 @@ export default function AdminPage() {
   const [packageInspection, setPackageInspection] = useState<OrganizationPackageInspectionState | null>(null);
   const [packageDraftImport, setPackageDraftImport] = useState<OrganizationPackageDraftState | null>(null);
   const [packageInspectionError, setPackageInspectionError] = useState("");
+  const [starterPresetKey, setStarterPresetKey] = useState<OrganizationStarterPresetKey>("recruiting_club");
   const router = useRouter();
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -928,6 +933,36 @@ export default function AdminPage() {
     );
   }
 
+  function applyOrganizationStarterPreset() {
+    if (!requireWrite("단체 유형 프리셋 적용")) return;
+    const preset = organizationSiteVerticals.find((item) => item.key === starterPresetKey);
+    const confirmed = window.confirm(
+      [
+        `${preset?.title ?? "선택한 단체 유형"} 초안을 현재 편집 화면에 불러옵니다.`,
+        "DB에는 아직 저장되지 않으며, 각 항목의 저장 버튼을 눌러야 반영됩니다.",
+        "지원자, 관리자 계정, 감사 로그, 미디어 스토리지 파일은 변경하지 않습니다.",
+        "기존 성과와 연혁 편집값은 새 단체에 섞이지 않도록 비웁니다.",
+      ].join("\n")
+    );
+    if (!confirmed) return;
+
+    const draft = buildOrganizationStarterDraft(starterPresetKey, state.settings);
+    setState((prev) => ({
+      ...prev,
+      settings: draft.settings,
+      pages: draft.pages,
+      blocks: draft.blocks,
+      recruitment: draft.recruitment,
+      activities: draft.activities,
+      achievements: draft.achievements,
+      history: draft.history,
+      faqs: draft.faqs,
+    }));
+    setTab("content");
+    setError("");
+    setMessage(`${preset?.title ?? "단체 유형"} 초안을 불러왔습니다. 각 항목을 검토한 뒤 저장하세요.`);
+  }
+
   async function uploadMedia() {
     if (!requireWrite("미디어 업로드")) return;
     if (!uploadFile) {
@@ -1325,6 +1360,57 @@ export default function AdminPage() {
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">단체 유형 프리셋</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      새 동아리, 학회, 프로젝트, 행사 사이트를 시작할 때 공개 페이지와 신청 흐름을 초안으로 불러옵니다.
+                      DB에는 저장되지 않으며, 확인된 정보만 채운 뒤 각 항목을 저장합니다.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:min-w-72">
+                    <select
+                      value={starterPresetKey}
+                      onChange={(event) => setStarterPresetKey(event.target.value as OrganizationStarterPresetKey)}
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+                    >
+                      {organizationSiteVerticals.map((vertical) => (
+                        <option key={vertical.key} value={vertical.key}>
+                          {vertical.title}
+                        </option>
+                      ))}
+                    </select>
+                    <AdminButton variant="secondary" onClick={applyOrganizationStarterPreset} disabled={!canWrite}>
+                      <Upload className="h-4 w-4" />
+                      초안으로 적용
+                    </AdminButton>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {organizationSiteVerticals.map((vertical) => (
+                    <article
+                      key={vertical.key}
+                      className={`rounded-lg border p-4 ${
+                        starterPresetKey === vertical.key
+                          ? "border-gold/50 bg-gold/10"
+                          : "border-slate-200 bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-950">{vertical.title}</h3>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-500 ring-1 ring-slate-200">
+                          {vertical.cta}
+                        </span>
+                      </div>
+                      <p className="mt-3 text-xs leading-5 text-slate-600">{vertical.primaryFlow}</p>
+                      <p className="mt-3 border-t border-slate-200 pt-3 text-[11px] leading-5 text-slate-500">
+                        {vertical.coreContent}
+                      </p>
+                    </article>
+                  ))}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
@@ -2013,6 +2099,7 @@ export default function AdminPage() {
                     fee_note: "",
                     docx_url: "",
                     hwp_url: "",
+                    requires_file: true,
                     privacy_retention: "지원 결과 발표일로부터 6개월 후 파기",
                     application_questions: [],
                     status: "draft",
@@ -2032,6 +2119,10 @@ export default function AdminPage() {
                     <label className="flex items-end gap-2 text-sm font-medium text-slate-700">
                       <input type="checkbox" checked={item.is_open} onChange={(event) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, is_open: event.target.checked } : x))} />
                       모집 열림
+                    </label>
+                    <label className="flex items-end gap-2 text-sm font-medium text-slate-700">
+                      <input type="checkbox" checked={item.requires_file !== false} onChange={(event) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requires_file: event.target.checked } : x))} />
+                      파일 첨부 필수
                     </label>
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
@@ -2694,7 +2785,7 @@ function ApplicationQuestionsEditor({
       </div>
       {questions.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
-          추가 질문이 없습니다. 기본 인적사항과 지원서 파일만 받습니다.
+          추가 질문이 없습니다. 기본 인적사항과 파일 첨부 설정만 사용합니다.
         </div>
       ) : (
         <div className="grid gap-3">

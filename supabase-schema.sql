@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS recruitment_cycles (
   fee_note TEXT,
   docx_url TEXT,
   hwp_url TEXT,
+  requires_file BOOLEAN NOT NULL DEFAULT true,
   privacy_retention TEXT NOT NULL DEFAULT '지원 결과 발표일로부터 6개월 후 파기',
   application_questions JSONB NOT NULL DEFAULT '[]'::jsonb,
   status TEXT NOT NULL DEFAULT 'published',
@@ -265,8 +266,8 @@ CREATE TABLE IF NOT EXISTS applicants (
   student_id TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  file_name TEXT NOT NULL,
+  file_url TEXT,
+  file_name TEXT,
   application_answers JSONB NOT NULL DEFAULT '{}'::jsonb,
   generation INTEGER NOT NULL DEFAULT 9,
   status TEXT NOT NULL DEFAULT 'pending',
@@ -286,7 +287,12 @@ ALTER TABLE applicants
   ADD COLUMN IF NOT EXISTS application_answers JSONB NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+ALTER TABLE applicants
+  ALTER COLUMN file_url DROP NOT NULL,
+  ALTER COLUMN file_name DROP NOT NULL;
+
 ALTER TABLE recruitment_cycles
+  ADD COLUMN IF NOT EXISTS requires_file BOOLEAN NOT NULL DEFAULT true,
   ADD COLUMN IF NOT EXISTS application_questions JSONB NOT NULL DEFAULT '[]'::jsonb;
 
 ALTER TABLE recruitment_cycles DROP CONSTRAINT IF EXISTS recruitment_cycles_application_questions_array;

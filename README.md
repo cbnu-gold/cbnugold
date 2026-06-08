@@ -66,6 +66,7 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 ## Admin Operations
 
 - `/admin` manages applicants, recruitment cycles, page content, activities, achievements, history, FAQ, media, admin profiles, and audit logs.
+- The admin dashboard can load starter drafts for recruiting clubs, academic societies, startup/project teams, and event programs without writing directly to the database.
 - Application files are stored in the private `applications` bucket and opened through short-lived signed URLs.
 - Application notification email does not include applicant name, student ID, phone number, or file links; admins review details only in `/admin`.
 - Public pages use `content_pages` for metadata and only render `published` CMS records, with static fallback content for safe deploys.
@@ -76,6 +77,7 @@ Use `--allow-degraded` only when the Supabase connection outage is already known
 - Theme presets are `gold`, `navy`, `green`, and `graphite`; 금은동 keeps the default `gold` tone.
 - Public copy should stay factual: activity, schedule, support process, and verified outcomes. Do not add self-ranking claims or encyclopedia-style content.
 - The application API requires a published open recruitment cycle before accepting submissions and blocks duplicate submissions by recruitment scope and student ID.
+- Recruitment cycles can accept file-required or file-optional submissions, with custom application questions validated on both the public form and API.
 - `/api/health` exposes a shallow public check; deep DB/storage checks require `HEALTHCHECK_TOKEN`.
 - `next.config.ts` applies baseline security headers. `src/proxy.ts` enforces `no-store` caching on admin surfaces in production/runtime checks.
 

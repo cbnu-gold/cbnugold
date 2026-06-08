@@ -54,8 +54,8 @@ export interface Applicant {
   student_id: string;
   email: string;
   phone: string;
-  file_url: string;
-  file_name: string;
+  file_url: string | null;
+  file_name: string | null;
   generation: number;
   status: "pending" | "reviewed" | "interview" | "accepted" | "rejected";
   applied_at: string;
@@ -159,6 +159,7 @@ export interface RecruitmentCycle {
   fee_note: string | null;
   docx_url: string | null;
   hwp_url: string | null;
+  requires_file: boolean;
   privacy_retention: string;
   application_questions: ApplicationQuestion[];
   status: ContentStatus;

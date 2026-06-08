@@ -51,6 +51,10 @@ export function validateAndNormalizeRecruitmentPayload(payload: RecruitmentPaylo
     return "모집 열림 값은 true 또는 false여야 합니다";
   }
 
+  if ("requires_file" in payload && typeof payload.requires_file !== "boolean") {
+    return "파일 첨부 필수 값은 true 또는 false여야 합니다";
+  }
+
   for (const field of textFields) {
     const error = validateTextField(payload, field.key, field.label, field.maxLength, field.required);
     if (error) return error;
