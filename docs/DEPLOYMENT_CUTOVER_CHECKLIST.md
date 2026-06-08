@@ -72,6 +72,9 @@ npm run check:ops -- http://127.0.0.1:3000 --allow-degraded
 
 - `env:supabase_url`: Vercel 또는 로컬 env에 URL이 없음
 - `env:supabase_anon_key`: Vercel 또는 로컬 env에 anon key가 없음
+- `env:supabase_url_format`: Supabase URL이 `https://...` 형식이 아님
+- `env:supabase_anon_key_format`: anon key가 JWT 형식이 아님
+- `Supabase 호스트를 찾을 수 없습니다`: Vercel env의 Supabase URL이 삭제·중지·오입력된 프로젝트를 가리킬 가능성이 큼
 - `supabase:public_read`: Supabase URL/key/RLS/public policy 중 하나가 맞지 않음
 
 `HEALTHCHECK_TOKEN`을 설정한 뒤에는 deep check로 테이블과 버킷을 확인합니다.

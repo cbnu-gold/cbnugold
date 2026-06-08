@@ -529,6 +529,14 @@ test("health status reports degraded when any check fails", () => {
     sanitizeHealthError(new Error("TypeError: fetch failed")),
     "Supabase에 연결할 수 없습니다"
   );
+  assert.equal(
+    sanitizeHealthError(
+      Object.assign(new Error("fetch failed"), {
+        cause: Object.assign(new Error("getaddrinfo ENOTFOUND example.supabase.co"), { code: "ENOTFOUND" }),
+      })
+    ),
+    "Supabase 호스트를 찾을 수 없습니다"
+  );
   assert.equal(isValidHttpsUrl("https://example.supabase.co"), true);
   assert.equal(isValidHttpsUrl("http://example.supabase.co"), false);
   assert.equal(isLikelyJwt("aaa.bbb.ccc"), true);

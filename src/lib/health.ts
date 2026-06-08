@@ -26,11 +26,34 @@ export function isLikelyJwt(value: string | undefined) {
   return value.split(".").length === 3;
 }
 
+function getErrorCauseMessage(error: Error) {
+  const cause = error.cause;
+  if (!cause || typeof cause !== "object") return "";
+
+  const message =
+    "message" in cause && typeof cause.message === "string"
+      ? cause.message
+      : "";
+  const code =
+    "code" in cause && typeof cause.code === "string"
+      ? cause.code
+      : "";
+
+  return [message, code].filter(Boolean).join(" ");
+}
+
 export function sanitizeHealthError(error: unknown) {
   if (error instanceof Error) {
-    if (error.message.includes("fetch failed")) return "Supabase에 연결할 수 없습니다";
-    if (error.message.includes("Failed to fetch")) return "Supabase에 연결할 수 없습니다";
-    if (error.message.includes("ENOTFOUND")) return "Supabase 호스트를 찾을 수 없습니다";
+    const details = `${error.message} ${getErrorCauseMessage(error)}`;
+    if (
+      details.includes("ENOTFOUND") ||
+      details.includes("getaddrinfo") ||
+      details.includes("could not be resolved")
+    ) {
+      return "Supabase 호스트를 찾을 수 없습니다";
+    }
+    if (details.includes("fetch failed")) return "Supabase에 연결할 수 없습니다";
+    if (details.includes("Failed to fetch")) return "Supabase에 연결할 수 없습니다";
     return error.message.slice(0, 120);
   }
 
