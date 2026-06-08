@@ -8,6 +8,7 @@ import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import { getHealthRemediation } from "@/lib/health-remediation";
+import { buildLaunchReadinessReport } from "@/lib/launch-readiness";
 import {
   buildOrganizationSiteExport,
   inspectOrganizationSiteExportBundle,
@@ -588,6 +589,16 @@ export default function AdminPage() {
         canVerifyAdmins: canManageAdminAccounts,
       }),
     [canManageAdminAccounts, state]
+  );
+  const launchReadiness = useMemo(
+    () =>
+      buildLaunchReadinessReport({
+        health,
+        readiness,
+        freshness,
+        recruitment: recruitmentOperations,
+      }),
+    [freshness, health, readiness, recruitmentOperations]
   );
   const uploadFileError = uploadFile
     ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
@@ -1290,6 +1301,64 @@ export default function AdminPage() {
                       운영 상태를 불러오는 중입니다.
                     </p>
                   )}
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">운영 전환 게이트</h2>
+                    <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                      도메인 전환이나 모집 홍보를 시작하기 전 확인해야 할 핵심 운영 조건을 묶어 봅니다.
+                    </p>
+                  </div>
+                  <span
+                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                      launchReadiness.status === "pass"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : launchReadiness.status === "warning"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {launchReadiness.label}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {launchReadiness.items.map((item) => (
+                    <article
+                      key={item.key}
+                      className={`rounded-lg border p-4 ${
+                        item.status === "pass"
+                          ? "border-emerald-100 bg-emerald-50"
+                          : item.status === "warning"
+                            ? "border-amber-200 bg-amber-50"
+                            : "border-red-200 bg-red-50"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="text-sm font-bold text-slate-950">{item.title}</h3>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            item.status === "pass"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : item.status === "warning"
+                                ? "bg-amber-100 text-amber-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {item.status === "pass" ? "통과" : item.status === "warning" ? "검토" : "보류"}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">{item.detail}</p>
+                      <button
+                        type="button"
+                        onClick={() => setTab(item.target === "recruitment" ? "recruitment" : "overview")}
+                        className="mt-3 inline-flex min-h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-gold/50 hover:text-ink"
+                      >
+                        {item.actionLabel}
+                      </button>
+                    </article>
+                  ))}
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
