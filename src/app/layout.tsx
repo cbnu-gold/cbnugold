@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { JsonLd } from "@/components/seo/JsonLd";
+import { AppChrome } from "@/components/layout/AppChrome";
 import { getPublicCmsData } from "@/lib/cms-public";
 import { defaultSeoDescription, recruitingShareImage, siteUrl } from "@/lib/seo";
 
@@ -93,10 +91,7 @@ export default async function RootLayout({
         />
       </head>
       <body className="antialiased marble-texture" data-brand-preset={settings.brand_preset}>
-        <JsonLd settings={settings} />
-        <Header settings={settings} />
-        <main className="min-h-screen">{children}</main>
-        <Footer settings={settings} />
+        <AppChrome settings={settings}>{children}</AppChrome>
       </body>
     </html>
   );

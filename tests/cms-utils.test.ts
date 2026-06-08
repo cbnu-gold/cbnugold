@@ -472,6 +472,7 @@ test("fallback home content includes editable visual and philosophy blocks", () 
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
   const layout = readFileSync(new URL("../src/app/layout.tsx", import.meta.url), "utf8");
+  const appChrome = readFileSync(new URL("../src/components/layout/AppChrome.tsx", import.meta.url), "utf8");
   const header = readFileSync(new URL("../src/components/layout/Header.tsx", import.meta.url), "utf8");
   const footer = readFileSync(new URL("../src/components/layout/Footer.tsx", import.meta.url), "utf8");
   const home = readFileSync(new URL("../src/app/page.tsx", import.meta.url), "utf8");
@@ -495,6 +496,11 @@ test("SEO metadata uses the recruiting visual and Korean description", () => {
   assert.match(defaultSeoDescription, /신문 스크랩/);
   assert.equal(defaultSeoDescription.includes(["Invest", "in", "yourself"].join(" ")), false);
   assert.match(layout, /data-brand-preset/);
+  assert.match(layout, /<AppChrome settings=\{settings\}>/);
+  assert.match(appChrome, /pathname\.startsWith\("\/admin"\)/);
+  assert.match(appChrome, /<Header settings=\{settings\}/);
+  assert.match(appChrome, /<Footer settings=\{settings\}/);
+  assert.match(appChrome, /<JsonLd settings=\{settings\}/);
   assert.match(home, /getShareImage/);
   assert.match(home, /settings\.share_image_url/);
   assert.match(robots, /siteUrl/);
