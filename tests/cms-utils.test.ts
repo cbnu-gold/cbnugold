@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { getCmsResourceMutationBlockMessage } from "../src/lib/admin-cms-resources";
 import { cmsMediaBucket, isCmsMediaBucket } from "../src/lib/admin-media";
+import { buildCmsPreviewCards } from "../src/lib/cms-preview";
 import {
   buildApplicationStoragePath,
   getApplicationFileExtension,
@@ -98,7 +99,16 @@ import { validateAndNormalizeSiteSettingsValue } from "../src/lib/site-settings"
 import { fallbackBlocks } from "../src/lib/cms-fallback";
 import { defaultSeoDescription, recruitingShareImage, siteUrl } from "../src/lib/seo";
 import { fileRules, validateFile, validationRules } from "../src/lib/validations";
-import type { RecruitmentCycle, SiteSettingsValue } from "../src/types";
+import type {
+  ActivityItem,
+  AchievementItem,
+  ContentBlock,
+  ContentPage,
+  FAQItem,
+  HistoryItem,
+  RecruitmentCycle,
+  SiteSettingsValue,
+} from "../src/types";
 
 const baseCycle: RecruitmentCycle = {
   generation: 9,
@@ -474,6 +484,8 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(adminPage, /\/api\/health/);
   assert.match(adminPage, /settingsImpact/);
   assert.match(adminPage, /copySettingsImpactBrief/);
+  assert.match(adminPage, /cmsPreviewCards/);
+  assert.match(adminPage, /공개 화면 미리보기/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
@@ -655,6 +667,154 @@ test("site settings impact report explains public surfaces without private data"
   assert.match(brief, /^#/);
   assert.match(brief, /site_title/);
   assert.doesNotMatch(brief, /applicants|admin_profiles|audit_logs|service_role|signed URL/i);
+});
+
+test("CMS preview cards combine draft and published public surfaces", () => {
+  const pages: ContentPage[] = ["home", "about", "activity", "join"].map((slug, index) => ({
+    slug,
+    title: `${slug} page`,
+    description: `${slug} description`,
+    status: "published",
+    sort_order: index + 1,
+  }));
+  const blocks: ContentBlock[] = [
+    {
+      page_slug: "home",
+      block_key: "hero",
+      title: "Draft hero",
+      subtitle: null,
+      body: "Draft body",
+      cta_label: "Apply",
+      cta_href: "/join",
+      media_url: null,
+      status: "draft",
+      sort_order: 1,
+    },
+    {
+      page_slug: "home",
+      block_key: "philosophy",
+      title: "Philosophy",
+      subtitle: null,
+      body: "Principle",
+      cta_label: null,
+      cta_href: null,
+      media_url: null,
+      status: "published",
+      sort_order: 2,
+    },
+    {
+      page_slug: "home",
+      block_key: "proof",
+      title: "Proof",
+      subtitle: null,
+      body: "Result",
+      cta_label: null,
+      cta_href: null,
+      media_url: null,
+      status: "published",
+      sort_order: 3,
+    },
+    ...(["about", "activity"] as const).map((page_slug, index) => ({
+      page_slug,
+      block_key: "intro",
+      title: `${page_slug} intro`,
+      subtitle: null,
+      body: `${page_slug} body`,
+      cta_label: null,
+      cta_href: null,
+      media_url: null,
+      status: "published" as const,
+      sort_order: index + 4,
+    })),
+    {
+      page_slug: "about",
+      block_key: "partners",
+      title: "Partners",
+      subtitle: null,
+      body: "Partner body",
+      cta_label: null,
+      cta_href: null,
+      media_url: null,
+      status: "published",
+      sort_order: 6,
+    },
+    {
+      page_slug: "join",
+      block_key: "first-semester",
+      title: "First semester",
+      subtitle: null,
+      body: "Join body",
+      cta_label: null,
+      cta_href: null,
+      media_url: null,
+      status: "published",
+      sort_order: 7,
+    },
+  ];
+  const activities: ActivityItem[] = [
+    {
+      title: "Activity",
+      subtitle: null,
+      description: "Activity body",
+      category: "regular",
+      tags: [],
+      status: "published",
+      sort_order: 1,
+    },
+  ];
+  const achievements: AchievementItem[] = [
+    {
+      title: "Achievement",
+      organization: "Team",
+      result: "Result",
+      kind: "metric",
+      year: 2025,
+      status: "published",
+      sort_order: 1,
+    },
+  ];
+  const history: HistoryItem[] = [
+    {
+      year: 2025,
+      generation: 1,
+      president: "President",
+      milestones: ["Milestone"],
+      is_current: true,
+      status: "published",
+      sort_order: 1,
+    },
+  ];
+  const faqs: FAQItem[] = [
+    {
+      question: "Question",
+      answer: "Answer",
+      status: "published",
+      sort_order: 1,
+    },
+  ];
+
+  const cards = buildCmsPreviewCards({
+    settings: baseSettings,
+    pages,
+    blocks,
+    recruitment: [{ ...baseCycle, status: "draft" }],
+    activities,
+    achievements,
+    history,
+    faqs,
+  });
+  const home = cards.find((card) => card.key === "home");
+  const join = cards.find((card) => card.key === "join");
+
+  assert.equal(cards.length, 4);
+  assert.equal(home?.href, "/");
+  assert.equal(home?.headline, "Draft hero");
+  assert.equal(home?.ctaLabel, "Apply");
+  assert.equal(home?.status, "review");
+  assert.equal((home?.draftCount ?? 0) > 0, true);
+  assert.equal(join?.status, "review");
+  assert.equal(cards.some((card) => card.missingCount > 0), false);
+  assert.doesNotMatch(JSON.stringify(cards), /applicants|admin_profiles|audit_logs|student_id|admin_note/i);
 });
 
 test("site settings validation rejects unsafe public links", () => {
