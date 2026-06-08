@@ -23,6 +23,7 @@ import {
   buildSiteReadinessReport,
   buildSiteVerticalFitReport,
 } from "@/lib/site-readiness";
+import { buildSiteSettingsImpactBrief, buildSiteSettingsImpactReport } from "@/lib/site-settings-impact";
 import {
   organizationSiteModules,
   organizationSiteQualityGates,
@@ -556,6 +557,14 @@ export default function AdminPage() {
     () => buildRecruitmentShareKit(state.settings, state.recruitment),
     [state.recruitment, state.settings]
   );
+  const settingsImpact = useMemo(
+    () => buildSiteSettingsImpactReport(state.settings),
+    [state.settings]
+  );
+  const settingsImpactBrief = useMemo(
+    () => buildSiteSettingsImpactBrief(settingsImpact),
+    [settingsImpact]
+  );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
     () =>
@@ -904,6 +913,16 @@ export default function AdminPage() {
       setError("");
     } catch {
       setError("브라우저에서 클립보드 복사를 허용하지 않았습니다. 브리프 내용을 직접 선택해 복사해주세요.");
+    }
+  }
+
+  async function copySettingsImpactBrief() {
+    try {
+      await navigator.clipboard.writeText(settingsImpactBrief);
+      setMessage("사이트 설정 영향 범위를 복사했습니다.");
+      setError("");
+    } catch {
+      setError("브라우저에서 클립보드 복사를 허용하지 않았습니다. 영향 범위를 직접 선택해 복사해주세요.");
     }
   }
 
@@ -1968,8 +1987,32 @@ export default function AdminPage() {
               </div>
 
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-lg font-bold">사이트 기본 설정</h2>
-                <p className="mt-1 text-sm text-slate-500">헤더, 푸터, 홈 CTA, 지원 페이지 문의 채널에 공통 적용됩니다.</p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold">사이트 기본 설정</h2>
+                    <p className="mt-1 text-sm text-slate-500">헤더, 푸터, 홈 CTA, 지원 페이지 문의 채널에 공통 적용됩니다.</p>
+                  </div>
+                  <AdminButton variant="secondary" onClick={copySettingsImpactBrief}>
+                    <Copy className="h-4 w-4" />
+                    영향 범위 복사
+                  </AdminButton>
+                </div>
+                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-950">설정 변경 영향 범위</h3>
+                    <span className="text-xs font-medium text-slate-500">공개 화면 기준</span>
+                  </div>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {settingsImpact.map((item) => (
+                      <article key={item.key} className="rounded-lg border border-slate-200 bg-white p-3">
+                        <p className="text-sm font-bold text-slate-950">{item.title}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-600">{item.detail}</p>
+                        <p className="mt-3 text-[11px] font-semibold text-slate-500">적용 표면</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-600">{item.surfaces.join(" · ")}</p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
                 <div className="mt-4 grid gap-4 md:grid-cols-2">
                   {siteSettingFields.map((field) =>
                     field.kind === "theme-preset" ? (
