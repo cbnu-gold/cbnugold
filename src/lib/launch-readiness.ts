@@ -28,6 +28,12 @@ export type LaunchReadinessReport = {
   items: LaunchReadinessItem[];
 };
 
+const itemStatusLabels: Record<SiteReadinessStatus, string> = {
+  pass: "통과",
+  warning: "검토",
+  fail: "보류",
+};
+
 function getReportStatus(items: LaunchReadinessItem[]): SiteReadinessStatus {
   if (items.some((item) => item.status === "fail")) return "fail";
   if (items.some((item) => item.status === "warning")) return "warning";
@@ -107,4 +113,25 @@ export function buildLaunchReadinessReport({
     label: getLabel(status),
     items,
   };
+}
+
+export function buildLaunchReadinessBrief(report: LaunchReadinessReport) {
+  const actionItems = report.items.filter((item) => item.status !== "pass");
+
+  return [
+    "# 운영 전환 브리프",
+    `판정: ${report.label}`,
+    "",
+    "## 핵심 점검",
+    ...report.items.map(
+      (item) => `- [${itemStatusLabels[item.status]}] ${item.title}: ${item.detail}`
+    ),
+    "",
+    "## 다음 조치",
+    ...(actionItems.length
+      ? actionItems.map((item) => `- ${item.actionLabel}: ${item.title}`)
+      : ["- 추가 보완 조치 없음. 도메인 전환과 모집 홍보를 진행할 수 있습니다."]),
+    "",
+    "지원자 개인정보, 관리자 계정 정보, 비공개 지원서 파일 정보는 포함하지 않았습니다.",
+  ].join("\n");
 }

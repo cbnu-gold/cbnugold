@@ -90,6 +90,23 @@ for (const route of routes) {
   });
 }
 
+test("/admin unauthenticated access does not render a blank main area", async ({ page }) => {
+  const response = await page.goto("/admin", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1_500);
+
+  expect(response?.status(), "/admin response").toBeLessThan(400);
+
+  const bodyText = await page.locator("body").innerText();
+  expect(bodyText).toMatch(/관리자 로그인|관리자 접근 확인 필요|운영 대시보드/);
+  expect(bodyText.trim().length).toBeGreaterThan(20);
+
+  const metrics = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  expect(metrics.scrollWidth, "/admin horizontal overflow").toBeLessThanOrEqual(metrics.innerWidth + 1);
+});
+
 test("mobile menu opens and closes", async ({ page }, testInfo) => {
   test.skip((testInfo.project.use.viewport?.width ?? 0) >= 768, "Mobile menu is hidden at md and wider breakpoints.");
 

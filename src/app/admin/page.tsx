@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
@@ -8,7 +9,7 @@ import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
 import { getCmsMediaUploadValidationError } from "@/lib/cms-media-files";
 import { getHealthRemediation } from "@/lib/health-remediation";
-import { buildLaunchReadinessReport } from "@/lib/launch-readiness";
+import { buildLaunchReadinessBrief, buildLaunchReadinessReport } from "@/lib/launch-readiness";
 import {
   buildOrganizationSiteExport,
   inspectOrganizationSiteExportBundle,
@@ -252,6 +253,14 @@ function getActionErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function getAdminBootstrapErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("supabase") || message.includes("url") || message.includes("invalid")) {
+    return "Supabase 환경 설정을 확인해야 관리자 로그인을 사용할 수 있습니다.";
+  }
+  return "관리자 인증 상태를 확인하지 못했습니다.";
+}
+
 function getAdminApiErrorMessage(data: unknown, fallback: string) {
   if (!data || typeof data !== "object") return fallback;
 
@@ -477,20 +486,26 @@ export default function AdminPage() {
 
   useEffect(() => {
     async function init() {
-      const supabase = getSupabase();
-      const { data } = await supabase.auth.getSession();
-      const accessToken = data.session?.access_token;
-
-      if (!accessToken) {
-        router.push("/admin/login");
-        return;
-      }
-
-      setToken(accessToken);
+      let hasAccessToken = false;
       try {
+        const supabase = getSupabase();
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+
+        if (!accessToken) {
+          router.replace("/admin/login");
+          return;
+        }
+
+        hasAccessToken = true;
+        setToken(accessToken);
         await loadAll(accessToken);
       } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "관리자 데이터를 불러오지 못했습니다");
+        setError(
+          hasAccessToken
+            ? getActionErrorMessage(loadError, "관리자 데이터를 불러오지 못했습니다")
+            : getAdminBootstrapErrorMessage(loadError)
+        );
         setLoading(false);
       }
     }
@@ -599,6 +614,10 @@ export default function AdminPage() {
         recruitment: recruitmentOperations,
       }),
     [freshness, health, readiness, recruitmentOperations]
+  );
+  const launchReadinessBrief = useMemo(
+    () => buildLaunchReadinessBrief(launchReadiness),
+    [launchReadiness]
   );
   const uploadFileError = uploadFile
     ? getCmsMediaUploadValidationError(uploadFile.name, uploadFile.type, uploadFile.size)
@@ -878,6 +897,16 @@ export default function AdminPage() {
     }
   }
 
+  async function copyLaunchReadinessBrief() {
+    try {
+      await navigator.clipboard.writeText(launchReadinessBrief);
+      setMessage("운영 전환 브리프를 복사했습니다.");
+      setError("");
+    } catch {
+      setError("브라우저에서 클립보드 복사를 허용하지 않았습니다. 브리프 내용을 직접 선택해 복사해주세요.");
+    }
+  }
+
   async function deleteMedia(item: MediaAsset) {
     if (!item.id) return;
     if (!requireWrite("미디어 삭제")) return;
@@ -905,6 +934,39 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-slate-50 pt-24 flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-gold" />
+      </div>
+    );
+  }
+
+  if (!admin && error) {
+    return (
+      <div className="min-h-screen bg-slate-50 px-4 pt-24 text-slate-900">
+        <section className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-gold/25 bg-gold/10 text-gold-dark">
+            <ShieldCheck className="h-5 w-5" />
+          </div>
+          <h1 className="mt-5 text-2xl font-bold text-slate-950">관리자 접근 확인 필요</h1>
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+            {error}
+          </p>
+          <p className="mt-4 text-sm leading-6 text-slate-600">
+            Supabase 환경값, Auth 세션, 관리자 프로필 승인 상태를 확인한 뒤 다시 접속하세요.
+          </p>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+            <Link
+              href="/admin/login"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-navy-800"
+            >
+              로그인 화면으로 이동
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+            >
+              홈으로 이동
+            </Link>
+          </div>
+        </section>
       </div>
     );
   }
@@ -1311,17 +1373,23 @@ export default function AdminPage() {
                       도메인 전환이나 모집 홍보를 시작하기 전 확인해야 할 핵심 운영 조건을 묶어 봅니다.
                     </p>
                   </div>
-                  <span
-                    className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                      launchReadiness.status === "pass"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : launchReadiness.status === "warning"
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {launchReadiness.label}
-                  </span>
+                  <div className="flex flex-col gap-2 md:items-end">
+                    <span
+                      className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                        launchReadiness.status === "pass"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : launchReadiness.status === "warning"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-red-50 text-red-700"
+                      }`}
+                    >
+                      {launchReadiness.label}
+                    </span>
+                    <AdminButton variant="secondary" onClick={copyLaunchReadinessBrief}>
+                      <Copy className="h-4 w-4" />
+                      브리프 복사
+                    </AdminButton>
+                  </div>
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {launchReadiness.items.map((item) => (
@@ -1359,6 +1427,15 @@ export default function AdminPage() {
                       </button>
                     </article>
                   ))}
+                </div>
+                <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-sm font-bold text-slate-950">공유용 브리프</h3>
+                    <span className="text-xs font-medium text-slate-500">개인정보 제외</span>
+                  </div>
+                  <pre className="mt-3 max-h-72 overflow-auto whitespace-pre-wrap break-words rounded-md bg-white p-4 font-sans text-xs leading-5 text-slate-700">
+                    {launchReadinessBrief}
+                  </pre>
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-4">
