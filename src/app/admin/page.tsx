@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
 import { toCsv } from "@/lib/csv";
+import {
+  applicationQuestionMaxCount,
+  applicationQuestionTypeLabels,
+  applicationQuestionTypes,
+  buildApplicationQuestionId,
+  formatApplicationAnswersForDisplay,
+} from "@/lib/application-questions";
 import { buildCmsPreviewCards } from "@/lib/cms-preview";
 import { applicantAdminNoteMaxLength } from "@/lib/applicant-admin";
 import { buildApplicantGenerationOptions, filterApplicants } from "@/lib/applicant-filters";
@@ -54,6 +61,8 @@ import type {
   FAQItem,
   AchievementItem,
   HistoryItem,
+  ApplicationQuestion,
+  ApplicationQuestionType,
   MediaAsset,
   RecruitmentCycle,
   SiteSettingsValue,
@@ -546,6 +555,15 @@ export default function AdminPage() {
       }),
     [applicantGenerationFilter, applicantSearch, applicantStatusFilter, state.applicants]
   );
+  const recruitmentQuestionsByApplicantKey = useMemo(() => {
+    const map = new Map<string, ApplicationQuestion[]>();
+    for (const cycle of state.recruitment) {
+      const questions = cycle.application_questions ?? [];
+      if (cycle.id) map.set(`cycle:${cycle.id}`, questions);
+      map.set(`generation:${cycle.generation}`, questions);
+    }
+    return map;
+  }, [state.recruitment]);
 
   const role = admin?.role;
   const canWrite = canWriteContent(role);
@@ -672,6 +690,17 @@ export default function AdminPage() {
     [canHandleApplicants, canManageAdminAccounts, canReadAudit]
   );
 
+  function getApplicantQuestions(applicant: Applicant) {
+    if (applicant.recruitment_cycle_id) {
+      return recruitmentQuestionsByApplicantKey.get(`cycle:${applicant.recruitment_cycle_id}`) ?? [];
+    }
+    return recruitmentQuestionsByApplicantKey.get(`generation:${applicant.generation}`) ?? [];
+  }
+
+  function getApplicantAnswersDisplay(applicant: Applicant) {
+    return formatApplicationAnswersForDisplay(applicant.application_answers, getApplicantQuestions(applicant));
+  }
+
   useEffect(() => {
     if (!visibleTabs.some((item) => item.key === tab)) setTab("overview");
   }, [tab, visibleTabs]);
@@ -792,7 +821,7 @@ export default function AdminPage() {
     );
     if (!confirmed) return;
 
-    const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "관리자 메모", "접수일"];
+    const headers = ["이름", "학번", "이메일", "전화번호", "상태", "점수", "추가 답변", "관리자 메모", "접수일"];
     const rows = filteredApplicants.map((applicant) => [
       applicant.name,
       applicant.student_id,
@@ -800,6 +829,7 @@ export default function AdminPage() {
       applicant.phone,
       statusLabels[applicant.status] ?? applicant.status,
       applicant.review_score ?? "",
+      getApplicantAnswersDisplay(applicant),
       applicant.admin_note ?? "",
       applicant.applied_at ? new Date(applicant.applied_at).toLocaleString("ko-KR") : "",
     ]);
@@ -1838,6 +1868,7 @@ export default function AdminPage() {
                   <ApplicantMobileCard
                     key={applicant.id}
                     applicant={applicant}
+                    applicationAnswers={getApplicantAnswersDisplay(applicant)}
                     disabled={!canHandleApplicants}
                     onUpdate={updateApplicant}
                     onLocalChange={(id, values) =>
@@ -1852,7 +1883,7 @@ export default function AdminPage() {
                 ))}
               </div>
               <div className="mt-5 hidden overflow-x-auto md:block">
-                <table className="w-full min-w-[960px] text-sm">
+                <table className="w-full min-w-[1120px] text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
                       <th className="py-3 pr-3">이름</th>
@@ -1860,6 +1891,7 @@ export default function AdminPage() {
                       <th className="py-3 pr-3">연락처</th>
                       <th className="py-3 pr-3">상태</th>
                       <th className="py-3 pr-3">점수</th>
+                      <th className="py-3 pr-3">추가 답변</th>
                       <th className="py-3 pr-3">메모</th>
                       <th className="py-3 pr-3">파일</th>
                     </tr>
@@ -1912,6 +1944,9 @@ export default function AdminPage() {
                             className="w-20 rounded-md border border-slate-200 px-2 py-1 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
                           />
                         </td>
+                        <td className="max-w-[240px] whitespace-pre-wrap py-3 pr-3 text-xs leading-5 text-slate-600">
+                          {getApplicantAnswersDisplay(applicant) || <span className="text-slate-400">없음</span>}
+                        </td>
                         <td className="py-3 pr-3">
                           <textarea
                             value={applicant.admin_note ?? ""}
@@ -1946,7 +1981,7 @@ export default function AdminPage() {
                     ))}
                     {filteredApplicants.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                        <td colSpan={8} className="py-8 text-center text-sm text-slate-500">
                           조건에 맞는 지원자가 없습니다.
                         </td>
                       </tr>
@@ -1979,6 +2014,7 @@ export default function AdminPage() {
                     docx_url: "",
                     hwp_url: "",
                     privacy_retention: "지원 결과 발표일로부터 6개월 후 파기",
+                    application_questions: [],
                     status: "draft",
                   },
                   ...state.recruitment,
@@ -2013,6 +2049,10 @@ export default function AdminPage() {
                     <Field label="개인정보 보유 기간" value={item.privacy_retention} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, privacy_retention: value } : x))} />
                   </div>
                   <TextField label="지원 자격 · 줄바꿈 구분" value={joinList(item.requirements)} onChange={(value) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, requirements: splitLines(value) } : x))} />
+                  <ApplicationQuestionsEditor
+                    questions={item.application_questions ?? []}
+                    onChange={(questions) => updateList("recruitment", state.recruitment.map((x, i) => i === index ? { ...x, application_questions: questions } : x))}
+                  />
                   <div className="flex gap-2">
                     <AdminButton onClick={() => saveItemAndReload("recruitment", item as unknown as Record<string, unknown>)} disabled={!canWrite}>
                       <Save className="h-4 w-4" />
@@ -2609,13 +2649,125 @@ function SelectField({
   );
 }
 
+function ApplicationQuestionsEditor({
+  questions,
+  onChange,
+}: {
+  questions: ApplicationQuestion[];
+  onChange: (questions: ApplicationQuestion[]) => void;
+}) {
+  function updateQuestion(index: number, values: Partial<ApplicationQuestion>) {
+    onChange(questions.map((question, itemIndex) => (itemIndex === index ? { ...question, ...values } : question)));
+  }
+
+  function addQuestion() {
+    if (questions.length >= applicationQuestionMaxCount) return;
+    onChange([
+      ...questions,
+      {
+        id: buildApplicationQuestionId(questions.length, questions),
+        label: "",
+        type: "short_text",
+        required: false,
+        options: [],
+        placeholder: null,
+      },
+    ]);
+  }
+
+  function removeQuestion(index: number) {
+    onChange(questions.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  return (
+    <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-sm font-bold text-slate-950">지원서 추가 질문</p>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            이번 모집에서 파일 외에 확인할 항목을 설정합니다. 필수 문항은 제출 API에서도 검증됩니다.
+          </p>
+        </div>
+        <AdminButton variant="secondary" onClick={addQuestion} disabled={questions.length >= applicationQuestionMaxCount}>
+          질문 추가
+        </AdminButton>
+      </div>
+      {questions.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+          추가 질문이 없습니다. 기본 인적사항과 지원서 파일만 받습니다.
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {questions.map((question, index) => (
+            <article key={question.id} className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
+              <div className="grid gap-3 md:grid-cols-[1fr_150px_110px_auto] md:items-end">
+                <Field
+                  label="문항"
+                  value={question.label}
+                  onChange={(value) => updateQuestion(index, { label: value })}
+                />
+                <label className="grid gap-1.5 text-sm">
+                  <span className="font-medium text-slate-700">유형</span>
+                  <select
+                    value={question.type}
+                    onChange={(event) =>
+                      updateQuestion(index, {
+                        type: event.target.value as ApplicationQuestionType,
+                        options: event.target.value === "select" ? question.options ?? [] : [],
+                      })
+                    }
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-gold focus:ring-2 focus:ring-gold/20"
+                  >
+                    {applicationQuestionTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {applicationQuestionTypeLabels[type]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex min-h-10 items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={question.required}
+                    onChange={(event) => updateQuestion(index, { required: event.target.checked })}
+                  />
+                  필수
+                </label>
+                <AdminButton variant="danger" onClick={() => removeQuestion(index)}>
+                  삭제
+                </AdminButton>
+              </div>
+              <Field
+                label="입력 안내"
+                value={question.placeholder ?? ""}
+                hint="공개 지원 폼에 표시되는 짧은 안내문입니다."
+                onChange={(value) => updateQuestion(index, { placeholder: value || null })}
+              />
+              {question.type === "select" && (
+                <TextField
+                  label="선택지 · 줄바꿈 구분"
+                  value={joinList(question.options ?? [])}
+                  rows={3}
+                  onChange={(value) => updateQuestion(index, { options: splitLines(value) })}
+                />
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ApplicantMobileCard({
   applicant,
+  applicationAnswers,
   disabled = false,
   onUpdate,
   onLocalChange,
 }: {
   applicant: Applicant;
+  applicationAnswers: string;
   disabled?: boolean;
   onUpdate: (id: string, values: Partial<Applicant>) => void | Promise<void>;
   onLocalChange: (id: string, values: Partial<Applicant>) => void;
@@ -2640,6 +2792,12 @@ function ApplicantMobileCard({
         <div>{applicant.email}</div>
         <div>{applicant.phone}</div>
       </div>
+      {applicationAnswers && (
+        <div className="mt-3 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-600">
+          <p className="mb-1 font-semibold text-slate-800">추가 답변</p>
+          {applicationAnswers}
+        </div>
+      )}
 
       <div className="mt-4 grid gap-3">
         <label className="grid gap-1.5 text-sm">

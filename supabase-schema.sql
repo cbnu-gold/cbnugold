@@ -165,6 +165,7 @@ CREATE TABLE IF NOT EXISTS recruitment_cycles (
   docx_url TEXT,
   hwp_url TEXT,
   privacy_retention TEXT NOT NULL DEFAULT '지원 결과 발표일로부터 6개월 후 파기',
+  application_questions JSONB NOT NULL DEFAULT '[]'::jsonb,
   status TEXT NOT NULL DEFAULT 'published',
   updated_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -266,6 +267,7 @@ CREATE TABLE IF NOT EXISTS applicants (
   phone TEXT NOT NULL,
   file_url TEXT NOT NULL,
   file_name TEXT NOT NULL,
+  application_answers JSONB NOT NULL DEFAULT '{}'::jsonb,
   generation INTEGER NOT NULL DEFAULT 9,
   status TEXT NOT NULL DEFAULT 'pending',
   applied_at TIMESTAMPTZ DEFAULT NOW(),
@@ -281,7 +283,21 @@ ALTER TABLE applicants
   ADD COLUMN IF NOT EXISTS recruitment_cycle_id UUID REFERENCES recruitment_cycles(id),
   ADD COLUMN IF NOT EXISTS admin_note TEXT,
   ADD COLUMN IF NOT EXISTS review_score INTEGER,
+  ADD COLUMN IF NOT EXISTS application_answers JSONB NOT NULL DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+ALTER TABLE recruitment_cycles
+  ADD COLUMN IF NOT EXISTS application_questions JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+ALTER TABLE recruitment_cycles DROP CONSTRAINT IF EXISTS recruitment_cycles_application_questions_array;
+ALTER TABLE recruitment_cycles
+  ADD CONSTRAINT recruitment_cycles_application_questions_array
+  CHECK (jsonb_typeof(application_questions) = 'array');
+
+ALTER TABLE applicants DROP CONSTRAINT IF EXISTS applicants_application_answers_object;
+ALTER TABLE applicants
+  ADD CONSTRAINT applicants_application_answers_object
+  CHECK (jsonb_typeof(application_answers) = 'object');
 
 ALTER TABLE applicants DROP CONSTRAINT IF EXISTS applicants_review_score_check;
 ALTER TABLE applicants

@@ -33,6 +33,7 @@ export function filterApplicants({ applicants, query = "", status = "all", gener
       applicant.email,
       applicant.phone,
       applicant.admin_note ?? "",
+      Object.values(applicant.application_answers ?? {}).join(" "),
       String(applicant.generation),
     ]
       .join(" ")
