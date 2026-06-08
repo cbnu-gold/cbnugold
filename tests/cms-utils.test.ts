@@ -83,6 +83,7 @@ import {
   isValidHttpsUrl,
   sanitizeHealthError,
 } from "../src/lib/health";
+import { getHealthRemediation } from "../src/lib/health-remediation";
 import {
   validateAndNormalizeRecruitmentPayload,
   validateRecruitmentTimelinePatch,
@@ -516,6 +517,7 @@ test("Next config applies baseline security headers and admin no-store cache", (
 
 test("health status reports degraded when any check fails", () => {
   const healthRoute = readFileSync(new URL("../src/app/api/health/route.ts", import.meta.url), "utf8");
+  const adminPage = readFileSync(new URL("../src/app/admin/page.tsx", import.meta.url), "utf8");
 
   assert.equal(getHealthStatus([{ name: "env", ok: true }]), "ok");
   assert.equal(
@@ -544,6 +546,19 @@ test("health status reports degraded when any check fails", () => {
   assert.match(healthRoute, /env:supabase_url_format/);
   assert.match(healthRoute, /env:supabase_anon_key_format/);
   assert.match(healthRoute, /env:supabase_service_role_key_format/);
+  assert.match(adminPage, /getHealthRemediation/);
+  assert.match(adminPage, /조치:/);
+  assert.match(
+    getHealthRemediation({
+      name: "supabase:public_read",
+      message: "Supabase 호스트를 찾을 수 없습니다",
+    }),
+    /URL\/key 세트/
+  );
+  assert.match(
+    getHealthRemediation({ name: "storage:applications" }),
+    /applications private 버킷/
+  );
 });
 
 test("site settings validation normalizes safe values", () => {
