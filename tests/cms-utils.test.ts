@@ -1099,6 +1099,7 @@ test("admin media records are mutated only through dedicated media APIs", () => 
   assert.match(adminPage, /application\/octet-stream/);
   assert.match(adminPage, /getAdminApiErrorMessage/);
   assert.match(adminPage, /whitespace-pre-line/);
+  assert.match(adminPage, /미디어 스토리지 파일은 저장 대상이 아닙니다/);
   assert.match(mediaDeleteRoute, /collectCmsMediaReferences/);
   assert.match(mediaDeleteRoute, /status: 409/);
 });
@@ -1140,6 +1141,9 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /buildRecruitmentShareKit/);
   assert.match(adminPage, /buildOrganizationSiteDraftImport/);
   assert.match(adminPage, /buildOrganizationStarterDraft/);
+  assert.match(adminPage, /savePublicCmsWorkspace/);
+  assert.match(adminPage, /공개 CMS 전체 저장/);
+  assert.match(adminPage, /지원자, 관리자 계정, 감사 로그/);
   assert.match(adminPage, /초안으로 불러오기/);
   assert.match(adminPage, /단체 유형 프리셋/);
   assert.match(adminPage, /재사용 가능한 대상/);
@@ -1151,6 +1155,7 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(readme, /check:supabase/);
   assert.match(blueprint, /단체형 CMS 홈페이지 확장 Blueprint/);
   assert.match(blueprint, /지원서 파일 public URL 미노출/);
+  assert.match(blueprint, /공개 CMS 전체 저장/);
   assert.match(cutover, /배포 전환 및 운영 검증 체크리스트/);
   assert.match(cutover, /check:deploy/);
   assert.match(cutover, /check:supabase/);

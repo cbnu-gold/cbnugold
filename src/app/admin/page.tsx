@@ -142,6 +142,15 @@ type OrganizationPackageDraftState = OrganizationSiteDraftImport & {
   fileName: string;
 };
 
+type PublicCmsResourceKey =
+  | "pages"
+  | "blocks"
+  | "recruitment"
+  | "activities"
+  | "achievements"
+  | "history"
+  | "faqs";
+
 const defaultSettings: SiteSettingsValue = defaultSiteSettingsValue;
 
 const initialState: ResourceState = {
@@ -618,6 +627,19 @@ export default function AdminPage() {
       state.settings,
     ]
   );
+  const publicCmsSaveGroups = useMemo(
+    () =>
+      [
+        { resource: "pages", label: "페이지", items: state.pages as unknown as Record<string, unknown>[] },
+        { resource: "blocks", label: "콘텐츠 블록", items: state.blocks as unknown as Record<string, unknown>[] },
+        { resource: "recruitment", label: "모집", items: state.recruitment as unknown as Record<string, unknown>[] },
+        { resource: "activities", label: "활동", items: state.activities as unknown as Record<string, unknown>[] },
+        { resource: "achievements", label: "성과", items: state.achievements as unknown as Record<string, unknown>[] },
+        { resource: "history", label: "연혁", items: state.history as unknown as Record<string, unknown>[] },
+        { resource: "faqs", label: "FAQ", items: state.faqs as unknown as Record<string, unknown>[] },
+      ] satisfies Array<{ resource: PublicCmsResourceKey; label: string; items: Record<string, unknown>[] }>,
+    [state.activities, state.achievements, state.blocks, state.faqs, state.history, state.pages, state.recruitment]
+  );
   const failedHealthChecks = health?.checks?.filter((check) => !check.ok) ?? [];
   const readiness = useMemo(
     () =>
@@ -781,6 +803,56 @@ export default function AdminPage() {
     if (saved) await loadAll(token);
   }
 
+  async function savePublicCmsWorkspace() {
+    if (!requireWrite("공개 CMS 전체 저장")) return;
+
+    const itemCount = publicCmsSaveGroups.reduce((sum, group) => sum + group.items.length, 0);
+    const confirmed = window.confirm(
+      [
+        "현재 편집 화면의 공개 CMS 데이터를 한 번에 저장합니다.",
+        `사이트 설정 1개와 공개 CMS 항목 ${itemCount}개가 대상입니다.`,
+        "지원자, 관리자 계정, 감사 로그, 비공개 지원서 파일, 미디어 스토리지 파일은 저장 대상이 아닙니다.",
+      ].join("\n")
+    );
+    if (!confirmed) return;
+
+    setSaving("public-cms");
+    setMessage("");
+    setError("");
+
+    try {
+      await adminFetch("/api/admin/cms/settings", {
+        method: "PATCH",
+        body: JSON.stringify({ key: "site", values: { value: state.settings, status: "published" } }),
+      });
+
+      let savedCount = 1;
+      for (const group of publicCmsSaveGroups) {
+        for (const item of group.items) {
+          const itemId = typeof item.id === "string" ? item.id : null;
+          const method = itemId ? "PATCH" : "POST";
+          const body = method === "PATCH" ? { id: itemId, values: item } : item;
+          try {
+            await adminFetch(`/api/admin/cms/${group.resource}`, {
+              method,
+              body: JSON.stringify(body),
+            });
+            savedCount += 1;
+          } catch (saveError) {
+            throw new Error(`${group.label}: ${getActionErrorMessage(saveError, "저장에 실패했습니다.")}`);
+          }
+        }
+      }
+
+      await loadAll(token);
+      setMessage(`공개 CMS 전체 저장을 완료했습니다. 저장 항목 ${savedCount}개`);
+    } catch (saveError) {
+      setError(getActionErrorMessage(saveError, "공개 CMS 전체 저장에 실패했습니다."));
+    } finally {
+      setSaving("");
+    }
+  }
+
   async function deleteItem(resource: string, id?: string) {
     if (!id) return;
     if (resource === "admins" ? !requireOwner() : !requireWrite("삭제")) return;
@@ -908,7 +980,7 @@ export default function AdminPage() {
     const confirmed = window.confirm(
       [
         "현재 화면의 공개 CMS 편집값을 운영 패키지 초안으로 교체합니다.",
-        "DB에는 아직 저장되지 않으며, 각 항목의 저장 버튼을 눌러야 반영됩니다.",
+        "DB에는 아직 저장되지 않으며, 공개 CMS 전체 저장 또는 각 항목 저장을 눌러야 반영됩니다.",
         "지원자, 관리자 계정, 감사 로그, 비공개 지원서 파일, 미디어 스토리지 파일은 가져오지 않습니다.",
       ].join("\n")
     );
@@ -929,7 +1001,7 @@ export default function AdminPage() {
     setTab("content");
     setError("");
     setMessage(
-      `운영 패키지를 초안으로 불러왔습니다. 미디어 참조 ${imported.mediaReferences.length}개는 미디어 탭에서 직접 업로드해야 합니다.`
+      `운영 패키지를 초안으로 불러왔습니다. 공개 CMS 전체 저장을 실행하면 현재 초안을 한 번에 저장할 수 있습니다. 미디어 참조 ${imported.mediaReferences.length}개는 미디어 탭에서 직접 업로드해야 합니다.`
     );
   }
 
@@ -939,7 +1011,7 @@ export default function AdminPage() {
     const confirmed = window.confirm(
       [
         `${preset?.title ?? "선택한 단체 유형"} 초안을 현재 편집 화면에 불러옵니다.`,
-        "DB에는 아직 저장되지 않으며, 각 항목의 저장 버튼을 눌러야 반영됩니다.",
+        "DB에는 아직 저장되지 않으며, 공개 CMS 전체 저장 또는 각 항목 저장을 눌러야 반영됩니다.",
         "지원자, 관리자 계정, 감사 로그, 미디어 스토리지 파일은 변경하지 않습니다.",
         "기존 성과와 연혁 편집값은 새 단체에 섞이지 않도록 비웁니다.",
       ].join("\n")
@@ -960,7 +1032,7 @@ export default function AdminPage() {
     }));
     setTab("content");
     setError("");
-    setMessage(`${preset?.title ?? "단체 유형"} 초안을 불러왔습니다. 각 항목을 검토한 뒤 저장하세요.`);
+    setMessage(`${preset?.title ?? "단체 유형"} 초안을 불러왔습니다. 검토 후 공개 CMS 전체 저장으로 한 번에 반영할 수 있습니다.`);
   }
 
   async function uploadMedia() {
@@ -1368,7 +1440,7 @@ export default function AdminPage() {
                     <h2 className="text-lg font-bold">단체 유형 프리셋</h2>
                     <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
                       새 동아리, 학회, 프로젝트, 행사 사이트를 시작할 때 공개 페이지와 신청 흐름을 초안으로 불러옵니다.
-                      DB에는 저장되지 않으며, 확인된 정보만 채운 뒤 각 항목을 저장합니다.
+                      DB에는 저장되지 않으며, 확인된 정보만 채운 뒤 공개 CMS 전체 저장으로 반영합니다.
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:min-w-72">
@@ -1423,6 +1495,18 @@ export default function AdminPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <AdminButton
+                      variant="secondary"
+                      onClick={savePublicCmsWorkspace}
+                      disabled={!canWrite || Boolean(saving)}
+                    >
+                      {saving === "public-cms" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      공개 CMS 전체 저장
+                    </AdminButton>
                     <AdminButton variant="secondary" onClick={downloadOrganizationSiteExport}>
                       <Download className="h-4 w-4" />
                       운영 패키지 다운로드
@@ -1477,6 +1561,7 @@ export default function AdminPage() {
                                 <p className="font-semibold text-slate-950">초안으로 불러오기 가능</p>
                                 <p className="mt-1 text-xs leading-5 text-slate-600">
                                   DB 저장 없이 편집 화면에만 반영합니다. 모든 콘텐츠는 draft 상태로 들어오며 모집은 닫힌 상태가 됩니다.
+                                  검토 후 공개 CMS 전체 저장으로 한 번에 저장할 수 있습니다.
                                   미디어 참조 {packageDraftImport.data.mediaReferences.length}개는 자동 생성하지 않습니다.
                                 </p>
                               </div>
@@ -2170,9 +2255,23 @@ export default function AdminPage() {
                       초안은 관리자 미리보기에만 반영되며 실제 공개 페이지에는 published 항목만 노출됩니다.
                     </p>
                   </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                    draft 포함
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      draft 포함
+                    </span>
+                    <AdminButton
+                      variant="secondary"
+                      onClick={savePublicCmsWorkspace}
+                      disabled={!canWrite || Boolean(saving)}
+                    >
+                      {saving === "public-cms" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      전체 저장
+                    </AdminButton>
+                  </div>
                 </div>
                 <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {cmsPreviewCards.map((card) => (
