@@ -10,6 +10,7 @@
     "test": "tsx --test tests/*.test.ts",
     "check:ops": "node scripts/check-ops.mjs",
     "check:deploy": "node scripts/check-deployment.mjs",
+    "check:supabase": "node scripts/check-supabase-env.mjs",
     "test:e2e": "npm run build && playwright test",
     "verify": "npm run lint && npm run test && npm run build"
   },

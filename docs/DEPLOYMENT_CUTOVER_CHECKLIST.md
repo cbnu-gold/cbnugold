@@ -66,6 +66,15 @@ npm run check:ops -- http://127.0.0.1:3000 --allow-degraded
 
 `.env.local`은 절대 커밋하지 않습니다.
 
+새 Supabase 프로젝트 값으로 교체하기 전에는 로컬 env 파일을 먼저 검증합니다.
+
+```bash
+npm run check:supabase -- --env=.env.local
+npm run check:supabase -- --env=.env.local --deep
+```
+
+이 점검은 URL/key 원문을 출력하지 않고 형식, public read, table, storage 접근 가능 여부만 보여줍니다.
+
 ## 4. Supabase 검증
 
 `/api/health`의 기본 체크가 `degraded`이면 먼저 실패 항목 이름을 봅니다.
