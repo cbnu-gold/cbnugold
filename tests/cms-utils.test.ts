@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { getCmsResourceMutationBlockMessage } from "../src/lib/admin-cms-resources";
 import { cmsMediaBucket, isCmsMediaBucket } from "../src/lib/admin-media";
 import { buildCmsPreviewCards } from "../src/lib/cms-preview";
+import { buildOrganizationSiteDraftImport } from "../src/lib/organization-import";
 import {
   buildApplicationStoragePath,
   getApplicationFileExtension,
@@ -1052,6 +1053,8 @@ test("organization site blueprint keeps reusable CMS operating modules explicit"
   assert.match(adminPage, /buildRecruitingFunnelReport/);
   assert.match(adminPage, /buildRecruitmentOperationReport/);
   assert.match(adminPage, /buildRecruitmentShareKit/);
+  assert.match(adminPage, /buildOrganizationSiteDraftImport/);
+  assert.match(adminPage, /초안으로 불러오기/);
   assert.match(adminPage, /재사용 가능한 대상/);
   assert.match(adminPage, /적용 분야별 운영 초점/);
   assert.match(adminPage, /단체형 홈페이지 운영 모델/);
@@ -1262,6 +1265,70 @@ test("organization site export excludes sensitive operations data", () => {
   assert.equal("id" in exported.resources.pages[0], false);
   assert.equal("updated_at" in exported.resources.media[0], false);
   assert.deepEqual(validateOrganizationSiteExportBundle(exported), { ok: true, errors: [] });
+});
+
+test("organization site draft import converts portable packages into safe drafts", () => {
+  const exported = buildOrganizationSiteExport(
+    {
+      settings: baseSettings,
+      pages: [{ slug: "home", title: "Home", description: "Home page", status: "published", sort_order: 1 }],
+      blocks: [
+        {
+          page_slug: "home",
+          block_key: "hero",
+          title: "Hero",
+          subtitle: null,
+          body: "Hero body",
+          cta_label: "Apply",
+          cta_href: "/join",
+          media_url: "/images/hero.webp",
+          status: "published",
+          sort_order: 1,
+        },
+      ],
+      recruitment: [{ ...baseCycle, is_open: true, status: "published" }],
+      activities: [
+        {
+          title: "Activity",
+          subtitle: null,
+          description: "Activity body",
+          category: "regular",
+          tags: ["tag"],
+          status: "published",
+          sort_order: 1,
+        },
+      ],
+      achievements: [],
+      history: [],
+      faqs: [{ question: "Question", answer: "Answer", status: "published", sort_order: 1 }],
+      media: [
+        {
+          bucket: "cms-media",
+          path: "hero.webp",
+          public_url: "/images/hero.webp",
+          alt: "Hero image",
+          kind: "image",
+          status: "published",
+        },
+      ],
+    },
+    "2026-01-01T00:00:00.000Z"
+  );
+
+  const imported = buildOrganizationSiteDraftImport(exported);
+
+  assert.equal(imported.ok, true);
+  assert.equal(imported.data?.settings.site_title, baseSettings.site_title);
+  assert.equal(imported.data?.pages[0].status, "draft");
+  assert.equal(imported.data?.blocks[0].status, "draft");
+  assert.equal(imported.data?.recruitment[0].status, "draft");
+  assert.equal(imported.data?.recruitment[0].is_open, false);
+  assert.equal(imported.data?.activities[0].status, "draft");
+  assert.equal(imported.data?.faqs[0].status, "draft");
+  assert.equal(imported.data?.mediaReferences.length, 1);
+  assert.equal(JSON.stringify(imported).includes("applicants"), false);
+  assert.equal(JSON.stringify(imported).includes("admin_profiles"), false);
+  assert.equal(JSON.stringify(imported).includes("audit_logs"), false);
 });
 
 test("organization site export validation rejects sensitive or runtime data", () => {
