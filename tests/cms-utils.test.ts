@@ -84,6 +84,7 @@ import {
   sanitizeHealthError,
 } from "../src/lib/health";
 import { getHealthRemediation } from "../src/lib/health-remediation";
+import { buildLaunchReadinessReport } from "../src/lib/launch-readiness";
 import {
   validateAndNormalizeRecruitmentPayload,
   validateRecruitmentTimelinePatch,
@@ -464,6 +465,7 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(adminPage, /핵심 블록 매핑/);
   assert.match(adminPage, /first-semester/);
   assert.match(adminPage, /운영 상태/);
+  assert.match(adminPage, /운영 전환 게이트/);
   assert.match(adminPage, /\/api\/health/);
 });
 
@@ -547,6 +549,7 @@ test("health status reports degraded when any check fails", () => {
   assert.match(healthRoute, /env:supabase_anon_key_format/);
   assert.match(healthRoute, /env:supabase_service_role_key_format/);
   assert.match(adminPage, /getHealthRemediation/);
+  assert.match(adminPage, /buildLaunchReadinessReport/);
   assert.match(adminPage, /조치:/);
   assert.match(
     getHealthRemediation({
@@ -559,6 +562,32 @@ test("health status reports degraded when any check fails", () => {
     getHealthRemediation({ name: "storage:applications" }),
     /applications private 버킷/
   );
+});
+
+test("launch readiness gate blocks production cutover until core checks pass", () => {
+  const blocked = buildLaunchReadinessReport({
+    health: {
+      status: "degraded",
+      checks: [{ name: "supabase:public_read", ok: false, message: "Supabase 호스트를 찾을 수 없습니다" }],
+    },
+    readiness: { status: "pass", score: 100 },
+    freshness: { status: "pass" },
+    recruitment: { status: "pass" },
+  });
+
+  assert.equal(blocked.status, "fail");
+  assert.equal(blocked.label, "전환 보류");
+  assert.equal(blocked.items.find((item) => item.key === "runtime-health")?.status, "fail");
+
+  const ready = buildLaunchReadinessReport({
+    health: { status: "ok", checks: [{ name: "supabase:public_read", ok: true }] },
+    readiness: { status: "pass", score: 100 },
+    freshness: { status: "pass" },
+    recruitment: { status: "pass" },
+  });
+
+  assert.equal(ready.status, "pass");
+  assert.equal(ready.label, "전환 가능");
 });
 
 test("site settings validation normalizes safe values", () => {
