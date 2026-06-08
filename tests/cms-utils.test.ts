@@ -26,6 +26,10 @@ import {
 import { buildRecruitmentOperationReport } from "../src/lib/recruitment-operations";
 import { buildRecruitmentShareKit } from "../src/lib/recruitment-share-kit";
 import {
+  buildSiteSettingsImpactBrief,
+  buildSiteSettingsImpactReport,
+} from "../src/lib/site-settings-impact";
+import {
   canManageAdmins,
   canManageApplicants,
   canViewAudit,
@@ -468,6 +472,8 @@ test("fallback home content includes editable visual and philosophy blocks", () 
   assert.match(adminPage, /운영 전환 게이트/);
   assert.match(adminPage, /공유용 브리프/);
   assert.match(adminPage, /\/api\/health/);
+  assert.match(adminPage, /settingsImpact/);
+  assert.match(adminPage, /copySettingsImpactBrief/);
 });
 
 test("SEO metadata uses the recruiting visual and Korean description", () => {
@@ -633,6 +639,22 @@ test("site settings validation backfills reusable organization fields", () => {
   assert.equal(result.value?.brand_preset, "gold");
   assert.equal(result.value?.logo_url, "/images/logo.svg");
   assert.equal(result.value?.share_image_url, "/images/gold-recruiting-board.png");
+});
+
+test("site settings impact report explains public surfaces without private data", () => {
+  const report = buildSiteSettingsImpactReport(baseSettings);
+  const brief = buildSiteSettingsImpactBrief(report);
+
+  assert.equal(report.length, 4);
+  assert.deepEqual(
+    report.map((item) => item.key),
+    ["identity", "brand-assets", "public-actions", "contact-channels"]
+  );
+  assert.ok(report.find((item) => item.key === "identity")?.fields.includes("site_title"));
+  assert.ok(report.find((item) => item.key === "brand-assets")?.fields.includes("share_image_url"));
+  assert.match(brief, /^#/);
+  assert.match(brief, /site_title/);
+  assert.doesNotMatch(brief, /applicants|admin_profiles|audit_logs|service_role|signed URL/i);
 });
 
 test("site settings validation rejects unsafe public links", () => {

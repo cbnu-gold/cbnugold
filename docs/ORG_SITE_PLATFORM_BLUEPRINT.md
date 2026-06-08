@@ -51,6 +51,7 @@
    - `hero_title`
    - `hero_subtitle`
    - CTA와 연락처
+   - 관리자 `설정 변경 영향 범위`에서 공개 화면 반영 위치 확인
 2. `content_pages`
    - 페이지 제목과 설명
 3. `content_blocks`
